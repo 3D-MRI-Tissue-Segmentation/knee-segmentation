@@ -1,0 +1,31 @@
+01.10.19: First Group Meeting
+General
+- Project: cartilage and knee segmentation analysis 
+- He doesn't 'do' email; watsapp instead
+- Fimrib software library for brain scans
+- Oxford brain segmentation program, can set a reference brain
+- Joint segmentation not as advanced as brain - muscle volumes, cartilage vol / thickness, meniscus etc.
+- Ostearthritis Initiative program in US
+- Brain scans fairly homogenous; knees and joimts more varied between individuals
+- Neal has exclusive knee segmentation data 
+- U-net and other canned neural net architectures already available for segmenting 
+- Data: 5000 scans 'gold standard' hand-labelled knee segments
+- MRI scanners: 1-3 Tesla strength MRI scanners typical - Neal's group collecting high res 7T knee data; 
+will also get those (currently 30) high res samples segmented
+- Medical Images: DICOM standard format for medical images, also 3dslicer
+- Connect to web based, python platform that Neal's MSc student wrote (as UI)
+- Two GPUs available to us: ?dual gpu machine 11gb gd4 rt80 nvidia? 2tb 10tb seagate baracuda
+- Nyquist: twice the highest frequency, determines how much data needs to be sampled
+- Overview of MRI: sampling radio frequency signals in FT domain; critically sampling k-space, inverse 3d FT to get the image
+- Exploit prior knowledge data to speed up MRI and sample fewer points
+- Reinforcement learning bayesian alpha 
+- Workspaces: Lab downstairs, Neal's office
+
+Division of Labor 
+- integration with the platform (python)
+- transfer learning 
+- GAN based data augmentation
+- run study to get 50-100 new datasets  -- ca. 25 hrs MRI time
+- MRI acquisition: 
+    - Exploit prior knowledge data to speed up MRI and undersampling data
+- GPUs running
