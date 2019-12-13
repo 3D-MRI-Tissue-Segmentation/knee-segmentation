@@ -1,5 +1,3 @@
 env/
-web_env/
-deep_env/
 .pytest_cache/
 *.json
