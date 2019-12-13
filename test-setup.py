@@ -1,1 +1,2 @@
-print("Hello")
+def check_setup():
+    print("Hello")
