@@ -10,19 +10,16 @@ jobs:
         - chmod +x Scripts/test_general.sh
         - bash ./Scripts/test_general.sh;
         - echo "Completed general tests";
-    - stage: 
       script:
         - echo "Segementation test."
         - chmod +x Scripts/test_segmentation.sh
         - bash ./Scripts/test_segmentation.sh
         - echo "Completed segmentation tests"
-    - stage: 
       script:
         - echo "UI test."
         - chmod +x Scripts/test_ui.sh
         - bash ./Scripts/test_ui.sh
         - echo "Completed UI tests"
-    - stage: 
       script:
         - echo "Testing merge."
         - chmod +x Scripts/test_merge.sh
