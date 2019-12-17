@@ -12,27 +12,37 @@ script:
 
 
 language: python
-python:
-  - "3.6"
-  - "3.7"
+
 
 jobs:
   include:
     - stage:
+      python:
+      - "3.6"
+      - "3.7"
       name: "Test General"
       script:
+        - echo "General test."
         - chmod +x Scripts/test_general.sh
         - bash ./Scripts/test_general.sh;
         - echo "Completed general tests";
     - stage:
+      python:
+      - "3.6"
+      - "3.7"
       name: "Test Segmentation"
       script:
+        - echo "Segementation test."
         - chmod +x Scripts/test_segmentation.sh
         - bash ./Scripts/test_segmentation.sh
         - echo "Completed segmentation tests"
     - stage:
+      python:
+      - "3.6"
+      - "3.7"
       name: "Test UI"
       script:
+        - echo "UI test."
         - chmod +x Scripts/test_ui.sh
         - bash ./Scripts/test_ui.sh
         - echo "Completed UI tests"
