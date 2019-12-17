@@ -1,3 +1,3 @@
-def test_check_setup():
+def test_setup():
     assert True
     print("Ran")

@@ -4,3 +4,4 @@ ml_env/
 .pytest_cache/
 __pycache__/
 *.json
+*.png
