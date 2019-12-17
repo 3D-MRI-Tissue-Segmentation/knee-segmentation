@@ -1,5 +1,3 @@
-echo python --version
-
 python -m venv env
 source env/bin/activate
 

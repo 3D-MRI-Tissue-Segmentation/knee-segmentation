@@ -1,12 +1,12 @@
 language: python
-
+matrix:
+  include:
+  - python: 3.6
+  - python: 3.7
 jobs:
   include:
     - stage:
       name: "Test General"
-      python:
-      - "3.6"
-      - "3.7"
       script:
         - echo "General test."
         - chmod +x Scripts/test_general.sh
@@ -14,9 +14,6 @@ jobs:
         - echo "Completed general tests";
     - stage:
       name: "Test Segmentation"
-      python:
-      - "3.6"
-      - "3.7"
       script:
         - echo "Segementation test."
         - chmod +x Scripts/test_segmentation.sh
@@ -24,9 +21,6 @@ jobs:
         - echo "Completed segmentation tests"
     - stage:
       name: "Test UI"
-      python:
-      - "3.6"
-      - "3.7"
       script:
         - echo "UI test."
         - chmod +x Scripts/test_ui.sh
@@ -34,9 +28,6 @@ jobs:
         - echo "Completed UI tests"
     - stage:
       name: "Test Merge"
-      python:
-      - "3.6"
-      - "3.7"
       script:
         - echo "Testing merge."
         - chmod +x Scripts/test_merge.sh
