@@ -32,3 +32,13 @@ jobs:
         - chmod +x Scripts/test_ui.sh
         - bash ./Scripts/test_ui.sh
         - echo "Completed UI tests"
+    - stage:
+      name: "Test Merge"
+      python:
+      - "3.6"
+      - "3.7"
+      script:
+        - echo "Testing merge."
+        - chmod +x Scripts/test_merge.sh
+        - bash ./Scripts/test_merge.sh
+        - echo "Completed merge tests"

@@ -1,5 +1,5 @@
 def test_random_data_gen():
-    from Segmentation_Models.src.data_gen.toy_data_gen import Toy_Image
+    from src.data_gen.toy_data_gen import Toy_Image
 
     n_reps = 10
     n_classes = 100
@@ -11,4 +11,8 @@ def test_random_data_gen():
 
     import matplotlib.pyplot as plt
     plt.imshow(test_ti.image, cmap='jet')
-    plt.savefig("Data/Tests_data/random_image.png")
+    img_path = "../Data/Tests_data/random_image.png"
+    plt.savefig(img_path)
+    import os
+    assert os.path.isfile(img_path), "file does not exist"
+    os.remove(img_path)
