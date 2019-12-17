@@ -1,9 +1,7 @@
 echo python --version
 
-cd Web_UI
-
 python -m venv web_env
-source web_env/bin/activate
-python -m pip install -r web_reqs.txt --no-index
+source Web_UI/web_env/bin/activate
+python -m pip install -r Web_UI/web_reqs.txt --no-index
 
-pytest
+pytest ./Web_UI/
