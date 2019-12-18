@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+                <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <link href="static/styles.css" rel="stylesheet"/>
+       
+        <title>
+            DeepSeg
+        </title>
+    </head>
+    <body>
+        <div class="container">
+            <div class="row pt-5 mt-5"></div>
+            <div class="row">
+                <div class="col align-self-center" id="titler">
+                    KneeDeep Augmentor
+                </div>
+            </div>
+            
+            <form action="/render" method="POST">
+                <div class="row pt-3 mt-3"></div>
+                <div class="row justify-content-center">
+                    <div class="col-{breakpoint}-auto" >
+                       Femur Width
+                       <p><input type="number" name="Femur Width" min="1" max="100"></p>
+                    </div>
+                    <div class="col-{breakpoint}-auto offset-md-1">
+                       Tibia Width
+                       <p><input type="number" name="Tibia Width" min="1" max="100"></p>
+                    </div>
+                    <div class="col-{breakpoint}-auto offset-md-1">
+                       Patella Width
+                       <p><input type="number" name="Patella Width" min="1" max="100"></p>
+                    </div>
+                    <div class="col-{breakpoint}-auto offset-md-1">
+                       Joint Space
+                       <p><input type="number" name="Joint Space" min="1" max="100"></p>
+                    </div>
+                </div>
+                
+                <div class="row pt-3 mt-3"></div>
+                <div class="row">
+                    <div class="col align-self-center">
+                        <input type="submit" value="render!">
+                    </div>
+                </div>
+            </form>
+
+        <script>
+            function swich()
+            {
+                document.getElementById('here').action = document.getElementById('here').action + document.getElementById('select').value;
+            }
+        </script>
+    </body>
+</html>
+

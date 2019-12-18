@@ -1,0 +1,33 @@
+body
+{
+    background-color: cadetblue;
+    color: white;
+    text-align: center;
+}
+
+#banner
+{
+    background-color: grey;
+    margin: 1px;
+    border: grey;
+}
+
+#titler
+{
+    font-size: 75px;
+    color: white;
+}
+
+.link
+{
+    color: white;
+    font-size: 25px;
+}
+
+.index_link
+{
+    color: turquoise;
+    font-size: 50px;
+}
+
+

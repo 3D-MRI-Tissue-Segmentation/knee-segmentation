@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+                <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <link href="static/styles.css" rel="stylesheet"/>
+       
+        <title>
+            DeepSeg
+        </title>
+    </head>
+    <body>
+        <div class="container">
+            <div class="row pt-5 mt-5"></div>
+            <div class="row">
+                <div class="col align-self-center" id="titler">
+                    KneeDeep Augmentor
+                </div>
+            </div>
+            
+            <div class="row pt-3 mt-3"></div>
+            <div class="row justify-content-center">
+                <div class="col-{breakpoint}-auto" >
+                    Femur Width = {{Femur_Value}}
+                </div>
+                <div class="col-{breakpoint}-auto offset-md-1">
+                    Tibia Width = {{Tibia_Value}}
+                </div>
+                <div class="col-{breakpoint}-auto offset-md-1">
+                    Patella Width = {{Patella_Value}}
+                </div>
+                <div class="col-{breakpoint}-auto offset-md-1">
+                    Joint Space = {{Joint_Value}}
+                </div>
+            </div>
+            
+            <div class="row pt-3 mt-3"></div>
+            <p><img src={{pic}}/></p>
+            
+            <div class="row pt-3 mt-3"></div>
+            <div class="row">
+                <div class="col align-self-center">
+                    <form action="/" method="GET">
+                        <input type="submit" value="restart!">
+                    </form>
+                </div>
+            </div>
+
+        <script>
+            function swich()
+            {
+                document.getElementById('here').action = document.getElementById('here').action + document.getElementById('select').value;
+            }
+        </script>
+    </body>
+</html>
+
