@@ -7,11 +7,11 @@ def test_random_data_gen():
 
     for rep in range(n_reps):
         for i in range(n_classes):
-            test_ti.set_color_to_random_xy(i)
+            test_ti.set_colour_to_random_xy(i)
 
     import matplotlib.pyplot as plt
     plt.imshow(test_ti.image, cmap='jet')
-    img_path = "Data/Tests_data/random_image.png"
+    img_path = "./Data/Tests_data/random_image.png"
     plt.savefig(img_path)
     import os
     assert os.path.isfile(img_path), "file does not exist"
