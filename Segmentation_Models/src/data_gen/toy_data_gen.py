@@ -11,14 +11,12 @@ class Toy_Image:
         self.class_colours = self.get_class_colours()
         self.image = self.get_empty_array()
 
-
     def init_check(self, n_classes, width, height, depth):
         assert type(n_classes) is int, "n_classes must be of type int"
         assert n_classes > 0, "Need at least one class"
         assert width > 0, "Need postive width"
         assert height > 0, "Need positive height"
         assert (depth == 3) or (depth == 1), "Either RGB or grayscale"
-    
 
     def get_class_colours(self):
         """ Generates random colours to be visualised with and returns the list """
@@ -32,7 +30,6 @@ class Toy_Image:
                     classes.append(colour)
                     valid = True
         return classes
-        
 
     def get_random_colour(self):
         """ Returns a random colour """
@@ -57,7 +54,9 @@ class Toy_Image:
             self.image[x][y][0] = self.class_colours[colour_idx][0]
             self.image[x][y][1] = self.class_colours[colour_idx][1]
             self.image[x][y][2] = self.class_colours[colour_idx][2]
-    
+
+    def set_colour_to_random_xy(self, colour_idx):
+        self.set_colour_to_xy(*self.get_random_xy(), colour_idx)
     
     def get_shape_square_range(self, x, y, length):
         assert type(length) is int, "length must be an int, it should be half the width of the object"
