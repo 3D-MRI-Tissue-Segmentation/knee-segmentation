@@ -1,6 +1,9 @@
 */env/
+env/
 */web_env/
+web_env/
 */ml_env/
+ml_env/
 .pytest_cache/
 __pycache__/
 *.json
