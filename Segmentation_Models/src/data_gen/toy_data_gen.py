@@ -127,7 +127,7 @@ class Toy_Image:
 if __name__ == "__main__":
     n_reps = 4
     n_classes = 5
-    width, height = 15, 15
+    width, height = 400, 400
     depth = 3
     td = Toy_Image(n_classes, width, height, depth)
 
@@ -136,15 +136,15 @@ if __name__ == "__main__":
             x,y = td.get_random_xy()
             rand_width = randint(1, int(td.width/8))
             rand_height = randint(1, int(td.height/8))
-            
-            td.set_oval_to_xy(x, y, rand_width, rand_height, colour_idx)
-            # rnd_i = randint(0, 2)
-            # if rnd_i == 0:
-            #     td.set_square_to_xy(x, y, rand_width, colour_idx)
-            # elif rnd_i == 1:
-            #     td.set_circle_to_xy(x, y, rand_width, colour_idx)
-            # elif rnd_i == 2:
-            #     td.set_rect_to_xy(x, y, rand_width, rand_height, colour_idx)
+            rnd_i = randint(0, 3)
+            if rnd_i == 0:
+                td.set_square_to_xy(x, y, rand_width, colour_idx)
+            elif rnd_i == 1:
+                td.set_circle_to_xy(x, y, rand_width, colour_idx)
+            elif rnd_i == 2:
+                td.set_rect_to_xy(x, y, rand_width, rand_height, colour_idx)
+            elif rnd_i == 3:
+                td.set_oval_to_xy(x, y, rand_width, rand_height, colour_idx)
 
     import matplotlib.pyplot as plt
     plt.imshow(td.image, cmap='jet')
