@@ -10,6 +10,7 @@ class Toy_Image:
         self.depth = depth
         self.class_colours = self.get_class_colours()
         self.image = self.get_empty_array()
+        self.one_hot_array = self.get_empty_array(depth=self.n_classes)
 
     def init_check(self, n_classes, width, height, depth):
         assert type(n_classes) is int, "n_classes must be of type int"
@@ -31,15 +32,20 @@ class Toy_Image:
                     valid = True
         return classes
 
+    def get_colour_from_idx(self, colour_idx):
+        return self.class_colours[colour_idx]
+
     def get_random_colour(self):
         """ Returns a random colour """
         if self.depth == 1:
             return [randint(0,255)]
         return [randint(0,255),randint(0,255),randint(0,255)]
     
-    def get_empty_array(self):
+    def get_empty_array(self, depth=None):
         """ Empty starting array """
-        return np.zeros([self.width, self.height, self.depth], dtype=int)
+        if depth is None:
+            depth = self.depth
+        return np.zeros([self.width, self.height, depth], dtype=int)
     
     def get_random_xy(self):
         x = randint(0, self.width-1)
@@ -54,6 +60,8 @@ class Toy_Image:
             self.image[x][y][0] = self.class_colours[colour_idx][0]
             self.image[x][y][1] = self.class_colours[colour_idx][1]
             self.image[x][y][2] = self.class_colours[colour_idx][2]
+        self.one_hot_array[x][y][:] = 0
+        self.one_hot_array[x][y][colour_idx] = 1
 
     def set_colour_to_random_xy(self, colour_idx):
         self.set_colour_to_xy(*self.get_random_xy(), colour_idx)
@@ -116,13 +124,10 @@ class Toy_Image:
                     self.set_colour_to_xy(x_, y_, colour_idx)
 
 
-
-        
-
 if __name__ == "__main__":
     n_reps = 4
-    n_classes = 3
-    width, height = 400, 400
+    n_classes = 5
+    width, height = 15, 15
     depth = 3
     td = Toy_Image(n_classes, width, height, depth)
 
