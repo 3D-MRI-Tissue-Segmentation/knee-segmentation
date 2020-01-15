@@ -4,10 +4,4 @@ ml_env/
 .pytest_cache/
 __pycache__/
 *.json
-<<<<<<< HEAD
-*.mhd
-*.zraw
-*.raw
-=======
 *.png
->>>>>>> 9c4ff50e91cf426e4ae281edc6586df578eb83b2
