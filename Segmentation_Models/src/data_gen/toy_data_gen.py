@@ -21,6 +21,7 @@ class Toy_Image:
     
 
     def get_class_colours(self):
+        """ Generates random colours to be visualised with and returns the list """
         classes = []
         for class_idx in range(self.n_classes):
             count = 0
@@ -34,15 +35,22 @@ class Toy_Image:
         
 
     def get_random_colour(self):
+        """ Returns a random colour """
         if self.depth == 1:
             return [randint(0,255)]
         return [randint(0,255),randint(0,255),randint(0,255)]
     
     def get_empty_array(self):
+        """ Empty starting array """
         return np.zeros([self.width, self.height, self.depth], dtype=int)
     
+    def get_random_xy(self):
+        x = randint(0, self.width-1)
+        y = randint(0, self.height-1)
+        return x, y
 
     def set_colour_to_xy(self, x, y, colour_idx):
+        """ Sets the colour for a specific pixel """
         if self.depth == 1:
             self.image[x][y][0] = self.class_colours[colour_idx][0]
         else:
@@ -50,20 +58,29 @@ class Toy_Image:
             self.image[x][y][1] = self.class_colours[colour_idx][1]
             self.image[x][y][2] = self.class_colours[colour_idx][2]
         
-    def set_color_to_random_xy(self, colour_idx):
-        x = randint(0, self.width-1)
-        y = randint(0, self.height-1)
-        self.set_colour_to_xy(x, y, colour_idx)
-    
+    def set_square_to_xy(self, x, y, length, colour_idx):
+        width = x + length
+        height = y + length
+        max_width = width if width < self.width - 1 else self.width
+        max_height = height if height < self.height - 1 else self.height
+        for x_ in range(x, max_width):
+            for y_ in range(y, max_height):
+                self.set_colour_to_xy(x_, y_, colour_idx)
+
+        
 
 if __name__ == "__main__":
-    n_reps = 10
-    n_classes = 100
-    td = Toy_Image(n_classes, 40, 40, 3)
+    n_reps = 5
+    n_classes = 3
+    width, height = 40, 40
+    depth = 3
+    td = Toy_Image(n_classes, width, height, depth)
 
     for rep in range(n_reps):
-        for i in range(n_classes):
-            td.set_color_to_random_xy(i)
+        for colour_idx in range(n_classes):
+            x,y = td.get_random_xy()
+            rand_width = randint(1, int(td.width/4))
+            td.set_square_to_xy(x, y, rand_width, colour_idx)
 
     import matplotlib.pyplot as plt
     plt.imshow(td.image, cmap='jet')
