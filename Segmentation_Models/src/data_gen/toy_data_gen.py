@@ -93,8 +93,11 @@ class Toy_Image:
         self.set_rect_to_xy(x, y, length, length, colour_idx)
 
     def is_in_circle(self, x, y, centre, radius):
+        return self.is_in_oval(x, y, centre, radius, radius)
+
+    def is_in_oval(self, x, y, centre, x_radius, y_radius):
         x_centre, y_centre = centre
-        if (x_centre-x)**2 + (y_centre-y)**2 < radius**2:
+        if ((x_centre-x)**2)/x_radius**2 + ((y_centre-y)**2)/y_radius**2 < 1:
             return True
         return False
 
@@ -106,7 +109,14 @@ class Toy_Image:
                     self.set_colour_to_xy(x_, y_, colour_idx)
     
     def set_oval_to_xy(self, x, y, x_radius, y_radius, colour_idx):
-        
+        (x_min, x_max) = self.get_axis_range(x, x_radius)
+        (y_min, y_max) = self.get_axis_range(y, y_radius)
+        for x_ in range(x_min, x_max):
+            for y_ in range(y_min, y_max):
+                if self.is_in_oval(x_, y_, (x, y), x_radius, y_radius):
+                    self.set_colour_to_xy(x_, y_, colour_idx)
+
+
 
         
 
@@ -121,10 +131,16 @@ if __name__ == "__main__":
         for colour_idx in range(n_classes):
             x,y = td.get_random_xy()
             rand_width = randint(1, int(td.width/8))
-            if randint(0, 1):
-                td.set_square_to_xy(x, y, rand_width, colour_idx)
-            else:
-                td.set_circle_to_xy(x, y, rand_width, colour_idx)
+            rand_height = randint(1, int(td.height/8))
+            
+            td.set_oval_to_xy(x, y, rand_width, rand_height, colour_idx)
+            # rnd_i = randint(0, 2)
+            # if rnd_i == 0:
+            #     td.set_square_to_xy(x, y, rand_width, colour_idx)
+            # elif rnd_i == 1:
+            #     td.set_circle_to_xy(x, y, rand_width, colour_idx)
+            # elif rnd_i == 2:
+            #     td.set_rect_to_xy(x, y, rand_width, rand_height, colour_idx)
 
     import matplotlib.pyplot as plt
     plt.imshow(td.image, cmap='jet')
