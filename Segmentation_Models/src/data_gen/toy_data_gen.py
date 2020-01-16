@@ -123,14 +123,11 @@ class Toy_Image:
                 if self.is_in_oval(x_, y_, (x, y), x_radius, y_radius):
                     self.set_colour_to_xy(x_, y_, colour_idx)
 
-
-if __name__ == "__main__":
-    n_reps = 4
-    n_classes = 5
-    width, height = 400, 400
-    depth = 3
-    td = Toy_Image(n_classes, width, height, depth)
-
+    
+def get_test_image(n_reps, n_classes, 
+                   image_width, image_height, image_depth):
+    td = Toy_Image(n_classes, 
+                   image_width, image_height, image_depth)
     for rep in range(n_reps):
         for colour_idx in range(n_classes):
             x,y = td.get_random_xy()
@@ -145,8 +142,17 @@ if __name__ == "__main__":
                 td.set_rect_to_xy(x, y, rand_width, rand_height, colour_idx)
             elif rnd_i == 3:
                 td.set_oval_to_xy(x, y, rand_width, rand_height, colour_idx)
+    return td.image, td.one_hot_array
+
+if __name__ == "__main__":
+    n_reps = 4
+    n_classes = 5
+    width, height = 400, 400
+    depth = 3
+    image, one_hot = get_test_image(n_reps, n_classes, 
+                                    width, height, depth)
 
     import matplotlib.pyplot as plt
-    plt.imshow(td.image, cmap='jet')
+    plt.imshow(image, cmap='jet')
     plt.show()
     
