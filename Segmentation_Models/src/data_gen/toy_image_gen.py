@@ -2,50 +2,52 @@ import numpy as np
 from random import randint
 
 class Toy_Image:
-    def __init__(self, n_classes, width, height, depth=3):
-        self.init_check(n_classes, width, height, depth)
+    def __init__(self, n_classes, width, height, colour_channels=3):
+        self.init_check(n_classes, width, height, colour_channels)
         self.n_classes = n_classes
         self.width = width
         self.height = height
-        self.depth = depth
-        self.class_colours = self.get_class_colours()
+        self.colour_channels = colour_channels
+        self.class_colours = Toy_Image.get_class_colours(n_classes, colour_channels)
         self.image = self.get_empty_array()
-        self.one_hot_array = self.get_empty_array(depth=self.n_classes)
+        self.one_hot_array = self.get_empty_array(colour_channels=self.n_classes)
 
-    def init_check(self, n_classes, width, height, depth):
+    def init_check(self, n_classes, width, height, colour_channels):
         assert type(n_classes) is int, "n_classes must be of type int"
         assert n_classes > 0, "Need at least one class"
         assert width > 0, "Need postive width"
         assert height > 0, "Need positive height"
-        assert (depth == 3) or (depth == 1), "Either RGB or grayscale"
+        assert (colour_channels == 3) or (colour_channels == 1), "Either RGB or grayscale"
 
-    def get_class_colours(self):
+    @staticmethod
+    def get_class_colours(n_classes, colour_channels):
         """ Generates random colours to be visualised with and returns the list """
         classes = []
-        for class_idx in range(self.n_classes):
+        for class_idx in range(n_classes):
             count = 0
             valid = False
             while( not valid ):
-                colour = self.get_random_colour()
+                colour = Toy_Image.get_random_colour(colour_channels)
                 if colour not in classes:
                     classes.append(colour)
                     valid = True
         return classes
 
-    def get_colour_from_idx(self, colour_idx):
-        return self.class_colours[colour_idx]
-
-    def get_random_colour(self):
+    @staticmethod
+    def get_random_colour(colour_channels):
         """ Returns a random colour """
-        if self.depth == 1:
+        if colour_channels == 1:
             return [randint(0,255)]
         return [randint(0,255),randint(0,255),randint(0,255)]
     
-    def get_empty_array(self, depth=None):
+    def get_colour_from_idx(self, colour_idx):
+        return self.class_colours[colour_idx]
+    
+    def get_empty_array(self, colour_channels=None):
         """ Empty starting array """
-        if depth is None:
-            depth = self.depth
-        return np.zeros([self.width, self.height, depth], dtype=int)
+        if colour_channels is None:
+            colour_channels = self.colour_channels
+        return np.zeros([self.width, self.height, colour_channels], dtype=int)
     
     def get_random_xy(self):
         x = randint(0, self.width-1)
@@ -54,7 +56,7 @@ class Toy_Image:
 
     def set_colour_to_xy(self, x, y, colour_idx):
         """ Sets the colour for a specific pixel """
-        if self.depth == 1:
+        if self.colour_channels == 1:
             self.image[x][y][0] = self.class_colours[colour_idx][0]
         else:
             self.image[x][y][0] = self.class_colours[colour_idx][0]
@@ -146,11 +148,11 @@ def get_test_image(n_reps, n_classes,
 
 
 def get_test_images(n_images, n_reps, n_classes, 
-                   image_width, image_height, image_depth):
+                   image_width, image_height, colour_channels):
     images, one_hots = [], []
     for i in range(n_images):
         image, one_hot = get_test_image(n_reps, n_classes, 
-                                        image_width, image_height, image_depth)
+                                        image_width, image_height, colour_channels)
         images.append(image)
         one_hots.append(one_hot)
     return images, one_hots
@@ -159,9 +161,9 @@ if __name__ == "__main__":
     n_reps = 4
     n_classes = 5
     width, height = 400, 400
-    depth = 3
+    colour_channels = 3
     image, one_hot = get_test_image(n_reps, n_classes, 
-                                    width, height, depth)
+                                    width, height, colour_channels)
 
     import matplotlib.pyplot as plt
     plt.imshow(image, cmap='jet')

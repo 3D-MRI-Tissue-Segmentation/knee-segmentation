@@ -1,8 +1,7 @@
 def test_random_data_gen_2D():
-    from src.data_gen.toy_data_gen import Toy_Image
+    from src.data_gen.toy_image_gen import Toy_Image
 
-    n_reps = 10
-    n_classes = 100
+    n_reps, n_classes = 10, 20
     test_ti = Toy_Image(n_classes, 40, 40, 3)
 
     for rep in range(n_reps):
@@ -19,15 +18,14 @@ def test_random_data_gen_2D():
 
 
 def test_random_shapes_gen_2D():
-    from src.data_gen.toy_data_gen import Toy_Image
+    from src.data_gen.toy_image_gen import Toy_Image
     from random import randint
 
-    n_reps = 10
-    n_classes = 6
-    width = 400
-    height = 400
+    n_reps, n_classes = 10, 6
+    width, height = 400, 400
+    colour_channels = 3
 
-    test_ti = Toy_Image(n_classes, width, height, 3)
+    test_ti = Toy_Image(n_classes, width, height, colour_channels)
 
     for rep in range(n_reps):
         for colour_idx in range(n_classes):
@@ -54,13 +52,14 @@ def test_random_shapes_gen_2D():
 
 
 def test_get_test_images():
-    from src.data_gen.toy_data_gen import get_test_images
+    from src.data_gen.toy_image_gen import get_test_images
 
     n_images, n_reps, n_classes = 10, 4, 5
-    width, height, depth = 400, 400, 3
+    width, height = 400, 400
+    colour_channels = 3
 
     images, one_hots = get_test_images(n_images, n_reps, n_classes,
-                                            width, height, depth)
+                                            width, height, colour_channels)
 
     assert len(images) == n_images
     assert len(one_hots) == n_images
