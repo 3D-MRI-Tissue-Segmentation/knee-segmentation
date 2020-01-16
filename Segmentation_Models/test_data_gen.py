@@ -51,3 +51,26 @@ def test_random_shapes_gen_2D():
     import os
     assert os.path.isfile(img_path), "file does not exist"
     os.remove(img_path)
+
+
+def test_get_test_images():
+    from src.data_gen.toy_data_gen import get_test_images
+
+    n_images, n_reps, n_classes = 10, 4, 5
+    width, height, depth = 400, 400, 3
+
+    images, one_hots = get_test_images(n_images, n_reps, n_classes,
+                                            width, height, depth)
+
+    assert len(images) == n_images
+    assert len(one_hots) == n_images
+
+    import matplotlib.pyplot as plt
+    import os
+
+    for image in images:
+        plt.imshow(image, cmap='jet')
+        img_path = "./Data/Tests_data/random_shapes_images_2d.png"
+        plt.savefig(img_path)
+        assert os.path.isfile(img_path), "file does not exist"
+        os.remove(img_path)

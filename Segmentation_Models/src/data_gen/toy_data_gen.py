@@ -144,6 +144,17 @@ def get_test_image(n_reps, n_classes,
                 td.set_oval_to_xy(x, y, rand_width, rand_height, colour_idx)
     return td.image, td.one_hot_array
 
+
+def get_test_images(n_images, n_reps, n_classes, 
+                   image_width, image_height, image_depth):
+    images, one_hots = [], []
+    for i in range(n_images):
+        image, one_hot = get_test_image(n_reps, n_classes, 
+                                        image_width, image_height, image_depth)
+        images.append(image)
+        one_hots.append(one_hot)
+    return images, one_hots
+
 if __name__ == "__main__":
     n_reps = 4
     n_classes = 5
