@@ -1,5 +1,5 @@
 def test_random_data_gen_2D():
-    from src.data_gen.toy_image_gen import Toy_Image
+    from Segmentation.data_gen.toy_image_gen import Toy_Image
 
     n_reps, n_classes = 10, 20
     test_ti = Toy_Image(n_classes, 40, 40, 3)
@@ -18,7 +18,7 @@ def test_random_data_gen_2D():
 
 
 def test_random_shapes_gen_2D():
-    from src.data_gen.toy_image_gen import Toy_Image
+    from Segmentation.data_gen.toy_image_gen import Toy_Image
     from random import randint
 
     n_reps, n_classes = 10, 6
@@ -56,7 +56,7 @@ def test_random_shapes_gen_2D():
 
 
 def test_get_test_images():
-    from src.data_gen.toy_image_gen import get_test_images
+    from Segmentation.data_gen.toy_image_gen import get_test_images
 
     n_images, n_reps, n_classes = 10, 4, 5
     width, height = 400, 400
@@ -80,7 +80,7 @@ def test_get_test_images():
 
 
 def test_random_volumes_gen():
-    from src.data_gen.toy_volume_gen import Toy_Volume
+    from Segmentation.data_gen.toy_volume_gen import Toy_Volume
     from random import randint
 
     n_reps, n_classes = 10, 6
@@ -117,5 +117,5 @@ def test_random_volumes_gen():
             else:
                 raise Exception(f"Invalid {rnd_i}")
 
-    from src.data_gen.toy_volume_gen import plot_volume
+    from Segmentation.data_gen.toy_volume_gen import plot_volume
     plot_volume(test_tv.volume, False)
