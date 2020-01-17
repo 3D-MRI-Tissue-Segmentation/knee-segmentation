@@ -32,7 +32,7 @@ def test_random_shapes_gen_2D():
             x,y = test_ti.get_random_xy()
             rand_width = randint(1, int(test_ti.width/8))
             rand_height = randint(1, int(test_ti.height/8))
-            rnd_i = randint(0, 3)
+            rnd_i = randint(0, 4)
             if rnd_i == 0:
                 test_ti.set_square_to_xy(x, y, rand_width, colour_idx)
             elif rnd_i == 1:
@@ -40,7 +40,11 @@ def test_random_shapes_gen_2D():
             elif rnd_i == 2:
                 test_ti.set_rect_to_xy(x, y, rand_width, rand_height, colour_idx)
             elif rnd_i == 3:
-                test_ti.set_oval_to_xy(x, y, rand_width, rand_height, colour_idx)
+                test_ti.set_ellipse_to_xy(x, y, rand_width, rand_height, colour_idx)
+            elif rnd_i == 4:
+                test_ti.set_colour_to_random_xy(colour_idx)
+            else:
+                raise Exception(f"Invalid {rnd_i}")
 
     import matplotlib.pyplot as plt
     plt.imshow(test_ti.image, cmap='jet')
@@ -73,3 +77,45 @@ def test_get_test_images():
         plt.savefig(img_path)
         assert os.path.isfile(img_path), "file does not exist"
         os.remove(img_path)
+
+
+def test_random_volumes_gen():
+    from src.data_gen.toy_volume_gen import Toy_Volume
+    from random import randint
+
+    n_reps, n_classes = 10, 6
+    width, height, depth = 40, 40, 40
+    colour_channels = 3
+
+    test_tv = Toy_Volume(n_classes, width, height, depth, colour_channels)
+
+    for rep in range(n_reps):
+        for colour_idx in range(n_classes):
+            x, y, z = test_tv.get_random_xyz()
+            rand_x_len = randint(1, int(test_tv.width/4))
+            rand_y_len = randint(1, int(test_tv.height/4))
+            rand_z_len = randint(1, int(test_tv.depth/4))
+            rnd_i = randint(0, 4)
+            if rnd_i == 0:
+                test_tv.set_rect_cuboid_to_xyz(x, y, z, 
+                                               rand_x_len, rand_y_len, rand_z_len, 
+                                               colour_idx)
+            elif rnd_i == 1:
+                test_tv.set_ellipsoid_to_xyz(x, y, z,
+                                             rand_x_len, rand_y_len, rand_z_len, 
+                                             colour_idx)
+            elif rnd_i == 2:
+                test_tv.set_cube_to_xyz(x, y, z, 
+                                        rand_x_len, 
+                                        colour_idx)
+            elif rnd_i == 3:
+                test_tv.set_sphere_to_xyz(x, y, z,
+                                          rand_x_len, 
+                                          colour_idx)
+            elif rnd_i == 4:
+                test_tv.set_colour_to_random_xyz(colour_idx)
+            else:
+                raise Exception(f"Invalid {rnd_i}")
+
+    from src.data_gen.toy_volume_gen import plot_volume
+    plot_volume(test_tv.volume, False)

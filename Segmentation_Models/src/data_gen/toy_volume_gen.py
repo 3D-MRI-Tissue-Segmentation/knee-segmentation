@@ -136,14 +136,15 @@ def get_test_volumes(n_volumes, n_reps, n_classes,
 
     return volumes, one_hots
 
-def plot_volume(volume):
+def plot_volume(volume, show=True):
     voxel = volume[:,:,:,0] > 0
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     ax.voxels(voxel, facecolors=volume, linewidth=0.5)
-    plt.show()
+    if show:
+        plt.show()
 
 
 def rgb_to_hex(rgb):
