@@ -1,5 +1,6 @@
-python -m Segmentation/venv ml_env
-source Segmentation/ml_env/bin/activate
+cd ..
+python -m venv ml_env_test
+source ml_env_test/bin/activate
 python -m pip install -r Segmentation/ml_reqs.txt
 
-pytest ./Segmentation/
+python -m pytest ./Segmentation/
