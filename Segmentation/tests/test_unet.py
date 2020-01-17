@@ -1,6 +1,6 @@
 import tensorflow as tf
-# from Segmentation.model.unet import UNet, build_unet # local file import
-# from Segmentation.utils.training_utils import dice_coef_loss #local file import
+from Segmentation.model.unet import UNet, build_unet # local file import
+from Segmentation.utils.training_utils import dice_coef_loss #local file import
 
 class UNetTest(tf.test.TestCase):
 
