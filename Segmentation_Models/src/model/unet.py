@@ -1,4 +1,81 @@
 import tensorflow as tf 
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
+from tensorflow.keras.layers import Dropout, SpatialDropout2D, concatenate, BatchNormalization, Activation
+from tensorflow.keras import Input, Model, Sequential
+
+class Conv_block(tf.keras.Model):
+    
+    def __init__(self, 
+                 num_channels,
+                 kernel_size=(3,3),
+                 nonlinearity='relu',
+                 use_batchnorm = False,
+                 use_dropout = False,
+                 dropout_rate = 0.25, 
+                 use_spatial_dropout = True,
+                 data_format='channels_last',
+                 name="convolution_block"):
+
+        super(Conv_block, self).__init__(name=name)
+
+        self.use_batchnorm = use_batchnorm
+        self.use_dropout = use_dropout
+        self.use_spatial_dropout = use_spatial_dropout
+
+        self.conv = tf.keras.layers.Conv2D(num_channels, kernel_size, padding='same', data_format=data_format)
+        self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
+        self.activation = tf.keras.layers.Activation(nonlinearity)
+
+        if use_spatial_dropout:
+            self.dropout = tf.keras.layers.SpatialDropout2D(rate=dropout_rate)
+        else:
+            self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
+
+    def call(self, inputs):
+        
+        x = inputs
+        x = self.conv(x)
+        if self.use_batchnorm:
+            x = self.batchnorm(x)
+        x = self.activation(x)
+
+        if self.use_dropout:
+            x = self.dropout(x)
+
+        outputs = x
+
+        return outputs
+
+class Up_conv(tf.keras.Model):
+
+    def __init__(self, 
+                 num_channels,
+                 kernel_size=(2,2),
+                 nonlinearity='relu',
+                 use_batchnorm = False,
+                 data_format='channels_last',
+                 name="upsampling_convolution_block"):
+
+        super(Up_conv, self).__init__(name=name)
+
+        self.use_batchnorm = use_batchnorm
+        
+        self.upsample = tf.keras.layers.UpSampling2D(size=(2,2))
+        self.conv = tf.keras.layers.Conv2D(num_channels, kernel_size, padding='same', data_format=data_format)
+        self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1)
+        self.activation = tf.keras.layers.Activation(nonlinearity)
+        
+    def call(self, inputs):
+        
+        x = inputs
+        x = self.upsample(x)
+        x = self.conv(x)
+        if self.use_batchnorm:
+            x = self.batch_norm(x)
+        outputs = self.activation(x)
+
+        return outputs
+
 
 class UNet(tf.keras.Model):
     """ Keras Implementation of 'U-Net: Convolutional Networks for Biomedical Image Segmentation'
@@ -7,8 +84,8 @@ class UNet(tf.keras.Model):
     def __init__(self, 
                  num_channels,
                  num_classes,
-                 kernel_size,
-                 nonlinearity=tf.keras.activations.relu,
+                 kernel_size=(3,3),
+                 nonlinearity='relu',
                  dropout_rate = 0.25, 
                  use_spatial_dropout = True,
                  data_format='channels_last',
@@ -16,84 +93,135 @@ class UNet(tf.keras.Model):
 
         super(UNet, self).__init__(name=name)
 
-        self.num_channels = num_channels
-        self.num_classes = num_classes
-        self.nonlinearity = nonlinearity
-        self.kernel_size = kernel_size
-        self.dropout_rate = dropout_rate
-        self.data_format = data_format
+        self.conv_1 = Conv_block(64,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_2 = Conv_block(128,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_3 = Conv_block(256,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_4 = Conv_block(512,kernel_size,nonlinearity,use_batchnorm=True,use_dropout=True,dropout_rate=dropout_rate,use_spatial_dropout=use_spatial_dropout,data_format=data_format)
+        self.conv_5 = Conv_block(1024,kernel_size,nonlinearity,use_batchnorm=True,use_dropout=True,dropout_rate=dropout_rate,use_spatial_dropout=use_spatial_dropout,data_format=data_format)
+        
+        self.up_5 = Up_conv(512,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_6 = Up_conv(256,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_7 = Up_conv(128,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_8 = Up_conv(64,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
 
-        self.Conv_1 = tf.keras.layers.Conv2D(num_channels, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_2 = tf.keras.layers.Conv2D(num_channels*2, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_3 = tf.keras.layers.Conv2D(num_channels*4, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_4 = tf.keras.layers.Conv2D(num_channels*8, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_5 = tf.keras.layers.Conv2D(num_channels*16, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_6 = tf.keras.layers.Conv2D(num_channels*8, 2, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_7 = tf.keras.layers.Conv2D(num_channels*4, 2, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_8 = tf.keras.layers.Conv2D(num_channels*2, 2, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_9 = tf.keras.layers.Conv2D(num_channels, 2, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_10 = tf.keras.layers.Conv2D(2, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
-        self.Conv_11 = tf.keras.layers.Conv2D(num_classes, 1, padding='same', data_format=data_format)
+        self.up_conv4 = Conv_block(512,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv3 = Conv_block(256,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv2 = Conv_block(128,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv1 = Conv_block(64,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
 
-        self.DownSample = tf.keras.layers.MaxPooling2D(pool_size=(2,2)) 
-        self.UpSample = tf.keras.layers.UpSampling2D(pool_size=(2,2))
+        #convolution filters at the output
+        self.conv_output = tf.keras.layers.Conv2D(2, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
+        self.conv_1x1 = tf.keras.layers.Conv2D(num_classes, kernel_size, padding='same', data_format=data_format)
 
-        if use_spatial_dropout:
-            self.Dropout = tf.keras.layers.SpatialDropout2D(rate=dropout_rate)
-        else:
-            self.Dropout = tf.keras.layers.Dropout(rate=dropout_rate)
+        self.maxpool = tf.keras.layers.MaxPooling2D(pool_size=(2,2)) 
 
     def call(self, inputs):
-
-        ##encoder blocks 
-        #first block
-        x1 = self.Conv_1(inputs)
-        x1 = self.Conv_1(x1)
-        p1 = self.DownSample(x1)
-        #second block
-        x2 = self.Conv_2(p1)
-        x2 = self.Conv_2(x2)
-        p2 = self.DownSample(x2)
-        #third block
-        x3 = self.Conv_3(p2)
-        x3 = self.Conv_3(x3)
-        p3 = self.DownSample(x3)
-        #fourth block
-        x4 = self.Conv_4(p3)
-        x4 = self.Conv_4(x4)
-        d4 = self.Dropout(x4)
-        p4 = self.DownSample(d4)
-        #fifth block
-        x5 = self.Conv_5(p4)
-        x5 = self.Conv_5(x5)
-        d5 = self.Dropout(x5)
-
-        ##decoder blocks
-        #first block 
-        x6 = self.UpSample(d5)
-        x6 = self.Conv_6(x6)
-        m6 = tf.keras.layers.concatenate([d4, x6], axis=3)
-        x6 = self.Conv_4(m6)
-        x6 = self.Conv_4(x6)
-        #second block
-        x7 = self.UpSample(x6)
-        x7 = self.Conv_7(x7)
-        m7 = tf.keras.layers.concatenate([x3, x7], axis=3)
-        x7 = self.Conv_3(m7)
-        x7 = self.Conv_3(x7)
-        #third block
-        x8 = self.UpSample(x7)
-        x8 = self.Conv_8(x8)
-        m8 = tf.keras.layers.concatenate([x2, x8], axis=3)
-        x8 = self.Conv_2(m8)
-        x8 = self.Conv_2(x8)
-        #fourth block
-        x9 = self.UpSample(x8)
-        x9 = self.Conv_9(x9)
-        m9 = tf.keras.layers.concatenate([x1, x9], axis=3)
-        x9 = self.Conv_1(m9)
-        x9 = self.Conv_1(x9)
-        #output block
-        x10 = self.Conv_10(x9)
         
-        return self.Conv_11(x10)
+        ##encoder blocks
+        #1->64
+        x1 = self.conv_1(inputs)
+        
+        #64->128
+        x2 = self.maxpool(x1)
+        x2 = self.conv_2(x2)
+        
+        #128->256
+        x3 = self.maxpool(x2)
+        x3 = self.conv_3(x3)
+
+        #256->512
+        x4 = self.maxpool(x3)
+        x4 = self.conv_4(x4)
+
+        #512->1024
+        x5 = self.maxpool(x4)
+        x5 = self.conv_5(x5)
+        
+        #decoder blocks
+        #1024->512
+        u5 = self.up_5(x5)
+        u5 = tf.keras.layers.concatenate([x4, u5], axis=3)
+        u5 = self.up_conv4(u5)
+
+        #512->256
+        u6 = self.up_6(u5)
+        u6 = tf.keras.layers.concatenate([x3, u6], axis=3)
+        u6 = self.up_conv3(u6)
+
+        #256->128
+        u7 = self.up_7(u6)
+        u7 = tf.keras.layers.concatenate([x2, u7], axis=3)
+        u7 = self.up_conv2(u7)
+
+        #128->64
+        u8 = self.up_8(u7)
+        u8 = tf.keras.layers.concatenate([x1, u8], axis=3)
+        u8 = self.up_conv1(u8)
+
+        u9 = self.conv_output(u8)
+        output = self.conv_1x1(u9)
+
+        return output
+
+#Build UNet using tf.keras Functional API
+def build_unet(num_classes,
+            input_size = (256,256,1), 
+            num_channels=64, 
+            kernel_size=3, 
+            non_linearity=tf.keras.activations.relu,
+            dropout_rate=0.25,  
+            data_format='channels_last',
+            use_spatial_dropout=True):
+
+    inputs = Input(input_size)
+    conv1 = Conv2D(num_channels, kernel_size, activation = non_linearity, padding='same', data_format=data_format)(inputs)
+    conv1 = Conv2D(num_channels, kernel_size, activation = non_linearity, padding = 'same', data_format=data_format)(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    conv2 = Conv2D(num_channels*2, kernel_size, activation = non_linearity, padding = 'same', data_format=data_format)(pool1)
+    conv2 = Conv2D(num_channels*2, kernel_size, activation = non_linearity, padding = 'same', data_format=data_format)(conv2)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+    conv3 = Conv2D(num_channels*4, kernel_size, activation = non_linearity, padding = 'same', data_format=data_format)(pool2)
+    conv3 = Conv2D(num_channels*4, kernel_size, activation = non_linearity, padding = 'same', data_format=data_format)(conv3)
+    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+    conv4 = Conv2D(num_channels*8, kernel_size, activation = non_linearity, padding = 'same', data_format=data_format)(pool3)
+    conv4 = Conv2D(num_channels*8, kernel_size, activation = non_linearity, padding = 'same', data_format=data_format)(conv4)
+    
+    if use_spatial_dropout:
+        drop4 = SpatialDropout2D(dropout_rate)(conv4)
+    else:
+        drop4 = Dropout(dropout_rate)(conv4)
+    pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)
+
+    conv5 = Conv2D(num_channels*16, kernel_size, activation = non_linearity, padding = 'same', data_format=data_format)(pool4)
+    conv5 = Conv2D(num_channels*16, kernel_size, activation = non_linearity, padding = 'same', data_format=data_format)(conv5)
+    
+    if use_spatial_dropout:
+        drop5 = SpatialDropout2D(dropout_rate)(conv5)
+    else:
+        drop5 = Dropout(dropout_rate)(conv5)
+    
+    up6 = Conv2D(512, 2, activation = non_linearity, padding = 'same', data_format=data_format)(UpSampling2D(size = (2,2))(drop5))
+    merge6 = concatenate([drop4,up6], axis = 3)
+    conv6 = Conv2D(512, 3, activation = non_linearity, padding = 'same', data_format=data_format)(merge6)
+    conv6 = Conv2D(512, 3, activation = non_linearity, padding = 'same', data_format=data_format)(conv6)
+
+    up7 = Conv2D(256, 2, activation = non_linearity, padding = 'same', data_format=data_format)(UpSampling2D(size = (2,2))(conv6))
+    merge7 = concatenate([conv3,up7], axis = 3)
+    conv7 = Conv2D(256, 3, activation = non_linearity, padding = 'same', data_format=data_format)(merge7)
+    conv7 = Conv2D(256, 3, activation = non_linearity, padding = 'same', data_format=data_format)(conv7)
+
+    up8 = Conv2D(128, 2, activation = non_linearity, padding = 'same', data_format=data_format)(UpSampling2D(size = (2,2))(conv7))
+    merge8 = concatenate([conv2,up8], axis = 3)
+    conv8 = Conv2D(128, 3, activation = non_linearity, padding = 'same', data_format=data_format)(merge8)
+    conv8 = Conv2D(128, 3, activation = non_linearity, padding = 'same', data_format=data_format)(conv8)
+
+    up9 = Conv2D(64, 2, activation = non_linearity, padding = 'same', data_format=data_format)(UpSampling2D(size = (2,2))(conv8))
+    merge9 = concatenate([conv1,up9], axis = 3)
+    conv9 = Conv2D(64, 3, activation = non_linearity, padding = 'same', data_format=data_format)(merge9)
+    conv9 = Conv2D(64, 3, activation = non_linearity, padding = 'same', data_format=data_format)(conv9)
+    conv9 = Conv2D(2, 3, activation = non_linearity, padding = 'same', data_format=data_format)(conv9)
+    conv10 = Conv2D(num_classes, 1, data_format=data_format)(conv9)
+
+    model = Model(inputs = inputs, outputs = conv10)    
+
+    return model
