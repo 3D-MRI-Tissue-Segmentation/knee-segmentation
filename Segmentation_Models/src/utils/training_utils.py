@@ -26,7 +26,7 @@ def cross_entropy_loss(labels, logits, n_classes, loss_mask=None, data_format='c
         flat_labels = tf.one_hot(indices=flat_labels, depth=n_classes, axis=-1)
     flat_logits = tf.reshape(logits, [-1, n_classes])
 
-    # do not compute gradients wrt the labels
+    # do not compute gradients w.r.t the labels
     flat_labels = tf.stop_gradient(flat_labels)
 
     ce_per_pixel = tf.nn.softmax_cross_entropy_with_logits_v2(labels=flat_labels, logits=flat_logits)
