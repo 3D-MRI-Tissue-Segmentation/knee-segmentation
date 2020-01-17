@@ -1,4 +1,17 @@
 import tensorflow as tf
+import tensorflow.keras.backend as K
+
+def dice_coef(y_true, y_pred, smooth=1):
+    """
+    Dice = (2*|X & Y|)/ (|X|+ |Y|)
+         =  2*sum(|A*B|)/(sum(A^2)+sum(B^2))
+    ref: https://arxiv.org/pdf/1606.04797v1.pdf
+    """
+    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+    return (2. * intersection + smooth) / (K.sum(K.square(y_true),-1) + K.sum(K.square(y_pred),-1) + smooth)
+
+def dice_coef_loss(y_true, y_pred):
+    return 1-dice_coef(y_true, y_pred)
 
 def cross_entropy_loss(labels, logits, n_classes, loss_mask=None, data_format='channels_last', one_hot_labels=True, name='ce_loss'):
     """
@@ -26,10 +39,10 @@ def cross_entropy_loss(labels, logits, n_classes, loss_mask=None, data_format='c
         flat_labels = tf.one_hot(indices=flat_labels, depth=n_classes, axis=-1)
     flat_logits = tf.reshape(logits, [-1, n_classes])
 
-    # do not compute gradients wrt the labels
+    # do not compute gradients w.r.t the labels
     flat_labels = tf.stop_gradient(flat_labels)
 
-    ce_per_pixel = tf.nn.softmax_cross_entropy_with_logits_v2(labels=flat_labels, logits=flat_logits)
+    ce_per_pixel = tf.nn.softmax_cross_entropy_with_logits(labels=flat_labels, logits=flat_logits)
 
     # optional element-wise masking with binary loss mask
     if loss_mask is None:
