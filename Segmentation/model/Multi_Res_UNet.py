@@ -4,8 +4,6 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers.advanced_activations import ELU, LeakyReLU
 from tensorflow.keras.utils.vis_utils import plot_model
 
-
-
 def conv2d_bn(x, filters, num_row, num_col, padding='same', strides=(1, 1), activation='relu', name=None):
     '''
     2D Convolutional layers
