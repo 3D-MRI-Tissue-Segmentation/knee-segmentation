@@ -351,98 +351,106 @@ def getSurfaceVoxels(volume):
     """ Returns the voxels on surface of shapes """
     volume_surface = np.zeros(np.shape(volume)) 
     width, height, depth, channels = np.shape(volume)
-    in_shape = False    # Either 1 in or 0 out of a shape
 
+    in_shape = False    # Either 1 in or 0 out of a shape
+    last_color = volume[0,0,0,:]        # Randomly initializing last_color
     # Pass along z dimension from start (bottom-top)
     for x in range(width):
         for y in range(height):
             for z in range(depth): 
-                curr_voxel = volume[x,y,z,:]
+                curr_voxel = volume[x,y,z,:]    # Color of current voxel
                 past_state = in_shape
-                if np.any(curr_voxel >0):
+
+                if np.any(curr_voxel >0):       # Check if in shape
                     in_shape = True
-                elif np.all(curr_voxel == 0): in_shape = False
-                if in_shape and (past_state != in_shape):       # Leaving a shape
-                    volume_surface[x,y,z-1,:] = curr_voxel
-                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
+                    last_color = curr_voxel
+                elif np.sum(curr_voxel) == 0: in_shape = False
+
+                
+                if in_shape and (not past_state):       # Empty --> shape
                     volume_surface[x,y,z,:] = curr_voxel
+                    last_color = curr_voxel
                     
+                if (not in_shape) and past_state:       # Shape --> empty
+                    volume_surface[x,y,z-1,:] = last_color
+
+                if past_state and (np.all(last_color) != np.all(curr_voxel)):      # Shape --> shape
+                    in_shape = True
+                    volume_surface[x,y,z,:] = curr_voxel
+                    last_color = curr_voxel
+
 
     in_shape = 0
     # Pass along y dimension from start (bottom-top)
     for z in range(depth):
         for x in range(width):
             for y in range(height): 
-                curr_voxel = volume[x,y,z,:]
+                curr_voxel = volume[x,y,z,:]    # Color of current voxel
                 past_state = in_shape
-                if np.any(curr_voxel >0):
+
+                if np.any(curr_voxel >0):       # Check if in shape
                     in_shape = True
-                elif np.all(curr_voxel == 0): in_shape = False
-                if in_shape and (past_state != in_shape):       # Leaving a shape
-                    volume_surface[x,y-1,z,:] = curr_voxel
-                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
+                    last_color = curr_voxel
+                elif np.sum(curr_voxel) == 0: in_shape = False
+
+                
+                if in_shape and (not past_state):       # Empty --> shape
                     volume_surface[x,y,z,:] = curr_voxel
+                    last_color = curr_voxel
+                    
+                if (not in_shape) and past_state:       # Shape --> empty
+                    volume_surface[x,y-1,z,:] = last_color
+
+                if past_state and (np.all(last_color) != np.all(curr_voxel)):      # Shape --> shape
+                    in_shape = True
+                    volume_surface[x,y,z,:] = curr_voxel
+                    last_color = curr_voxel
     
     in_shape = 0
     # Pass along x dimension from start (bottom-top)
     for y in range(height):
         for z in range(depth):
             for x in range(width): 
-                curr_voxel = volume[x,y,z,:]
+                curr_voxel = volume[x,y,z,:]    # Color of current voxel
                 past_state = in_shape
-                if np.any(curr_voxel >0):
-                    in_shape = True
-                elif np.all(curr_voxel == 0): in_shape = False
-                if in_shape and (past_state != in_shape):       # Leaving a shape
-                    volume_surface[x-1,y,z,:] = curr_voxel
-                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
-                    volume_surface[x,y,z,:] = curr_voxel
 
-    # 
-    # Pass along z dimension from end (top-bottom)
-    for x in range(width):
-        for y in range(height):
-            for z in range(depth-1, 0, -1): 
-                curr_voxel = volume[x,y,z,:]
-                past_state = in_shape
-                if np.any(curr_voxel >0):
+                if np.any(curr_voxel >0):       # Check if in shape
                     in_shape = True
-                elif np.all(curr_voxel == 0): in_shape = False
-                if in_shape and (past_state != in_shape):       # Leaving a shape
-                    volume_surface[x,y,z-1,:] = curr_voxel
-                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
-                    volume_surface[x,y,z,:] = curr_voxel
+                    last_color = curr_voxel
+                elif np.sum(curr_voxel) == 0: in_shape = False
 
-    # Pass along y dimension from end (top-bottom)
-    for z in range(depth):
-        for x in range(width):
-            for y in range(height-1, 0, -1): 
-                curr_voxel = volume[x,y,z,:]
-                past_state = in_shape
-                if np.any(curr_voxel >0):
-                    in_shape = True
-                elif np.all(curr_voxel == 0): in_shape = False
-                if in_shape and (past_state != in_shape):       # Leaving a shape
-                    volume_surface[x,y-1,z,:] = curr_voxel
-                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
+                
+                if in_shape and (not past_state):       # Empty --> shape
                     volume_surface[x,y,z,:] = curr_voxel
-    
-    # Pass along x dimension from end (top-bottom)
-    for y in range(height):
-        for z in range(depth):
-            for x in range(width-1, 0, -1): 
-                curr_voxel = volume[x,y,z,:]
-                past_state = in_shape
-                if np.any(curr_voxel >0):
+                    last_color = curr_voxel
+                    
+                if (not in_shape) and past_state:       # Shape --> empty
+                    volume_surface[x-1,y,z,:] = last_color
+
+                if past_state and (np.all(last_color) != np.all(curr_voxel)):      # Shape --> shape
                     in_shape = True
-                elif np.all(curr_voxel == 0): in_shape = False
-                if in_shape and (past_state != in_shape):       # Leaving a shape
-                    volume_surface[x-1,y,z,:] = curr_voxel
-                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
                     volume_surface[x,y,z,:] = curr_voxel
+                    last_color = curr_voxel
+
 
     return volume_surface
 
+
+
+
+# def getSurfaceVoxels2(volumes):
+#     """ Returns the voxels on surface of shapes """
+#     volume_surface = np.zeros(np.shape(volume)) 
+#     width, height, depth, channels = np.shape(volume)
+
+#     in_shape = False    # Either 1 in or 0 out of a shape
+    
+    
+#     for x in range(width):
+#         for y in range(height):
+#             for z in range(depth): 
+
+#     return volume_surface
 
 
 
@@ -500,23 +508,24 @@ class MyTapper(DirectObject):
 
 
 
-####### MAIN KIND OF THING (not good practice ik) ###########
+
 # volume = np.zeros([2, 2, 2, 3], dtype=float)
 # temp_size = 15
 # volume = np.random.rand(temp_size,temp_size,temp_size, 3)
-volume = td.volume
-width, height, depth, channels = np.shape(volume)
-volume_surface = getSurfaceVoxels(volume)
-# volume[:,:,:, 0], volume[0,0,0,:]
-for x in range(width):
-    for y in range(height):
-        for z in range(depth):
-            color = volume_surface[x,y,z,:]
-            np.reshape(color, channels)
-            create_voxel(x,y,z,color)
+if __name__ == "__main__":
+    volume = td.volume
+    width, height, depth, channels = np.shape(volume)
+    volume_surface = getSurfaceVoxels(volume)
+    # volume[:,:,:, 0], volume[0,0,0,:]
+    for x in range(width):
+        for y in range(height):
+            for z in range(depth):
+                color = volume_surface[x,y,z,:]
+                np.reshape(color, channels)
+                create_voxel(x,y,z,color)
 
-t = MyTapper()
-base.run()
+    t = MyTapper()
+    base.run()
 
 
 
