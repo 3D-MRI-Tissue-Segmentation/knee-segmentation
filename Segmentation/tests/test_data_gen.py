@@ -22,7 +22,7 @@ def test_random_shapes_gen_2D():
     from random import randint
 
     n_reps, n_classes = 10, 6
-    width, height = 400, 400
+    width, height = 40, 40
     colour_channels = 3
 
     test_ti = Toy_Image(n_classes, width, height, colour_channels)
@@ -59,7 +59,7 @@ def test_get_test_images():
     from Segmentation.data_gen.toy_image_gen import get_test_images
 
     n_images, n_reps, n_classes = 10, 4, 5
-    width, height = 400, 400
+    width, height = 30, 30
     colour_channels = 3
 
     images, one_hots = get_test_images(n_images, n_reps, n_classes,
@@ -84,7 +84,7 @@ def test_random_volumes_gen():
     from random import randint
 
     n_reps, n_classes = 10, 6
-    width, height, depth = 40, 40, 40
+    width, height, depth = 15, 15, 15
     colour_channels = 3
 
     test_tv = Toy_Volume(n_classes, width, height, depth, colour_channels)
@@ -124,7 +124,7 @@ def test_get_test_volumes():
     from Segmentation.data_gen.toy_volume_gen import get_test_volumes
 
     n_volumes, n_reps, n_classes = 10, 4, 5
-    width, height, depth = 40, 40, 20
+    width, height, depth = 15, 15, 20
     colour_channels = 3
 
     volumes, one_hots = get_test_volumes(n_volumes, n_reps, n_classes,

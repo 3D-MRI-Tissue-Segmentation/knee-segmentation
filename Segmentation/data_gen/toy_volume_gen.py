@@ -129,7 +129,7 @@ class Toy_Volume:
                         self.set_colour_to_xyz(x_, y_, z_, colour_idx)
 
 
-def get_test_volume(n_volumes, n_reps, n_classes, 
+def get_test_volume(n_reps, n_classes, 
                      width, height, depth, colour_channels):
     td = Toy_Volume(n_classes, width, height, depth, colour_channels)
 
