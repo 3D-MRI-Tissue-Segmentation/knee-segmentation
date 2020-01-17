@@ -132,5 +132,3 @@ def training(n_epochs, data):
             training_epoch(batch)
 
 training(epochs, x_train)
-
-

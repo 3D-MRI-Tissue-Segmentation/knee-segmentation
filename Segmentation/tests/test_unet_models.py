@@ -8,4 +8,3 @@ def test_standard_unet():
                                        width, height, colour_channels)
 
     from Segmentation.model.unet import UNet
-

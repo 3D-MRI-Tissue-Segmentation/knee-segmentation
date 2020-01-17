@@ -1,8 +1,8 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
-from src.utils.training_utils import cross_entropy_loss
-from unet import UNet
+from Segmentation.utils.training_utils import cross_entropy_loss
+from Segmentation.model.unet import UNet
 
 class Conv1x1Decoder(tf.keras.Model):
     """A stack of 1x1 convolutions that takes two tensors to be concatenated along their channel axes."""
@@ -58,7 +58,7 @@ class AxisAlignedConvGaussian(tf.keras.Model):
                  latent_dim,
                  num_channels,
                  nonlinearity=tf.keras.activations.relu,
-                 num_convs_per_block=3,
+                 kernel_size=(3,3),
                  data_format='channels_last',
                  name="conv_dist"):
         super(AxisAlignedConvGaussian, self).__init__(name=name)
@@ -66,7 +66,7 @@ class AxisAlignedConvGaussian(tf.keras.Model):
         self.latent_dim = latent_dim
         self.num_channels = num_channels
         self.nonlinearity = nonlinearity
-        self.num_convs_per_block = num_convs_per_block
+        self.kernel_size = kernel_size
         self.data_format = data_format
 
         if data_format == 'channels_last':
@@ -78,17 +78,17 @@ class AxisAlignedConvGaussian(tf.keras.Model):
 
         """quasi-VGGNet model architecture: https://arxiv.org/pdf/1409.1556.pdf."""
         self.encoder = tf.keras.Sequential([
-            tf.keras.layers.Conv2D(64, num_convs_per_block, activation = nonlinearity, padding='same', data_format=data_format),
-            tf.keras.layers.Conv2D(64, num_convs_per_block, activation = nonlinearity, padding='same', data_format=data_format),
+            tf.keras.layers.Conv2D(64, kernel_size, activation = nonlinearity, padding='same', data_format=data_format),
+            tf.keras.layers.Conv2D(64, kernel_size, activation = nonlinearity, padding='same', data_format=data_format),
             tf.keras.layers.MaxPooling2D(pool_size=(2,2)), 
-            tf.keras.layers.Conv2D(128, num_convs_per_block, activation = nonlinearity, padding='same', data_format=data_format),
-            tf.keras.layers.Conv2D(128, num_convs_per_block, activation = nonlinearity, padding='same', data_format=data_format),
+            tf.keras.layers.Conv2D(128, kernel_size, activation = nonlinearity, padding='same', data_format=data_format),
+            tf.keras.layers.Conv2D(128, kernel_size, activation = nonlinearity, padding='same', data_format=data_format),
             tf.keras.layers.MaxPooling2D(pool_size=(2,2)), 
-            tf.keras.layers.Conv2D(256, num_convs_per_block, activation = nonlinearity, padding='same', data_format=data_format),
-            tf.keras.layers.Conv2D(256, num_convs_per_block, activation = nonlinearity, padding='same', data_format=data_format),
+            tf.keras.layers.Conv2D(256, kernel_size, activation = nonlinearity, padding='same', data_format=data_format),
+            tf.keras.layers.Conv2D(256, kernel_size, activation = nonlinearity, padding='same', data_format=data_format),
             tf.keras.layers.MaxPooling2D(pool_size=(2,2)), 
-            tf.keras.layers.Conv2D(512, num_convs_per_block, activation = nonlinearity, padding='same', data_format=data_format),
-            tf.keras.layers.Conv2D(512, num_convs_per_block, activation = nonlinearity, padding='same', data_format=data_format),
+            tf.keras.layers.Conv2D(512, kernel_size, activation = nonlinearity, padding='same', data_format=data_format),
+            tf.keras.layers.Conv2D(512, kernel_size, activation = nonlinearity, padding='same', data_format=data_format),
             tf.keras.layers.MaxPooling2D(pool_size=(2,2))
         ]) 
 
@@ -119,7 +119,7 @@ class ProbUNet(tf.keras.Model):
                  num_classes,
                  num_1x1_convs=3,
                  nonlinearity=tf.keras.activations.relu,
-                 num_convs_per_block=3,
+                 kernel_size=(3,3),
                  dropout_rate = 0.25,
                  use_spatial_dropout = True,
                  data_format='channels_last',
@@ -131,21 +131,21 @@ class ProbUNet(tf.keras.Model):
         self.num_classes = num_classes
         self.num_1x1_convs = num_1x1_convs
         self.nonlinearity = nonlinearity
-        self.num_convs_per_block = num_convs_per_block
+        self.kernel_size = kernel_size
         self.dropout_rate = dropout_rate
         self.use_spatial_dropout = use_spatial_dropout
         self.data_format = data_format
 
         self.unet = UNet(num_channels=num_channels, num_classes=num_classes, nonlinearity=nonlinearity, 
-                         num_convs_per_block=num_convs_per_block, dropout_rate=dropout_rate, 
+                         kernel_size=kernel_size, dropout_rate=dropout_rate, 
                          use_spatial_dropout=use_spatial_dropout, data_format=data_format)
         self.f_decoder = Conv1x1Decoder(num_channels=num_channels[0], num_classes=num_classes, num_1x1_convs=num_1x1_convs,
                                          nonlinearity=nonlinearity, data_format=data_format)
         self.prior_net = AxisAlignedConvGaussian(latent_dim=latent_dim, num_channels=num_channels, 
-                                                 nonlinearity=nonlinearity, num_convs_per_block=num_convs_per_block,
+                                                 nonlinearity=nonlinearity, kernel_size=kernel_size,
                                                  data_format=data_format, name='prior_net')
         self.posterior_net = AxisAlignedConvGaussian(latent_dim=latent_dim, num_channels=num_channels, 
-                                                 nonlinearity=nonlinearity, num_convs_per_block=num_convs_per_block,
+                                                 nonlinearity=nonlinearity, kernel_size=kernel_size,
                                                  data_format=data_format, name='posterior_net')                                         
         
     def call(self, img, seg=None, is_training=True, one_hot_labels=True):
