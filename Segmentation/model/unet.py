@@ -3,6 +3,56 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
 from tensorflow.keras.layers import Dropout, SpatialDropout2D, concatenate, BatchNormalization, Activation
 from tensorflow.keras import Input, Model, Sequential
 
+class Conv_Block(tf.keras.Model):
+
+    def __init__(self, 
+                 num_channels,
+                 num_conv_layers=2,
+                 kernel_size=(3,3),
+                 nonlinearity='relu',
+                 use_batchnorm = False,
+                 use_dropout = False,
+                 dropout_rate = 0.25, 
+                 use_spatial_dropout = True,
+                 data_format='channels_last',
+                 name="convolution_block"):
+
+        super(Conv_Block, self).__init__(name=name)
+
+        self.num_conv_layers = num_conv_layers
+        self.use_batchnorm = use_batchnorm
+        self.use_dropout = use_dropout
+        self.use_spatial_dropout = use_spatial_dropout
+
+        self.conv = []
+        self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
+        self.activation = tf.keras.layers.Activation(nonlinearity)
+
+        if use_spatial_dropout:
+            self.dropout = tf.keras.layers.SpatialDropout2D(rate=dropout_rate)
+        else:
+            self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
+
+        for _ in range(num_conv_layers):
+            self.conv.append(tf.keras.layers.Conv2D(num_channels, kernel_size, padding='same', data_format=data_format))
+        
+    def call(self, inputs):
+
+        x = inputs
+
+        for i in range(self.num_conv_layers):
+            x = self.conv[i](x)
+            if self.use_batchnorm:
+                x = self.batchnorm(x)
+            x = self.activation(x)
+
+        if self.use_dropout:
+            x = self.dropout(x)
+
+        outputs = x
+
+        return outputs
+        
 class Conv_block(tf.keras.Model):
     
     def __init__(self, 
@@ -21,7 +71,7 @@ class Conv_block(tf.keras.Model):
         self.use_batchnorm = use_batchnorm
         self.use_dropout = use_dropout
         self.use_spatial_dropout = use_spatial_dropout
-
+    
         self.conv = tf.keras.layers.Conv2D(num_channels, kernel_size, padding='same', data_format=data_format)
         self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
         self.activation = tf.keras.layers.Activation(nonlinearity)
