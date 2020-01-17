@@ -129,11 +129,35 @@ class Toy_Volume:
                         self.set_colour_to_xyz(x_, y_, z_, colour_idx)
 
 
+def get_test_volume(n_volumes, n_reps, n_classes, 
+                     width, height, depth, colour_channels):
+    td = Toy_Volume(n_classes, width, height, depth, colour_channels)
+
+    for rep in range(n_reps):
+        for colour_idx in range(n_classes):
+            x, y, z = td.get_random_xyz()
+            rand_x_len = randint(1, int(td.width/4))
+            rand_y_len = randint(1, int(td.height/4))
+            rand_z_len = randint(1, int(td.depth/4))
+            rnd_i = randint(0, 1)
+            if rnd_i == 0:
+                td.set_rect_cuboid_to_xyz(x, y, z, 
+                                          rand_x_len, rand_y_len, rand_z_len, 
+                                          colour_idx)
+            elif rnd_i == 1:
+                td.set_ellipsoid_to_xyz(x, y, z,
+                                        rand_x_len, rand_y_len, rand_z_len, 
+                                        colour_idx)
+    return td.volume, td.one_hot_array
+
 def get_test_volumes(n_volumes, n_reps, n_classes, 
                      width, height, depth, colour_channels):
-    #volumes, one_hots = [], []
-    volumes, one_hots = None, None
-
+    volumes, one_hots = [], []
+    for i in range(n_volumes):
+        volume, one_hot = get_test_volume(n_reps, n_classes, 
+                                          width, height, depth, colour_channels)
+        volumes.append(volume)
+        one_hots.append(one_hot)
     return volumes, one_hots
 
 def plot_volume(volume, show=True):

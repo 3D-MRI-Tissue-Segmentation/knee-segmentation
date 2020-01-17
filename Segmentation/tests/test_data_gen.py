@@ -119,3 +119,24 @@ def test_random_volumes_gen():
 
     from Segmentation.data_gen.toy_volume_gen import plot_volume
     plot_volume(test_tv.volume, False)
+
+def test_get_test_volumes():
+    from Segmentation.data_gen.toy_volume_gen import get_test_volumes
+
+    n_volumes, n_reps, n_classes = 10, 4, 5
+    width, height, depth = 40, 40, 20
+    colour_channels = 3
+
+    volumes, one_hots = get_test_images(n_volumes, n_reps, n_classes,
+                                        width, height, depth, colour_channels)
+
+    assert len(volumes) == n_volumes
+    assert len(one_hots) == n_volumes
+
+    import matplotlib.pyplot as plt
+    import os
+
+    from Segmentation.data_gen.toy_volume_gen import plot_volume
+    for volume in volumes:
+        plot_volume(volume, False)
+    

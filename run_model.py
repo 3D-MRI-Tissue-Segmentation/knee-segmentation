@@ -1,2 +1,2 @@
-from Segmentation_Models.src.model.unet import UNet
-from Segmentation_Models.src.model.test_unet import UNetTest
+from Segmentation.model.unet import UNet
+from Segmentation.tests.test_unet import UNetTest
