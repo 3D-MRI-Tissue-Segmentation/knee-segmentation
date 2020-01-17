@@ -1,8 +1,8 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
-from src.utils.training_utils import cross_entropy_loss
-from src.model.unet import UNet
+from Segmentation.utils.training_utils import cross_entropy_loss
+from Segmentation.model.unet import UNet
 
 class Conv1x1Decoder(tf.keras.Model):
     """A stack of 1x1 convolutions that takes two tensors to be concatenated along their channel axes."""

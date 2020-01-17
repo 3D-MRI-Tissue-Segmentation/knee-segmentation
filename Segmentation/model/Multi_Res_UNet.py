@@ -1,8 +1,8 @@
-from keras.layers import Input, Conv2D, MaxPooling2D, Conv2DTranspose, concatenate, BatchNormalization, Activation, add
-from keras.models import Model, model_from_json
-from keras.optimizers import Adam
-from keras.layers.advanced_activations import ELU, LeakyReLU
-from keras.utils.vis_utils import plot_model
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Conv2DTranspose, concatenate, BatchNormalization, Activation, add
+from tensorflow.keras.models import Model, model_from_json
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers.advanced_activations import ELU, LeakyReLU
+from tensorflow.keras.utils.vis_utils import plot_model
 
 
 

@@ -10,7 +10,7 @@ class Toy_Image:
         self.colour_channels = colour_channels
         self.class_colours = Toy_Image.get_class_colours(n_classes, colour_channels)
         self.image = self.get_empty_array()
-        self.one_hot_array = self.get_empty_array(colour_channels=self.n_classes)
+        self.one_hot_array = self.get_empty_array(channels=self.n_classes)
 
     def init_check(self, n_classes, width, height, colour_channels):
         assert type(n_classes) is int, "n_classes must be of type int"
@@ -37,17 +37,17 @@ class Toy_Image:
     def get_random_colour(colour_channels):
         """ Returns a random colour """
         if colour_channels == 1:
-            return [randint(0,255)]
-        return [randint(0,255),randint(0,255),randint(0,255)]
+            return [randint(1,255)]
+        return [randint(1,255),randint(1,255),randint(1,255)]
     
     def get_colour_from_idx(self, colour_idx):
         return self.class_colours[colour_idx]
     
-    def get_empty_array(self, colour_channels=None):
+    def get_empty_array(self, channels=None):
         """ Empty starting array """
-        if colour_channels is None:
-            colour_channels = self.colour_channels
-        return np.zeros([self.width, self.height, colour_channels], dtype=int)
+        if channels is None:
+            channels = self.colour_channels
+        return np.zeros([self.width, self.height, channels], dtype=int)
     
     def get_random_xy(self):
         x = randint(0, self.width-1)
@@ -57,26 +57,26 @@ class Toy_Image:
     def set_colour_to_xy(self, x, y, colour_idx):
         """ Sets the colour for a specific pixel """
         if self.colour_channels == 1:
-            self.image[x][y][0] = self.class_colours[colour_idx][0]
+            self.image[x, y, 0] = self.class_colours[colour_idx][0]
         else:
-            self.image[x][y][0] = self.class_colours[colour_idx][0]
-            self.image[x][y][1] = self.class_colours[colour_idx][1]
-            self.image[x][y][2] = self.class_colours[colour_idx][2]
-        self.one_hot_array[x][y][:] = 0
-        self.one_hot_array[x][y][colour_idx] = 1
+            self.image[x, y, 0] = self.class_colours[colour_idx][0]
+            self.image[x, y, 1] = self.class_colours[colour_idx][1]
+            self.image[x, y, 2] = self.class_colours[colour_idx][2]
+        self.one_hot_array[x, y, :] = 0
+        self.one_hot_array[x, y, colour_idx] = 1
 
     def set_colour_to_random_xy(self, colour_idx):
         self.set_colour_to_xy(*self.get_random_xy(), colour_idx)
     
     def get_shape_square_range(self, x, y, length):
         assert type(length) is int, "length must be an int, it should be half the width of the object"
-        (x_min, x_max) = self.get_axis_range(x, length)
-        (y_min, y_max) = self.get_axis_range(y, length)
+        (x_min, x_max) = self.get_axis_range(x, length, self.width)
+        (y_min, y_max) = self.get_axis_range(y, length, self.height)
         return (x_min, x_max), (y_min, y_max)
 
-    def get_axis_range(self, axis_pos, axis_length):
+    def get_axis_range(self, axis_pos, axis_length, frame_length):
         inputs = (axis_pos, axis_length)
-        (axis_min, axis_max) = (self.get_shape_range_min(*inputs), self.get_shape_range_max(*inputs))
+        (axis_min, axis_max) = (self.get_shape_range_min(*inputs), self.get_shape_range_max(*inputs, frame_length))
         return (axis_min, axis_max)
 
     def get_shape_range_min(self, axis_pos, length):
@@ -85,15 +85,15 @@ class Toy_Image:
         range_min = temp_min if temp_min > 0 else 0
         return range_min
 
-    def get_shape_range_max(self, axis_pos, length):
+    def get_shape_range_max(self, axis_pos, length, frame_length):
         assert type(length) is int, "length must be an int"
         temp_max = axis_pos + length 
-        range_max = temp_max if temp_max < (self.width - 1) else self.width
+        range_max = temp_max if temp_max < (frame_length - 1) else frame_length
         return range_max
 
     def set_rect_to_xy(self, x, y, x_length, y_length, colour_idx):
-        (x_min, x_max) = self.get_axis_range(x, x_length)
-        (y_min, y_max) = self.get_axis_range(y, y_length)
+        (x_min, x_max) = self.get_axis_range(x, x_length, self.width)
+        (y_min, y_max) = self.get_axis_range(y, y_length, self.height)
         for x_ in range(x_min, x_max):
             for y_ in range(y_min, y_max):
                 self.set_colour_to_xy(x_, y_, colour_idx)
@@ -102,27 +102,23 @@ class Toy_Image:
         self.set_rect_to_xy(x, y, length, length, colour_idx)
 
     def is_in_circle(self, x, y, centre, radius):
-        return self.is_in_oval(x, y, centre, radius, radius)
+        return self.is_in_elipse(x, y, centre, radius, radius)
 
-    def is_in_oval(self, x, y, centre, x_radius, y_radius):
+    def is_in_ellipse(self, x, y, centre, x_radius, y_radius):
         x_centre, y_centre = centre
         if ((x_centre-x)**2)/x_radius**2 + ((y_centre-y)**2)/y_radius**2 < 1:
             return True
         return False
 
     def set_circle_to_xy(self, x, y, radius, colour_idx):
-        (x_min, x_max), (y_min, y_max) = self.get_shape_square_range(x, y, radius)
-        for x_ in range(x_min, x_max):
-            for y_ in range(y_min, y_max):
-                if self.is_in_circle(x_, y_, (x, y), radius):
-                    self.set_colour_to_xy(x_, y_, colour_idx)
+        self.set_ellipse_to_xy(x, y, radius, radius, colour_idx)
     
-    def set_oval_to_xy(self, x, y, x_radius, y_radius, colour_idx):
-        (x_min, x_max) = self.get_axis_range(x, x_radius)
-        (y_min, y_max) = self.get_axis_range(y, y_radius)
+    def set_ellipse_to_xy(self, x, y, x_radius, y_radius, colour_idx):
+        (x_min, x_max) = self.get_axis_range(x, x_radius, self.width)
+        (y_min, y_max) = self.get_axis_range(y, y_radius, self.height)
         for x_ in range(x_min, x_max):
             for y_ in range(y_min, y_max):
-                if self.is_in_oval(x_, y_, (x, y), x_radius, y_radius):
+                if self.is_in_ellipse(x_, y_, (x, y), x_radius, y_radius):
                     self.set_colour_to_xy(x_, y_, colour_idx)
 
     
@@ -143,7 +139,7 @@ def get_test_image(n_reps, n_classes,
             elif rnd_i == 2:
                 td.set_rect_to_xy(x, y, rand_width, rand_height, colour_idx)
             elif rnd_i == 3:
-                td.set_oval_to_xy(x, y, rand_width, rand_height, colour_idx)
+                td.set_ellipse_to_xy(x, y, rand_width, rand_height, colour_idx)
     return td.image, td.one_hot_array
 
 
