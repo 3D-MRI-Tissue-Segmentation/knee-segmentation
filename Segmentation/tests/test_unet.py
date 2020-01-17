@@ -1,5 +1,5 @@
 import tensorflow as tf
-from Segmentation.model.unet import UNet, build_unet # local file import
+from Segmentation.model.unet import UNet # local file import
 from Segmentation.utils.training_utils import dice_coef_loss #local file import
 
 class UNetTest(tf.test.TestCase):
@@ -43,7 +43,6 @@ class UNetTest(tf.test.TestCase):
 
 if __name__ == '__main__':
     tf.test.main()
-
 
 # ----------------------------------------------------------------------------
 # Joonsu use this code
