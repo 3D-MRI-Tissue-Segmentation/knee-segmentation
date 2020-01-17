@@ -1,5 +1,6 @@
+cd ..
 python -m venv env
 source env/bin/activate
 python -m pip install -r reqs.txt
 
-pytest test_setup.py
+python -m pytest test_setup.py

@@ -1,5 +1,5 @@
 def test_random_data_gen_2D():
-    from src.data_gen.toy_image_gen import Toy_Image
+    from Segmentation.data_gen.toy_image_gen import Toy_Image
 
     n_reps, n_classes = 10, 20
     test_ti = Toy_Image(n_classes, 40, 40, 3)
@@ -18,11 +18,11 @@ def test_random_data_gen_2D():
 
 
 def test_random_shapes_gen_2D():
-    from src.data_gen.toy_image_gen import Toy_Image
+    from Segmentation.data_gen.toy_image_gen import Toy_Image
     from random import randint
 
     n_reps, n_classes = 10, 6
-    width, height = 400, 400
+    width, height = 40, 40
     colour_channels = 3
 
     test_ti = Toy_Image(n_classes, width, height, colour_channels)
@@ -56,10 +56,10 @@ def test_random_shapes_gen_2D():
 
 
 def test_get_test_images():
-    from src.data_gen.toy_image_gen import get_test_images
+    from Segmentation.data_gen.toy_image_gen import get_test_images
 
     n_images, n_reps, n_classes = 10, 4, 5
-    width, height = 400, 400
+    width, height = 30, 30
     colour_channels = 3
 
     images, one_hots = get_test_images(n_images, n_reps, n_classes,
@@ -80,11 +80,11 @@ def test_get_test_images():
 
 
 def test_random_volumes_gen():
-    from src.data_gen.toy_volume_gen import Toy_Volume
+    from Segmentation.data_gen.toy_volume_gen import Toy_Volume
     from random import randint
 
     n_reps, n_classes = 10, 6
-    width, height, depth = 40, 40, 40
+    width, height, depth = 15, 15, 15
     colour_channels = 3
 
     test_tv = Toy_Volume(n_classes, width, height, depth, colour_channels)
@@ -117,5 +117,26 @@ def test_random_volumes_gen():
             else:
                 raise Exception(f"Invalid {rnd_i}")
 
-    from src.data_gen.toy_volume_gen import plot_volume
+    from Segmentation.data_gen.toy_volume_gen import plot_volume
     plot_volume(test_tv.volume, False)
+
+def test_get_test_volumes():
+    from Segmentation.data_gen.toy_volume_gen import get_test_volumes
+
+    n_volumes, n_reps, n_classes = 10, 4, 5
+    width, height, depth = 15, 15, 20
+    colour_channels = 3
+
+    volumes, one_hots = get_test_volumes(n_volumes, n_reps, n_classes,
+                                         width, height, depth, colour_channels)
+
+    assert len(volumes) == n_volumes
+    assert len(one_hots) == n_volumes
+
+    import matplotlib.pyplot as plt
+    import os
+
+    from Segmentation.data_gen.toy_volume_gen import plot_volume
+    for volume in volumes:
+        plot_volume(volume, False)
+    
