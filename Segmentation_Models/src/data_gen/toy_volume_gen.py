@@ -92,15 +92,42 @@ class Toy_Volume:
         range_max = temp_max if temp_max < (frame_length - 1) else frame_length
         return range_max
 
-    def set_cube_to_xyz(self, x, y, z, length, colour_idx):
-        (x_min, x_max) = self.get_axis_range(x, length, self.width)
-        (y_min, y_max) = self.get_axis_range(y, length, self.height)
-        (z_min, z_max) = self.get_axis_range(z, length, self.depth)
+    def set_rect_cuboid_to_xyz(self, x, y, z, 
+                               x_length, y_length, z_length, 
+                               colour_idx):
+        (x_min, x_max) = self.get_axis_range(x, x_length, self.width)
+        (y_min, y_max) = self.get_axis_range(y, y_length, self.height)
+        (z_min, z_max) = self.get_axis_range(z, z_length, self.depth)
         for x_ in range(x_min, x_max):
             for y_ in range(y_min, y_max):
                 for z_ in range(z_min, z_max):
-                    self.set_colour_to_xyz(x_, y_, z_, colour_idx)
+                    self.set_colour_to_xyz(x_, y_, z_, colour_idx)                 
+
+    def set_cube_to_xyz(self, x, y, z, length, colour_idx):
+        self.set_rect_cuboid_to_xyz(x, y, z, length, length, length, colour_idx)
     
+    def is_in_sphere(self, x, y, z, centre, radius):
+        return self.is_in_ellipsoid(x, y, z, centre, radius, radius, radius)
+
+    def is_in_ellipsoid(self, x, y, z, centre, x_radius, y_radius, z_radius):
+        x_centre, y_centre, z_centre = centre
+        if ((x_centre-x)**2)/x_radius**2 + ((y_centre-y)**2)/y_radius**2 + ((z_centre-z)**2)/z_radius**2 < 1:
+            return True
+        return False
+
+    def set_sphere_to_xyz(self, x, y, z, radius, colour_idx):
+        self.set_ellipsoid_to_xyz(x, y, z, radius, radius, radius, colour_idx)
+
+    def set_ellipsoid_to_xyz(self, x, y, z, x_radius, y_radius, z_radius, colour_idx):
+        (x_min, x_max) = self.get_axis_range(x, x_radius, self.width)
+        (y_min, y_max) = self.get_axis_range(y, y_radius, self.height)
+        (z_min, z_max) = self.get_axis_range(z, z_radius, self.depth)
+        for x_ in range(x_min, x_max):
+            for y_ in range(y_min, y_max):
+                for z_ in range(z_min, z_max):
+                    if self.is_in_ellipsoid(x_, y_, z_, (x, y, z), x_radius, y_radius, z_radius):
+                        self.set_colour_to_xyz(x_, y_, z_, colour_idx)
+
 
 def get_test_volumes(n_volumes, n_reps, n_classes, 
                      width, height, depth, colour_channels):
@@ -126,8 +153,8 @@ def rgb_to_hex(rgb):
     return '#%02x%02x%02x' % tuple(rgb)
 
 if __name__ == "__main__":
-    n_reps, n_classes = 2, 3
-    width, height, depth = 20, 20, 20
+    n_reps, n_classes = 4, 3
+    width, height, depth = 40, 40, 40
     colour_channels = 3
 
     td = Toy_Volume(n_classes, width, height, depth, colour_channels)
@@ -136,7 +163,17 @@ if __name__ == "__main__":
         for colour_idx in range(n_classes):
             #td.set_colour_to_random_xyz(colour_idx)
             x, y, z = td.get_random_xyz()
-            rand_length = randint(1, int(td.width/8))
-            td.set_cube_to_xyz(x, y, z, rand_length, colour_idx)
+            rand_x_len = randint(1, int(td.width/4))
+            rand_y_len = randint(1, int(td.height/4))
+            rand_z_len = randint(1, int(td.depth/4))
+            rnd_i = randint(0, 1)
+            if rnd_i == 0:
+                td.set_rect_cuboid_to_xyz(x, y, z, 
+                                          rand_x_len, rand_y_len, rand_z_len, 
+                                          colour_idx)
+            elif rnd_i == 1:
+                td.set_ellipsoid_to_xyz(x, y, z,
+                                        rand_x_len, rand_y_len, rand_z_len, 
+                                        colour_idx)
 
     plot_volume(td.volume)

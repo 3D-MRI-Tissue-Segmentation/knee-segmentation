@@ -102,27 +102,23 @@ class Toy_Image:
         self.set_rect_to_xy(x, y, length, length, colour_idx)
 
     def is_in_circle(self, x, y, centre, radius):
-        return self.is_in_oval(x, y, centre, radius, radius)
+        return self.is_in_elipse(x, y, centre, radius, radius)
 
-    def is_in_oval(self, x, y, centre, x_radius, y_radius):
+    def is_in_ellipse(self, x, y, centre, x_radius, y_radius):
         x_centre, y_centre = centre
         if ((x_centre-x)**2)/x_radius**2 + ((y_centre-y)**2)/y_radius**2 < 1:
             return True
         return False
 
     def set_circle_to_xy(self, x, y, radius, colour_idx):
-        (x_min, x_max), (y_min, y_max) = self.get_shape_square_range(x, y, radius)
-        for x_ in range(x_min, x_max):
-            for y_ in range(y_min, y_max):
-                if self.is_in_circle(x_, y_, (x, y), radius):
-                    self.set_colour_to_xy(x_, y_, colour_idx)
+        self.set_ellipse_to_xy(x, y, radius, radius, colour_idx)
     
-    def set_oval_to_xy(self, x, y, x_radius, y_radius, colour_idx):
+    def set_ellipse_to_xy(self, x, y, x_radius, y_radius, colour_idx):
         (x_min, x_max) = self.get_axis_range(x, x_radius, self.width)
         (y_min, y_max) = self.get_axis_range(y, y_radius, self.height)
         for x_ in range(x_min, x_max):
             for y_ in range(y_min, y_max):
-                if self.is_in_oval(x_, y_, (x, y), x_radius, y_radius):
+                if self.is_in_ellipse(x_, y_, (x, y), x_radius, y_radius):
                     self.set_colour_to_xy(x_, y_, colour_idx)
 
     
@@ -143,7 +139,7 @@ def get_test_image(n_reps, n_classes,
             elif rnd_i == 2:
                 td.set_rect_to_xy(x, y, rand_width, rand_height, colour_idx)
             elif rnd_i == 3:
-                td.set_oval_to_xy(x, y, rand_width, rand_height, colour_idx)
+                td.set_ellipse_to_xy(x, y, rand_width, rand_height, colour_idx)
     return td.image, td.one_hot_array
 
 
