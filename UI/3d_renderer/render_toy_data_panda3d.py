@@ -351,75 +351,95 @@ def getSurfaceVoxels(volume):
     """ Returns the voxels on surface of shapes """
     volume_surface = np.zeros(np.shape(volume)) 
     width, height, depth, channels = np.shape(volume)
-    in_shape = 0    # Either 1 in or 0 out of a shape
+    in_shape = False    # Either 1 in or 0 out of a shape
 
     # Pass along z dimension from start (bottom-top)
     for x in range(width):
         for y in range(height):
             for z in range(depth): 
-                curr_voxel = volume[x,y,z]
+                curr_voxel = volume[x,y,z,:]
                 past_state = in_shape
                 if np.any(curr_voxel >0):
-                    in_shape = 1
-                else: in_shape = 0
-                if past_state != in_shape:
+                    in_shape = True
+                elif np.all(curr_voxel == 0): in_shape = False
+                if in_shape and (past_state != in_shape):       # Leaving a shape
+                    volume_surface[x,y,z-1,:] = curr_voxel
+                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
                     volume_surface[x,y,z,:] = curr_voxel
-                    break
+                    
 
     in_shape = 0
     # Pass along y dimension from start (bottom-top)
     for z in range(depth):
         for x in range(width):
             for y in range(height): 
-                curr_voxel = volume[x,y,z]
+                curr_voxel = volume[x,y,z,:]
                 past_state = in_shape
                 if np.any(curr_voxel >0):
-                    in_shape = 1
-                else: in_shape = 0
-                if past_state != in_shape:
+                    in_shape = True
+                elif np.all(curr_voxel == 0): in_shape = False
+                if in_shape and (past_state != in_shape):       # Leaving a shape
+                    volume_surface[x,y-1,z,:] = curr_voxel
+                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
                     volume_surface[x,y,z,:] = curr_voxel
-                    break
     
     in_shape = 0
     # Pass along x dimension from start (bottom-top)
     for y in range(height):
         for z in range(depth):
             for x in range(width): 
-                curr_voxel = volume[x,y,z]
+                curr_voxel = volume[x,y,z,:]
                 past_state = in_shape
                 if np.any(curr_voxel >0):
-                    in_shape = 1
-                else: in_shape = 0
-                if past_state != in_shape:
+                    in_shape = True
+                elif np.all(curr_voxel == 0): in_shape = False
+                if in_shape and (past_state != in_shape):       # Leaving a shape
+                    volume_surface[x-1,y,z,:] = curr_voxel
+                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
                     volume_surface[x,y,z,:] = curr_voxel
-                    break
 
-    # # Pass along z dimension from end (top-bottom)
-    # for x in range(width):
-    #     for y in range(height):
-    #         for z in range(depth-1, 0, -1): 
-    #             curr_voxel = volume[x,y,z]
-    #             if np.any(curr_voxel >0):
-    #                 volume_surface[x,y,z,:] = curr_voxel
-    #                 break
+    # 
+    # Pass along z dimension from end (top-bottom)
+    for x in range(width):
+        for y in range(height):
+            for z in range(depth-1, 0, -1): 
+                curr_voxel = volume[x,y,z,:]
+                past_state = in_shape
+                if np.any(curr_voxel >0):
+                    in_shape = True
+                elif np.all(curr_voxel == 0): in_shape = False
+                if in_shape and (past_state != in_shape):       # Leaving a shape
+                    volume_surface[x,y,z-1,:] = curr_voxel
+                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
+                    volume_surface[x,y,z,:] = curr_voxel
 
-    # # Pass along y dimension from end (top-bottom)
-    # for z in range(depth):
-    #     for x in range(width):
-    #         for y in range(height-1, 0, -1): 
-    #             curr_voxel = volume[x,y,z]
-    #             if np.any(curr_voxel >0):
-    #                 volume_surface[x,y,z,:] = curr_voxel
-    #                 break
+    # Pass along y dimension from end (top-bottom)
+    for z in range(depth):
+        for x in range(width):
+            for y in range(height-1, 0, -1): 
+                curr_voxel = volume[x,y,z,:]
+                past_state = in_shape
+                if np.any(curr_voxel >0):
+                    in_shape = True
+                elif np.all(curr_voxel == 0): in_shape = False
+                if in_shape and (past_state != in_shape):       # Leaving a shape
+                    volume_surface[x,y-1,z,:] = curr_voxel
+                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
+                    volume_surface[x,y,z,:] = curr_voxel
     
-    # # Pass along x dimension from end (top-bottom)
-    # for y in range(height):
-    #     for z in range(depth):
-    #         for x in range(width-1, 0, -1): 
-    #             curr_voxel = volume[x,y,z]
-    #             if np.any(curr_voxel >0):
-    #                 volume_surface[x,y,z,:] = curr_voxel
-    #                 break
+    # Pass along x dimension from end (top-bottom)
+    for y in range(height):
+        for z in range(depth):
+            for x in range(width-1, 0, -1): 
+                curr_voxel = volume[x,y,z,:]
+                past_state = in_shape
+                if np.any(curr_voxel >0):
+                    in_shape = True
+                elif np.all(curr_voxel == 0): in_shape = False
+                if in_shape and (past_state != in_shape):       # Leaving a shape
+                    volume_surface[x-1,y,z,:] = curr_voxel
+                elif (not in_shape) and (past_state != in_shape):       # Entering a shape
+                    volume_surface[x,y,z,:] = curr_voxel
 
     return volume_surface
 
@@ -480,7 +500,7 @@ class MyTapper(DirectObject):
 
 
 
-####### MAIN SORT OF THING (not good practice ik) ###########
+####### MAIN KIND OF THING (not good practice ik) ###########
 # volume = np.zeros([2, 2, 2, 3], dtype=float)
 # temp_size = 15
 # volume = np.random.rand(temp_size,temp_size,temp_size, 3)
