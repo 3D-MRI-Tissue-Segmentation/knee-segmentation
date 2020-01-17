@@ -127,8 +127,8 @@ def test_get_test_volumes():
     width, height, depth = 40, 40, 20
     colour_channels = 3
 
-    volumes, one_hots = get_test_images(n_volumes, n_reps, n_classes,
-                                        width, height, depth, colour_channels)
+    volumes, one_hots = get_test_volumes(n_volumes, n_reps, n_classes,
+                                         width, height, depth, colour_channels)
 
     assert len(volumes) == n_volumes
     assert len(one_hots) == n_volumes
