@@ -11,7 +11,6 @@ from direct.showbase.ShowBase import ShowBase
 from direct.task.Task import Task
 from math import pi, sin, cos
 import numpy as np
-from random import randint
 from direct.showbase.DirectObject import DirectObject
 from direct.gui.DirectGui import *
 from direct.interval.IntervalGlobal import *
@@ -31,8 +30,13 @@ import os
 
 
 ##########################################################################################################
-# Joe's toy_volume_gen.py script so i can get the volume for trial
+# Joe's toy_volume_gen.py script so i can get the volume for trial (copied as is with plot call removed)
 ##########################################################################################################
+
+
+
+import numpy as np
+from random import randint
 
 class Toy_Volume:
     def __init__(self, n_classes, width, height, depth, colour_channels=3):
@@ -162,11 +166,35 @@ class Toy_Volume:
                         self.set_colour_to_xyz(x_, y_, z_, colour_idx)
 
 
+def get_test_volume(n_reps, n_classes, 
+                     width, height, depth, colour_channels):
+    td = Toy_Volume(n_classes, width, height, depth, colour_channels)
+
+    for rep in range(n_reps):
+        for colour_idx in range(n_classes):
+            x, y, z = td.get_random_xyz()
+            rand_x_len = randint(1, int(td.width/4))
+            rand_y_len = randint(1, int(td.height/4))
+            rand_z_len = randint(1, int(td.depth/4))
+            rnd_i = randint(0, 1)
+            if rnd_i == 0:
+                td.set_rect_cuboid_to_xyz(x, y, z, 
+                                          rand_x_len, rand_y_len, rand_z_len, 
+                                          colour_idx)
+            elif rnd_i == 1:
+                td.set_ellipsoid_to_xyz(x, y, z,
+                                        rand_x_len, rand_y_len, rand_z_len, 
+                                        colour_idx)
+    return td.volume, td.one_hot_array
+
 def get_test_volumes(n_volumes, n_reps, n_classes, 
                      width, height, depth, colour_channels):
-    #volumes, one_hots = [], []
-    volumes, one_hots = None, None
-
+    volumes, one_hots = [], []
+    for i in range(n_volumes):
+        volume, one_hot = get_test_volume(n_reps, n_classes, 
+                                          width, height, depth, colour_channels)
+        volumes.append(volume)
+        one_hots.append(one_hot)
     return volumes, one_hots
 
 def plot_volume(volume, show=True):
@@ -188,7 +216,7 @@ def rgb_to_hex(rgb):
 
 if __name__ == "__main__":
     n_reps, n_classes = 4, 3
-    width, height, depth = 50, 50, 50
+    width, height, depth = 100, 80, 80
     colour_channels = 3
 
     td = Toy_Volume(n_classes, width, height, depth, colour_channels)
@@ -211,8 +239,9 @@ if __name__ == "__main__":
                                         colour_idx)
 
 
-##################################################### End joe's toy_volume_gen.py
-
+##########################################################################################################
+# End joe's toy_volume_gen.py (copied as is)
+##########################################################################################################
 
 
 
@@ -220,24 +249,64 @@ if __name__ == "__main__":
 
 
 base = ShowBase()
-# base.disableMouse()
-base.camera.setPos(0, -10, 0)
 
-# def initializeSim()   
-#     """ Sets world settings like text, cam position etc. """
-#     base.disableMouse()
-#     base.camera.setPos(0, -10, 0)
+def initializeSim():   
+    """ Sets world settings like text, cam position etc. """
+    base.camera.setPos(50, -100, 50)
+    # base.disableMouse()
 # end initializeSim()
 
 
-# You can't normalize inline so this is a helper function
-def normalized(*args):
-    myVec = LVector3(*args)
-    myVec.normalize()
-    return myVec
+class Voxel(DirectObject):
+    # LIGHTING
+    def __init__(self):
+        # Toggle options
+        self.accept("2", self.toggleLightsSide)
+        self.accept("3", self.toggleLightsUp)
 
+        self.LightsOn = True
+        self.LightsOn1 = True
+        slight = Spotlight('slight')
+        slight.setColor((1, 1, 1, 1))
+        lens = PerspectiveLens()
+        slight.setLens(lens)
+        self.slnp = render.attachNewNode(slight)
+        self.slnp1 = render.attachNewNode(slight)
+
+        self.color = np.zeros(3)
+        self.coords = [0,0,0]
+        self.cube = None
+        
+
+    def toggleLightsSide(self):
+        self.LightsOn = not self.LightsOn
+
+        if self.LightsOn:
+            render.setLight(self.slnp)
+            self.slnp.setPos(self.cube, 10, -400, 0)
+            self.slnp.lookAt(10, 0, 0)
+        else:
+            render.setLightOff(self.slnp)
+
+    def toggleLightsUp(self):
+        self.cube
+        self.LightsOn1 = not self.LightsOn1
+
+        if self.LightsOn1:
+            render.setLight(self.slnp1)
+            self.slnp1.setPos(self.cube, 10, 0, 400)
+            self.slnp1.lookAt(10, 0, 0)
+        else:
+            render.setLightOff(self.slnp1)
+# end Voxel()
+
+
+
+
+
+# GEOMETRY
 def makeSquare(x1, y1, z1, x2, y2, z2, color):       # This is straight copied off the Panda3d 'procedural cube' example https://github.com/panda3d/panda3d/blob/master/samples/procedural-cube/main.py#L11
-    
+    """ Returns a single square cuz Panda3d can't default make squares """
     format = GeomVertexFormat.getV3n3cpt2()
     vdata = GeomVertexData('square', format, Geom.UHDynamic)
 
@@ -300,48 +369,58 @@ def makeSquare(x1, y1, z1, x2, y2, z2, color):       # This is straight copied o
     square.addPrimitive(tris)
     return square
 
+# You can't normalize inline so this is a helper function
+def normalized(*args):
+    myVec = LVector3(*args)
+    myVec.normalize()
+    return myVec
 
-def getFacesNode(x,y,z, color): 
-    """ Returns node with 6 cube face sides """
-    node_name = 'faces' + str(x+y+z)
-    faces_node = GeomNode(node_name)
 
-    # Note: it isn't particularly efficient to make every face as a separate Geom.
-    # instead, it would be better to create one Geom holding all of the faces.
-    # Since xyz are centers of the voxel, getting the vertices means we treat the xyz's as the origin
+def getFacesNode(coords, color): 
+        """ Returns node with 6 cube face sides """
+        x,y,z = 2*coords[0], 2*coords[1], 2*coords[2]
+        node_name = 'faces' + str(x+y+z)
+        faces_node = GeomNode(node_name)
 
-    x,y,z = 2*x, 2*y, 2*z
-    square0 = makeSquare(x-1, y-1, z-1, x+1, y-1, z+1, color)
-    square1 = makeSquare(x-1, y+1, z-1, x+1, y+1, z+1, color)
-    square2 = makeSquare(x-1, y+1, z+1, x+1, y-1, z+1, color)
-    square3 = makeSquare(x-1, y+1, z-1, x+1, y-1, z-1, color)
-    square4 = makeSquare(x-1, y-1, z-1, x-1, y+1, z+1, color)
-    square5 = makeSquare(x+1, y-1, z-1, x+1, y+1, z+1, color)
+        # Note: it isn't particularly efficient to make every face as a separate Geom.
+        # instead, it would be better to create one Geom holding all of the faces.
+        # Since xyz are centers of the voxel, getting the vertices means we treat the xyz's as the origin
 
-    faces_node.addGeom(square0)
-    faces_node.addGeom(square1)
-    faces_node.addGeom(square2)
-    faces_node.addGeom(square3)
-    faces_node.addGeom(square4)
-    faces_node.addGeom(square5)
+        square0 = makeSquare(x-1, y-1, z-1, x+1, y-1, z+1, color)
+        square1 = makeSquare(x-1, y+1, z-1, x+1, y+1, z+1, color)
+        square2 = makeSquare(x-1, y+1, z+1, x+1, y-1, z+1, color)
+        square3 = makeSquare(x-1, y+1, z-1, x+1, y-1, z-1, color)
+        square4 = makeSquare(x-1, y-1, z-1, x-1, y+1, z+1, color)
+        square5 = makeSquare(x+1, y-1, z-1, x+1, y+1, z+1, color)
 
-    return faces_node
+        faces_node.addGeom(square0)
+        faces_node.addGeom(square1)
+        faces_node.addGeom(square2)
+        faces_node.addGeom(square3)
+        faces_node.addGeom(square4)
+        faces_node.addGeom(square5)
+
+        return faces_node
+
 
 
 def create_voxel(x,y,z, color):    # Where xyz are the center of the voxel
     """ Creates and renders voxel """
     # All you have to do is get all 6 faces of the voxel and attach them to a node
 
-    if np.sum(color) > 0:
-        faces_node = getFacesNode(x,y,z, color)    # returns Geoms 6 squares
-        cube = render.attachNewNode(faces_node)
+    if np.sum(color) > 0:          # Only make a voxel if this coord has a color, ie exists 
+        voxel = Voxel()
+        voxel.coords = [x,y,z]
+        voxel.color = color
+
+        faces_node = getFacesNode(voxel.coords, color)    # returns 6 square faces as cube
+        voxel.cube = render.attachNewNode(faces_node)
 
         # OpenGl by default only draws "front faces" (polygons whose vertices are
         # specified CCW).
-        cube.setTwoSided(True)
+        voxel.cube.setTwoSided(True)
 
         # cube.hprInterval(6, (360, 360, 360)).loop()         # This rotates the cube lol
-
 
 
 
@@ -436,14 +515,25 @@ def getSurfaceVoxels(volume):
 
 
 
-volume = td.volume
-width, height, depth, channels = np.shape(volume)
-volume_surface = getSurfaceVoxels(volume)
-for x in range(width):
-    for y in range(height):
-        for z in range(depth):
-            color = volume_surface[x,y,z,:]
-            np.reshape(color, channels)
-            create_voxel(x,y,z,color)
 
-base.run()
+
+if __name__ == "__main__":
+    initializeSim()
+    volume = td.volume          # Input 4D array of xyz coords and corresponding color
+    width, height, depth, channels = np.shape(volume)
+    volume_surface = getSurfaceVoxels(volume)
+
+    # Procedural voxel generation
+    for x in range(width):
+        for y in range(height):
+            for z in range(depth):
+                color = volume_surface[x,y,z,:]
+                np.reshape(color, channels)
+                create_voxel(x,y,z,color)
+
+    base.run()
+
+
+
+
+
