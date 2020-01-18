@@ -170,7 +170,19 @@ class UNet(tf.keras.Model):
 
         return output
 
+class Attention_Gate(tf.keras.Model):
 
+    def __init__(self,
+                filters,
+                num_row=1,
+                num_col=1,
+                padding='same',
+                stride=(1,1),
+                name='attention_gate'):
+
+        super(Attention_Gate, self).__init__()
+
+        
 #This is the old build_unet function written in functional API. Don't delete until we test the UNet on actual data 
 #Build UNet using tf.keras Functional API
 """
