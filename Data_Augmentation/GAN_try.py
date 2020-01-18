@@ -1,21 +1,24 @@
 import tensorflow as tf
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
+import numpy as np
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
 config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
+BATCH_SIZE = 256
+
 #load data
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path='mnist.npz')
 x_train = x_train/255
 x_test = x_test/255
+x_train = x_train.reshape(x_train.shape[0], 28, 28, 1).astype('float32')
+x_dataset = tf.data.Dataset.from_tensor_slices(x_train).shuffle(BATCH_SIZE).batch(BATCH_SIZE)
 
 # #showing image in mnist
-# plt.imshow(x_train[10])
+# plt.imshow(x_train[0,:,:,0],cmap='gray')
 # plt.show()
-
-BATCH_SIZE = 256
 
 def generator_model(noise_len):
     model = tf.keras.Sequential()
@@ -53,8 +56,8 @@ generator_tryingOut.summary()
 noise = tf.random.normal([1, noise_length])
 generated_image = generator_tryingOut(noise, training=False)
 
-plt.imshow(generated_image[0,:,:,0], cmap='gray')
-plt.show()
+# plt.imshow(generated_image[0,:,:,0], cmap='gray')
+# plt.show()
 
 def discriminator_model():
     model = tf.keras.Sequential()
@@ -75,9 +78,9 @@ def discriminator_model():
 
     return model
 
-discriminator_tryingOut = discriminator_model()
-decision = discriminator_tryingOut(generated_image)
-print(decision)
+# discriminator_tryingOut = discriminator_model()
+# decision = discriminator_tryingOut(generated_image)
+# print(decision)
 
 #Loss functions
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)  #Defining the cross entropy loss function
@@ -104,7 +107,7 @@ noise_length = 100
 generator = generator_model(noise_length)
 discriminator = discriminator_model()
 
-@tf.function #This will run the function as a graph which will have a faster execution and will be using the GPU
+#@tf.function #This will run the function as a graph which will have a faster execution and will be using the GPU
 def training_epoch(images):
     noise = tf.random.normal([BATCH_SIZE, noise_length])
 
@@ -118,19 +121,30 @@ def training_epoch(images):
         gen_loss = generator_loss(fake_out)
         d_loss = discriminator_loss(real_out, fake_out)
 
-        #Gettng the gradient of the weights based on the loss
-        gen_gradient = gen_tape.gradient(gen_loss, generator.trainable_variables)
-        d_gradient = d_tape.gradient(d_loss, discriminator.trainable_variables)
+    #Gettng the gradient of the weights based on the loss
+    gen_gradient = gen_tape.gradient(gen_loss, generator.trainable_variables)
+    d_gradient = d_tape.gradient(d_loss, discriminator.trainable_variables)
 
-        #Applying the gradients through the optimizer
-        generator_optimizer.apply_gradients(zip(gen_gradient, generator.trainable_variables))
-        discriminator_optimizer.apply_gradients(zip(d_gradient, discriminator.trainable_variables))
+    #Applying the gradients through the optimizer
+    generator_optimizer.apply_gradients(zip(gen_gradient, generator.trainable_variables))
+    discriminator_optimizer.apply_gradients(zip(d_gradient, discriminator.trainable_variables))
 
-def training(n_epochs, data):
+    show_im(generated_images.numpy())
+
+def training(n_epochs, dataset):
     for epoch in range(epochs):
-        for batch in data:
-            training_epoch(batch)
+        #i = 0
+        for batch_im in dataset:
+            #print("when letfro %d" %i)
+            training_epoch(batch_im)
+            #i = i+1
 
-training(epochs, x_train)
+def show_im(image):
+    plt.imshow(image[0,:,:,0], cmap='gray')
+    plt.show(block=False)
+    plt.pause(0.1)
+    plt.close()
+
+training(epochs, x_dataset)
 
 
