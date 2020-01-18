@@ -1,6 +1,8 @@
 import tensorflow as tf 
+#from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Dropout, SpatialDropout2D, concatenate
+#from tensorflow.keras import Model, Input
 
-class Conv_Block(tf.keras.Model):
+class Conv2D_Block(tf.keras.Model):
 
     def __init__(self, 
                  num_channels,
@@ -14,7 +16,7 @@ class Conv_Block(tf.keras.Model):
                  data_format='channels_last',
                  name="convolution_block"):
 
-        super(Conv_Block, self).__init__(name=name)
+        super(Conv2D_Block, self).__init__(name=name)
 
         self.num_conv_layers = num_conv_layers
         self.use_batchnorm = use_batchnorm
@@ -50,7 +52,7 @@ class Conv_Block(tf.keras.Model):
 
         return outputs
         
-class Up_conv(tf.keras.Model):
+class Up_Conv2D(tf.keras.Model):
 
     def __init__(self, 
                  num_channels,
@@ -60,7 +62,7 @@ class Up_conv(tf.keras.Model):
                  data_format='channels_last',
                  name="upsampling_convolution_block"):
 
-        super(Up_conv, self).__init__(name=name)
+        super(Up_Conv2D, self).__init__(name=name)
 
         self.use_batchnorm = use_batchnorm
         
@@ -82,7 +84,7 @@ class Up_conv(tf.keras.Model):
 
 
 class UNet(tf.keras.Model):
-    """ Keras Implementation of 'U-Net: Convolutional Networks for Biomedical Image Segmentation'
+    """ Tensorflow 2 Implementation of 'U-Net: Convolutional Networks for Biomedical Image Segmentation'
     https://arxiv.org/abs/1505.04597."""
 
     def __init__(self, 
@@ -98,21 +100,21 @@ class UNet(tf.keras.Model):
 
         super(UNet, self).__init__(name=name)
 
-        self.conv_1 = Conv_Block(64,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.conv_2 = Conv_Block(128,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.conv_3 = Conv_Block(256,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.conv_4 = Conv_Block(512,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,use_dropout=True,dropout_rate=dropout_rate,use_spatial_dropout=use_spatial_dropout,data_format=data_format)
-        self.conv_5 = Conv_Block(1024,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,use_dropout=True,dropout_rate=dropout_rate,use_spatial_dropout=use_spatial_dropout,data_format=data_format)
+        self.conv_1 = Conv2D_Block(64,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_2 = Conv2D_Block(128,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_3 = Conv2D_Block(256,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_4 = Conv2D_Block(512,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,use_dropout=True,dropout_rate=dropout_rate,use_spatial_dropout=use_spatial_dropout,data_format=data_format)
+        self.conv_5 = Conv2D_Block(1024,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,use_dropout=True,dropout_rate=dropout_rate,use_spatial_dropout=use_spatial_dropout,data_format=data_format)
     
-        self.up_5 = Up_conv(512,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.up_6 = Up_conv(256,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.up_7 = Up_conv(128,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.up_8 = Up_conv(64,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_5 = Up_Conv2D(512,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_6 = Up_Conv2D(256,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_7 = Up_Conv2D(128,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_8 = Up_Conv2D(64,(2,2),nonlinearity,use_batchnorm=True,data_format=data_format)
 
-        self.up_conv4 = Conv_Block(512,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.up_conv3 = Conv_Block(256,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.up_conv2 = Conv_Block(128,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.up_conv1 = Conv_Block(64,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv4 = Conv2D_Block(512,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv3 = Conv2D_Block(256,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv2 = Conv2D_Block(128,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv1 = Conv2D_Block(64,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
 
         #convolution filters at the output
         self.conv_output = tf.keras.layers.Conv2D(2, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
@@ -170,8 +172,8 @@ class UNet(tf.keras.Model):
 
 
 #This is the old build_unet function written in functional API. Don't delete until we test the UNet on actual data 
-"""
 #Build UNet using tf.keras Functional API
+"""
 def build_unet(num_classes,
             input_size = (256,256,1), 
             num_channels=64, 
