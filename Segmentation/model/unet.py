@@ -59,28 +59,77 @@ class Up_Conv2D(tf.keras.Model):
                  kernel_size=(2,2),
                  nonlinearity='relu',
                  use_batchnorm = False,
+                 use_transpose = False,
+                 strides=(2,2),
                  data_format='channels_last',
                  name="upsampling_convolution_block"):
 
         super(Up_Conv2D, self).__init__(name=name)
 
         self.use_batchnorm = use_batchnorm
-        
         self.upsample = tf.keras.layers.UpSampling2D(size=(2,2))
         self.conv = tf.keras.layers.Conv2D(num_channels, kernel_size, padding='same', data_format=data_format)
         self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1)
         self.activation = tf.keras.layers.Activation(nonlinearity)
+        self.use_transpose = use_transpose
+        self.conv_transpose = tf.keras.layers.Conv2DTranspose(num_channels, kernel_size, padding='same', strides=(1,1), data_format=data_format)
         
     def call(self, inputs):
         
         x = inputs
-        x = self.upsample(x)
-        x = self.conv(x)
+        if use_transpose:
+            x = self.conv_transpose(x)
+        else:
+            x = self.upsample(x)
+            x = self.conv(x)
         if self.use_batchnorm:
             x = self.batch_norm(x)
         outputs = self.activation(x)
 
         return outputs
+
+    class Attention_Gate(tf.keras.Model):
+
+    def __init__(self,
+                filters,
+                kernel_size = (1,1),
+                nonlinearity='relu',
+                padding='same',
+                stride=(1,1),
+                use_bias=False,
+                data_format='channels_last',
+                name='attention_gate'):
+
+        super(Attention_Gate, self).__init__()
+
+        self.use_batchnorm = use_batchnorm
+        self.conv_1 = tf.keras.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
+        self.conv_2 = tf.keras.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
+        self.conv_3 = tf.keras.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
+        self.batch_norm_1 = tf.keras.layers.BatchNormalization(axis=-1, scale=False)
+        self.batch_norm_2 = tf.keras.layers.BatchNormalization(axis=-1, scale=False)
+        self.batch_norm_3 = tf.keras.layers.BatchNormalization(axis=-1, scale=False)
+        self.relu = tf.keras.layers.Activation('relu')
+        self.sigmoid = tf.keras.layers.Activation('sigmoid')
+
+        def call(self, input_x, input_g):
+
+            x_g = self.conv_1(input_x)
+            x_g = self.batch_norm_1(x_g)
+
+            x_l = self.conv_2(input_g)
+            x_l = self.batch_norm_2(x_l)
+
+            x = tf.keras.layers.concatenate([x_g, x_l])
+            x = self.relu(x)
+
+            x = self.conv_3(x)
+            x = self.batch_norm_3(x)
+            alpha = self.sigmoid(x)
+
+            outputs = alpha*input_x
+
+            return outputs
 
 
 class UNet(tf.keras.Model):
@@ -170,17 +219,79 @@ class UNet(tf.keras.Model):
 
         return output
 
-class Attention_Gate(tf.keras.Model):
 
-    def __init__(self,
-                filters,
-                num_row=1,
-                num_col=1,
-                padding='same',
-                stride=(1,1),
-                name='attention_gate'):
+class AttentionUNet(tf.keras.Model):
+"""Tensorflow 2 Implementation of 'U-Net: Convolutional Networks for Biomedical Image Segmentation'
+    https://arxiv.org/pdf/1804.03999.pdf """
 
-        super(Attention_Gate, self).__init__()
+    def __init__(self, 
+                 num_channels,
+                 num_classes,
+                 num_conv_layers=1,
+                 kernel_size=(3,3),
+                 strides=(1,1)
+                 pool_size=(2,2),
+                 use_bias=False,
+                 padding='same'
+                 nonlinearity='relu',
+                 use_batchnorm = True,
+                 use_transpose = True,
+                 data_format='channels_last',
+                 name="attention_unet"):
+
+        super(AttentionUNet, self).__init__(name=name)
+
+        self.conv_1 = Conv2D_Block(num_channels,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_2 = Conv2D_Block(num_channels*2,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_3 = Conv2D_Block(num_channels*4,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_4 = Conv2D_Block(num_channels*8,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_5 = Conv2D_Block(num_channels=2,num_conv_layers,kernel_size=(1,1),nonlinearity,use_batchnorm=False,data_format=data_format)
+
+        self.a1 = Attention_Gate(num_channels*4,kernel_size=(1,1),nonlinearity,padding,strides,use_bias,data_format)
+        self.a2 = Attention_Gate(num_channels*2,kernel_size=(1,1),nonlinearity,padding,strides,use_bias,data_format)
+        self.a2 = Attention_Gate(num_channels,kernel_size=(1,1),nonlinearity,padding,strides,use_bias,data_format)
+
+        self.u1 = Up_Conv2D(num_channels*4,kernel_size,nonlinearity,use_batchnorm=True,use_transpose=True, strides,data_format=data_format)
+        self.u2 = Up_Conv2D(num_channels*2,kernel_size,nonlinearity,use_batchnorm=True,use_transpose=True, strides,data_format=data_format)
+        self.u3 = Up_Conv2D(num_channels,kernel_size,nonlinearity,use_batchnorm=True,use_transpose=True, strides,data_format=data_format)
+
+    def call(self, inputs):
+
+        #ENCODER PATH
+        x1 = self.conv_1(inputs)
+        pool1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x1)
+        
+        x2 = self.conv_2(pool1)
+        pool2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x2)
+
+        x3 = self.conv_2(pool2)
+        pool3 = MaxPooling2D(pool_size=(2, 2))(x3)
+
+        x4 = self.conv_4(pool3)
+        
+        #DECODER PATH
+        a1 = self.a1(x3, x4)
+        up4 = tf.keras.layers.UpSampling2D(size=(2, 2))(x4)
+        y1 = tf.keras.layers.concatenate([up4, a1])
+        y1 = self.u1(y1)
+
+        a2 = self.a1(x2, y1)
+        up5 = tf.keras.layers.UpSampling2D(size=(2, 2))(y1)
+        y2 = tf.keras.layers.concatenate([up5, a2])
+        y2 = self.u1(y2)
+
+        a3 = self.a1(x1, y2)
+        up6 = tf.keras.layers.UpSampling2D(size=(2, 2))(y2)
+        y3 = tf.keras.layers.concatenate([up4, a1])
+        y3 = self.u1(y3)
+
+        output = self.conv_5(y3)
+
+        return output
+
+
+
+
 
         
 #This is the old build_unet function written in functional API. Don't delete until we test the UNet on actual data 
