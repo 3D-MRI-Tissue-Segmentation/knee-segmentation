@@ -72,7 +72,7 @@ def AttentionUNet(height, width, n_channels):
     kernel_size = (3,3)
     n_classes = 2
 
-    #DECODER PATH
+    #ENCODER PATH
 
     x1 = d_conv_block(input, filters[0], kernel_size[0], kernel_size[1])
     pool1 = MaxPooling2D(pool_size = (2, 2))(x1)
@@ -85,7 +85,7 @@ def AttentionUNet(height, width, n_channels):
 
     x4 = d_conv_block(pool3, filters[3], kernel_size[0], kernel_size[1])
     
-    #ENCODER PATH
+    #DECODER PATH
     
     a1 = Attention_Gate(x3, x4, filters[0])
     up4 = UpSampling2D(size = (2, 2))(x4)
