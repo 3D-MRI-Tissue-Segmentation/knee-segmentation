@@ -88,7 +88,7 @@ class Up_Conv2D(tf.keras.layers.Layer):
 
         return outputs
 
-    class Attention_Gate(tf.keras.Model):
+class Attention_Gate(tf.keras.layers.Layer):
 
     def __init__(self,
                 filters,
