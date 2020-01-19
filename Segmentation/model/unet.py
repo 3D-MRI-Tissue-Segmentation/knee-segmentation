@@ -77,7 +77,7 @@ class Up_Conv2D(tf.keras.layers.Layer):
     def call(self, inputs):
         
         x = inputs
-        if use_transpose:
+        if self.use_transpose:
             x = self.conv_transpose(x)
         else:
             x = self.upsample(x)
@@ -88,21 +88,20 @@ class Up_Conv2D(tf.keras.layers.Layer):
 
         return outputs
 
-    class Attention_Gate(tf.keras.Model):
+class Attention_Gate(tf.keras.layers.Layer):
 
     def __init__(self,
                 filters,
                 kernel_size = (1,1),
                 nonlinearity='relu',
                 padding='same',
-                stride=(1,1),
+                strides=(1,1),
                 use_bias=False,
                 data_format='channels_last',
                 name='attention_gate'):
 
         super(Attention_Gate, self).__init__()
 
-        self.use_batchnorm = use_batchnorm
         self.conv_1 = tf.keras.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
         self.conv_2 = tf.keras.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
         self.conv_3 = tf.keras.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
@@ -112,24 +111,31 @@ class Up_Conv2D(tf.keras.layers.Layer):
         self.relu = tf.keras.layers.Activation('relu')
         self.sigmoid = tf.keras.layers.Activation('sigmoid')
 
-        def call(self, input_x, input_g):
+    def call(self, input_x, input_g):
 
-            x_g = self.conv_1(input_x)
-            x_g = self.batch_norm_1(x_g)
+        x_g = self.conv_1(input_g)
+        x_g = self.batch_norm_1(x_g)
+        #x_g_shape = tf.shape(x_g)
+        #w1 = x_g_shape.numpy()[1]
+        #w1 = tf.math.divide(w1,2)
+        #w1 = tf.cast(w1, tf.int32)
 
-            x_l = self.conv_2(input_g)
-            x_l = self.batch_norm_2(x_l)
+        x_l = self.conv_2(input_x)
+        x_l = self.batch_norm_2(x_l)
+        #x_l = tf.keras.layers.Cropping2D(cropping=((w1,w1), (w1,w1)))(x_l)
 
-            x = tf.keras.layers.concatenate([x_g, x_l])
-            x = self.relu(x)
+        x = tf.keras.layers.concatenate([x_g, x_l], axis=3)
+        x = self.relu(x)
 
-            x = self.conv_3(x)
-            x = self.batch_norm_3(x)
-            alpha = self.sigmoid(x)
+        x = self.conv_3(x)
+        x = self.batch_norm_3(x)
+        alpha = self.sigmoid(x)
+        #resampled_alpha = tf.keras.layers.UpSampling2D()(alpha)
 
-            outputs = alpha*input_x
+        #outputs = tf.math.multiply(resampled_alpha, input_x)
+        outputs = tf.math.multiply(alpha, input_x)
 
-            return outputs
+        return outputs
 
 
 class UNet(tf.keras.Model):
@@ -220,72 +226,88 @@ class UNet(tf.keras.Model):
 
 
 
-class AttentionUNet(tf.keras.Model):
-"""Tensorflow 2 Implementation of 'U-Net: Convolutional Networks for Biomedical Image Segmentation'
-    https://arxiv.org/pdf/1804.03999.pdf """
+class AttentionUNet_v1(tf.keras.Model):
+    """Tensorflow 2 Implementation of 'U-Net: Convolutional Networks for Biomedical Image Segmentation'
+    https://arxiv.org/pdf/1804.03999.pdf. """
 
     def __init__(self, 
                  num_channels,
                  num_classes,
                  num_conv_layers=1,
                  kernel_size=(3,3),
-                 strides=(1,1)
+                 strides=(1,1),
                  pool_size=(2,2),
                  use_bias=False,
-                 padding='same'
+                 padding='same',
                  nonlinearity='relu',
                  use_batchnorm = True,
                  use_transpose = True,
                  data_format='channels_last',
-                 name="attention_unet"):
+                 name="attention_unet_v1"):
 
-        super(AttentionUNet, self).__init__(name=name)
+        super(AttentionUNet_v1, self).__init__(name=name)
 
         self.conv_1 = Conv2D_Block(num_channels,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
         self.conv_2 = Conv2D_Block(num_channels*2,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
         self.conv_3 = Conv2D_Block(num_channels*4,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
         self.conv_4 = Conv2D_Block(num_channels*8,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.conv_5 = Conv2D_Block(num_channels=2,num_conv_layers,kernel_size=(1,1),nonlinearity,use_batchnorm=False,data_format=data_format)
+        self.conv_5 = Conv2D_Block(num_channels*16,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.conv_1x1 = Conv2D_Block(num_classes,num_conv_layers,(1,1),nonlinearity,use_batchnorm=False,data_format=data_format)
 
-        self.a1 = Attention_Gate(num_channels*4,kernel_size=(1,1),nonlinearity,padding,strides,use_bias,data_format)
-        self.a2 = Attention_Gate(num_channels*2,kernel_size=(1,1),nonlinearity,padding,strides,use_bias,data_format)
-        self.a2 = Attention_Gate(num_channels,kernel_size=(1,1),nonlinearity,padding,strides,use_bias,data_format)
+        self.up_conv_1 = Up_Conv2D(num_channels*8,(3,3),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv_2 = Up_Conv2D(num_channels*4,(3,3),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv_3 = Up_Conv2D(num_channels*2,(3,3),nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.up_conv_4 = Up_Conv2D(num_channels,(3,3),nonlinearity,use_batchnorm=True,data_format=data_format)
 
-        self.u1 = Up_Conv2D(num_channels*4,kernel_size,nonlinearity,use_batchnorm=True,use_transpose=True, strides,data_format=data_format)
-        self.u2 = Up_Conv2D(num_channels*2,kernel_size,nonlinearity,use_batchnorm=True,use_transpose=True, strides,data_format=data_format)
-        self.u3 = Up_Conv2D(num_channels,kernel_size,nonlinearity,use_batchnorm=True,use_transpose=True, strides,data_format=data_format)
+        self.a1 = Attention_Gate(num_channels*8,(1,1),nonlinearity,padding,strides,use_bias,data_format)
+        self.a2 = Attention_Gate(num_channels*4,(1,1),nonlinearity,padding,strides,use_bias,data_format)
+        self.a3 = Attention_Gate(num_channels*2,(1,1),nonlinearity,padding,strides,use_bias,data_format)
+        self.a4 = Attention_Gate(num_channels,(1,1),nonlinearity,padding,strides,use_bias,data_format)
+
+        self.u1 = Conv2D_Block(num_channels*8,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.u2 = Conv2D_Block(num_channels*4,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.u3 = Conv2D_Block(num_channels*2,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
+        self.u4 = Conv2D_Block(num_channels,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
 
     def call(self, inputs):
 
         #ENCODER PATH
         x1 = self.conv_1(inputs)
-        pool1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x1)
         
+        pool1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x1)
         x2 = self.conv_2(pool1)
+        
         pool2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x2)
-
-        x3 = self.conv_2(pool2)
-        pool3 = MaxPooling2D(pool_size=(2, 2))(x3)
-
+        x3 = self.conv_3(pool2)
+        
+        pool3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x3)
         x4 = self.conv_4(pool3)
         
+        pool4 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x4)
+        x5 = self.conv_5(pool4)
+
         #DECODER PATH
-        a1 = self.a1(x3, x4)
-        up4 = tf.keras.layers.UpSampling2D(size=(2, 2))(x4)
-        y1 = tf.keras.layers.concatenate([up4, a1])
+        up4 = self.up_conv_1(x5)
+        a1 = self.a1(up4, x4)
+        y1 = tf.keras.layers.concatenate([a1, up4])
         y1 = self.u1(y1)
 
-        a2 = self.a1(x2, y1)
-        up5 = tf.keras.layers.UpSampling2D(size=(2, 2))(y1)
-        y2 = tf.keras.layers.concatenate([up5, a2])
-        y2 = self.u1(y2)
+        up5 = self.up_conv_2(y1)
+        a2 = self.a2(up5, x3)
+        y2 = tf.keras.layers.concatenate([a2, up5])
+        y2 = self.u2(y2)
 
-        a3 = self.a1(x1, y2)
-        up6 = tf.keras.layers.UpSampling2D(size=(2, 2))(y2)
-        y3 = tf.keras.layers.concatenate([up4, a1])
-        y3 = self.u1(y3)
+        up6 = self.up_conv_3(y2)
+        a3 = self.a3(up6, x2)
+        y3 = tf.keras.layers.concatenate([a3, up6])
+        y3 = self.u3(y3)
 
-        output = self.conv_5(y3)
+        up7 = self.up_conv_4(y3)
+        a4 = self.a4(up7, x1)
+        y4 = tf.keras.layers.concatenate([a4, up7])
+        y4 = self.u4(y4)
+
+        output = self.conv_1x1(y4)
 
         return output
 
