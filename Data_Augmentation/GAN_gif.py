@@ -16,12 +16,6 @@ x_test = x_test/255
 x_train = x_train.reshape(x_train.shape[0], 28, 28, 1).astype('float32')
 x_dataset = tf.data.Dataset.from_tensor_slices(x_train).shuffle(BATCH_SIZE).batch(BATCH_SIZE)
 
-#define metrics
-gen_loss_label = tf.keras.metrics.Mean('gen_loss', dtype=tf.float32)
-d_loss_label = tf.keras.metrics.Mean('d_loss', dtype=tf.float32)
-d_accurcy_real = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy_real')
-d_accurcy_fake = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy_fake')
-
 # #showing image in mnist
 # plt.imshow(x_train[0,:,:,0],cmap='gray')
 # plt.show()
@@ -80,7 +74,7 @@ def discriminator_model():
 
     #Dense Layer for output --> therefore flatten
     model.add(layers.Flatten())
-    model.add(layers.Dense(1, activation='sigmoid'))
+    model.add(layers.Dense(1))
 
     return model
 
@@ -104,26 +98,16 @@ def generator_loss(fake_output):
 generator_optimizer = tf.keras.optimizers.Adam(1e-4)
 discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
 
-#Accuracy
-def discriminator_accuracy(real_pred, fake_pred):
-    real_true = tf.ones_like(real_pred)
-    fake_true = tf.zeros_like(fake_pred)
-    d_accurcy_real.update_state(real_true, tf.math.round(real_pred))
-    d_accurcy_fake.update_state(fake_true, tf.math.round(fake_pred))
-    #print (tf.shape(real_pred))
-    #d_accurcy.update_state(tf.concat(values=[real_true, fake_true], axis=1), tf.concat(values=[real_pred, fake_pred], axis=1))
-
-
 #Training
 epochs = 2
 number_of_generated_output = 16
 noise_length = 100
-seed = tf.random.normal([number_of_generated_output, noise_length])
+#seed = tf.random.normal([number_of_generated_output, noise_length])
 
 generator = generator_model(noise_length)
 discriminator = discriminator_model()
 
-@tf.function #This will run the function as a graph which will have a faster execution and will be using the GPU
+#@tf.function #This will run the function as a graph which will have a faster execution and will be using the GPU
 def training_epoch(images):
     noise = tf.random.normal([BATCH_SIZE, noise_length])
 
@@ -145,12 +129,7 @@ def training_epoch(images):
     generator_optimizer.apply_gradients(zip(gen_gradient, generator.trainable_variables))
     discriminator_optimizer.apply_gradients(zip(d_gradient, discriminator.trainable_variables))
 
-    gen_loss_label.update_state(gen_loss)
-    d_loss_label.update_state(d_loss)
-   # print (real_out.numpy())
-    discriminator_accuracy(real_out, fake_out)
-
-    # show_im(generated_images.numpy())
+    show_im(generated_images.numpy())
 
 def training(n_epochs, dataset):
     for epoch in range(epochs):
@@ -159,31 +138,11 @@ def training(n_epochs, dataset):
             #print("when letfro %d" %i)
             training_epoch(batch_im)
             #i = i+1
-        template = 'Generator Loss: {}, Discrimintor Loss: {}, Discriminator Accuracy_real: {}, Discriminator Accuracy_fake: {}'
-        print(f"----------------\t{(epoch+1)}\t----------------")
-        print (template.format(gen_loss_label.result(), 
-                                d_loss_label.result(),
-                                d_accurcy_real.result()*100,
-                                d_accurcy_fake.result()*100) + "\n")
-        
-        gen_loss_label.reset_states()
-        d_loss_label.reset_states()
-        d_accurcy_real.reset_states()
-        d_accurcy_fake.reset_states()
 
-
-def generate_showIm():
-    prediction = generator(seed, training=False)
-    plt.imshow(prediction[0,:,:,0], cmap='gray')
-    plt.show()
-
-# def show_im(image):
-#     plt.imshow(image[0,:,:,0], cmap='gray')
-#     plt.show(block=False)
-#     plt.pause(0.1)
-#     plt.close()
+def show_im(image):
+    plt.imshow(image[0,:,:,0], cmap='gray')
+    plt.show(block=False)
+    plt.pause(0.1)
+    plt.close()
 
 training(epochs, x_dataset)
-generate_showIm()
-
-
