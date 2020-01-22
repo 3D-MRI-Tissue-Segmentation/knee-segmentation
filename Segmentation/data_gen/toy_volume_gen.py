@@ -179,7 +179,7 @@ def rgb_to_hex(rgb):
 
 if __name__ == "__main__":
     n_reps, n_classes = 4, 3
-    width, height, depth = 40, 40, 40
+    width, height, depth = 80, 80, 80
     colour_channels = 3
 
     td = Toy_Volume(n_classes, width, height, depth, colour_channels)

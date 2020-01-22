@@ -31,7 +31,7 @@ import os
 
 
 ##########################################################################################################
-# Joe's toy_volume_gen.py script so i can get the volume for trial
+# Joe's toy_volume_gen.py script below so i can use the volume for trial
 ##########################################################################################################
 
 class Toy_Volume:
@@ -188,7 +188,7 @@ def rgb_to_hex(rgb):
 
 if __name__ == "__main__":
     n_reps, n_classes = 4, 3
-    width, height, depth = 50, 50, 50
+    width, height, depth = 100, 100, 100
     colour_channels = 3
 
     td = Toy_Volume(n_classes, width, height, depth, colour_channels)
@@ -211,7 +211,11 @@ if __name__ == "__main__":
                                         colour_idx)
 
 
-##################################################### End joe's toy_volume_gen.py
+
+##########################################################################################################
+# End joe's toy_volume_gen.py (copied as is)
+##########################################################################################################
+
 
 
 
@@ -220,15 +224,11 @@ if __name__ == "__main__":
 
 
 base = ShowBase()
-# base.disableMouse()
-base.camera.setPos(0, -10, 0)
-
-# def initializeSim()   
-#     """ Sets world settings like text, cam position etc. """
-#     base.disableMouse()
-#     base.camera.setPos(0, -10, 0)
-# end initializeSim()
-
+spin_rate = 400     # If simulation is spinning, higher num = slower; go to create_voxel to control rotation
+def initializeSim():   
+    """ Sets world settings like text, cam position etc. """
+    base.disableMouse()
+    base.camera.setPos(0, -500, 0)
 
 # You can't normalize inline so this is a helper function
 def normalized(*args):
@@ -340,7 +340,7 @@ def create_voxel(x,y,z, color):    # Where xyz are the center of the voxel
         # specified CCW).
         cube.setTwoSided(True)
 
-        # cube.hprInterval(6, (360, 360, 360)).loop()         # This rotates the cube lol
+        # cube.hprInterval(spin_rate, (360, 360, 360)).loop()         # This rotates each cube lol
 
 
 
@@ -436,14 +436,18 @@ def getSurfaceVoxels(volume):
 
 
 
-volume = td.volume
-width, height, depth, channels = np.shape(volume)
-volume_surface = getSurfaceVoxels(volume)
-for x in range(width):
-    for y in range(height):
-        for z in range(depth):
-            color = volume_surface[x,y,z,:]
-            np.reshape(color, channels)
-            create_voxel(x,y,z,color)
+if __name__ == "__main__":
+    initializeSim()
+    volume = td.volume          # Input 4D array of xyz coords and corresponding color
+    width, height, depth, channels = np.shape(volume)
+    volume_surface = getSurfaceVoxels(volume)
 
-base.run()
+    # Procedural voxel generation
+    for x in range(width):
+        for y in range(height):
+            for z in range(depth):
+                color = volume_surface[x,y,z,:]
+                np.reshape(color, channels)
+                create_voxel(x,y,z,color)
+
+    base.run()
