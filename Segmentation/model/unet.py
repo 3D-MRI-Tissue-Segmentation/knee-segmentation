@@ -310,7 +310,6 @@ class AttentionUNet_v1(tf.keras.Model):
         output = self.conv_1x1(y4)
 
         return output
-
         
 #This is the old build_unet function written in functional API. Don't delete until we test the UNet on actual data 
 #Build UNet using tf.keras Functional API
