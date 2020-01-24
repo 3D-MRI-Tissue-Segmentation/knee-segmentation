@@ -1,6 +1,6 @@
 import tensorflow as tf 
-#from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Dropout, SpatialDropout2D, concatenate
-#from tensorflow.keras import Model, Input
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Dropout, SpatialDropout2D, concatenate, add
+from tensorflow.keras import Model, Input
 
 class Conv2D_Block(tf.keras.layers.Layer):
 
@@ -138,6 +138,89 @@ class Attention_Gate(tf.keras.layers.Layer):
         return outputs
 
 
+class MultiResBlock(tf.keras.layers.Layer):
+
+    def __init__(self, 
+                filters, 
+                kernel_size=(3,3),
+                nonlinearity='relu', 
+                padding='same',
+                strides=(1,1),
+                data_format='channels_last',
+                name="MultiResBlock"
+                ):
+
+        super(MultiResBlock, self).__init__()
+
+        self.conv_1 = Conv2D_Block(1, kernel_size=(1,1), nonlinearity=None, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
+        self.conv_2 = Conv2D_Block(1, kernel_size, nonlinearity, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
+        self.conv_3 = Conv2D_Block(2, kernel_size, nonlinearity, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
+        self.conv_4 = Conv2D_Block(3, kernel_size, nonlinearity, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
+        
+        self.batch_1 = tf.keras.layers.BatchNormalization(axis=3)
+        self.batch_2 = tf.keras.layers.BatchNormalization(axis=3)
+        self.activation_1 = tf.keras.layers.Activation(nonlinearity)
+
+    def call (self, input):
+
+        x1 = self.conv_1(input)
+
+        x2 = self.conv_2(input)
+        x3 = self.conv_3(x1)
+        x4 = self.conv_4(x3)
+
+        out = tf.keras.layers.concatenate([x2, x3, x4])
+        out = self.batch_1(out)
+
+        out = tf.keras.layers.add([x1, out])
+        out = self.activation_1(out)
+
+        output = self.batch_2(out)
+
+        return output
+
+
+class ResPath(tf.keras.layers.Layer):
+
+    def __init__(self,
+                length,
+                filters,
+                kernel_size=(1,1),
+                nonlinearity='relu',
+                padding='same',
+                strides=(1,1),
+                data_format='channels_last',
+                name="ResPath"
+                ):
+
+        super(ResPath, self).__init__()
+
+        self.length = length
+
+        self.conv = []
+        self.batch_norm = []
+
+        for _ in range(length):
+            self.conv.append(Conv2D_Block(filters, kernel_size, nonlinearity=None, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last'))
+            self.conv.append(Conv2D_Block(filters, kernel_size=(3,3), nonlinearity='relu', use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last'))
+
+        for _ in range(length):
+            self.batch_norm.append(tf.keras.layers.BatchNormalization(axis=3))
+        
+    def call(self, input):
+        
+        for i in range (0, self.length, 2):
+            
+            x1 = self.conv[i](input)
+            x2 = self.conv[i+1](input)
+
+            out = tf.keras.layers.add([x1,x2])
+            out = tf.keras.layers.Activation('relu')(out)
+            output = self.batch_norm[i](out)
+
+        return output
+
+
 class UNet(tf.keras.Model):
     """ Tensorflow 2 Implementation of 'U-Net: Convolutional Networks for Biomedical Image Segmentation'
     https://arxiv.org/abs/1505.04597."""
@@ -224,8 +307,6 @@ class UNet(tf.keras.Model):
 
         return output
 
-
-
 class AttentionUNet_v1(tf.keras.Model):
     """Tensorflow 2 Implementation of 'U-Net: Convolutional Networks for Biomedical Image Segmentation'
     https://arxiv.org/pdf/1804.03999.pdf. """
@@ -310,9 +391,52 @@ class AttentionUNet_v1(tf.keras.Model):
         output = self.conv_1x1(y4)
 
         return output
+
+class MultiResUnet(tf.keras.Model):
+
+    def __init__(self,
+                num_classes,
+                num_channels,
+                num_conv_layers=1,
+                kernel_size=(3,3),
+                strides=(1,1),
+                pool_size=(2,2),
+                use_bias=False,
+                padding='same',
+                nonlinearity='relu',
+                use_batchnorm = True,
+                use_transpose = True,
+                data_format='channels_last',
+                name="MultiRes_Unet"):
+                
         
+        super(MultiResUnet, self).__init__(name=name)
+
+        self.mresblock_1 = MultiResBlock(num_channels, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
+        self.mresblock_2 = MultiResBlock(num_channels*2, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
+        self.mresblock_3 = MultiResBlock(num_channels*4, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
+        self.mresblock_4 = MultiResBlock(num_channels*8, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
+
+        self.pool_1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
+        self.pool_2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
+        self.pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
+        self.pool_4 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
+
+        self.up_1 = Up_Conv2D()
+        self.up_2 = Up_Conv2D()
+        self.up_3 = Up_Conv2D()
+        self.up_4 = Up_Conv2D()
+
+        self.respath_1 = ResPath()
+        self.respath_1 = ResPath()
+        self.respath_1 = ResPath()
+        self.respath_1 = ResPath()
+
+        self.conv_final = Conv2D_Block()
+                       
 #This is the old build_unet function written in functional API. Don't delete until we test the UNet on actual data 
 #Build UNet using tf.keras Functional API
+
 """
 def build_unet(num_classes,
             input_size = (256,256,1), 
