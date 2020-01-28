@@ -1,11 +1,11 @@
 # Environments
-*/env/
+**/env/
 env/
-*/web_env/
+**/web_env/
 web_env/
-*/ui_env/
+**/ui_env/
 ui_env/
-*/ml_env/
+**/ml_env/
 ml_env/
 
 # Python
@@ -22,3 +22,7 @@ htmlcov/
 
 # IDE
 .vscode/
+
+# Logging
+
+**/logs/

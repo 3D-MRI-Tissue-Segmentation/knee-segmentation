@@ -1,5 +1,6 @@
 from util import Epsilon
 
+import datetime
 import gym
 import tensorflow as tf
 import numpy as np
@@ -23,7 +24,8 @@ class Memoryless_DQN_Agent:
                  epsilon, gamma, alpha,
                  batch_size, lr,
                  make_network, *make_network_args,
-                 random_actions=False, verbose=False):
+                 random_actions=False, verbose=False, 
+                 tf_writer=summary_writer):
         self.env = env
         self.obs_shape = env.observation_space.shape
         self.n_actions = env.action_space.n
@@ -42,6 +44,7 @@ class Memoryless_DQN_Agent:
 
         self.random_actions = random_actions
         self.verbose = verbose
+        self.tf_writer = tf_writer
         self.episodes = 0
 
     def update_Q_network(self, ob, a, r, ob_next, done):
@@ -76,6 +79,9 @@ class Memoryless_DQN_Agent:
         self.reward += r
         if done:
             self.episodes += 1
+            if self.tf_writer:
+                with self.tf_writer.as_default():
+                    tf.summary.scalar('episode reward', self.reward, step=self.episodes)
             if self.verbose:
                 print(f"{self.episodes} - {self.reward} - {self.epsilon.value}")
             self.rewards.append(self.reward)
@@ -85,9 +91,11 @@ class Memoryless_DQN_Agent:
         else:
             self.ob = ob_next
 
-if __name__ == "__main__":
-    print("Running...")
-
+def main():
+    current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = 'logs/dqn/' + current_time
+    summary_writer = tf.summary.create_file_writer(log_dir)
+    
     env = gym.make("CartPole-v0")
     e = Epsilon(0.1, 0.9, 0.99)
     gamma = 0.99
@@ -100,15 +108,13 @@ if __name__ == "__main__":
                                  e, gamma, alpha,
                                  batch_size, lr,
                                  mlp_make_network, *mlp_make_network_args,
-                                 verbose=True)
+                                 verbose=True, tf_writer=summary_writer)
 
-    n_steps = 10000
+    n_steps = 5000
     for i in range(n_steps):
         agent.step()
     env.env.close()
 
-    import matplotlib.pyplot as plt
-    plt.plot(agent.rewards)
-    N = 100
-    plt.plot(np.convolve(agent.rewards, np.ones((N,)) / N, mode='valid'))
-    plt.show()
+if __name__ == "__main__":
+    for i in range(10):
+        main()

@@ -1,5 +1,6 @@
 from util import Epsilon, Uniform_Memory
 
+import datetime
 import gym
 import tensorflow as tf
 import numpy as np
@@ -22,7 +23,8 @@ class Target_DQN_Agent:
                  epsilon, gamma, alpha,
                  batch_size, lr, memory, target_freq,
                  make_network, *make_network_args,
-                 random_actions=False, verbose=False):
+                 random_actions=False, verbose=False, tf_writer=None,
+                 reward_style=None):
         self.env = env
         self.obs_shape = env.observation_space.shape
         self.n_actions = env.action_space.n
@@ -44,6 +46,11 @@ class Target_DQN_Agent:
 
         self.random_actions = random_actions
         self.verbose = verbose
+        self.tf_writer = tf_writer
+        assert reward_style in [None, 'cumulative', 'punish']
+        self.reward_style = reward_style
+
+        self.steps = 0
         self.episodes = 0
 
     def update_target_network(self):
@@ -80,16 +87,25 @@ class Target_DQN_Agent:
         self.update_Q_network(obs, actions, rewards, next_obs, dones)
 
     def step(self):
+        self.steps += 1
         a = self.act(self.ob)
         ob_next, r, done, _ = self.env.step(a)
-        self.memory.remember(self.ob, a, r, ob_next, done)
+        reward_in = r
+        if self.reward_style == 'punish':
+            reward_in = r if not done else -20
+        elif self.reward_style == 'cumulative':
+            reward_in = self.reward
+        self.memory.remember(self.ob, a, reward_in, ob_next, done)
         self.reward += r
         if done:
             self.episodes += 1
+            if self.tf_writer:
+                with self.tf_writer.as_default():
+                    tf.summary.scalar('episode reward', self.reward, step=self.episodes)
             if self.episodes % self.update_target_freq == 0:
                 self.update_target_network()
             if self.verbose:
-                print(f"{self.episodes} - {self.reward} - {self.epsilon.value}")
+                print(f"steps: {self.steps} - episode: {self.episodes} - r: {self.reward} - epsilon: {self.epsilon.value: .3f}")
             self.rewards.append(self.reward)
             self.train()
             self.reward = 0.0
@@ -97,10 +113,17 @@ class Target_DQN_Agent:
             self.ob = self.env.reset()
         else:
             self.ob = ob_next
+        return done
 
 
-if __name__ == "__main__":
-    print("Running...")
+def main(reward_style):
+    if reward_style is None:
+        reward_style_str = "none"
+    else:
+        reward_style_str = reward_style
+    current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = 'logs/dqn/' + current_time + "-" + reward_style_str
+    summary_writer = tf.summary.create_file_writer(log_dir)
 
     env = gym.make("CartPole-v0")
     e = Epsilon(0.1, 0.9, 0.99)
@@ -116,15 +139,16 @@ if __name__ == "__main__":
                              e, gamma, alpha,
                              batch_size, lr, memory, target_freq,
                              mlp_make_network, *mlp_make_network_args,
-                             random_actions=False, verbose=True)
+                             random_actions=False, verbose=True, tf_writer=summary_writer,
+                             reward_style=reward_style)
 
-    n_steps = 20000
+    n_steps = 50000
     for i in range(n_steps):
         agent.step()
     env.env.close()
 
-    import matplotlib.pyplot as plt
-    plt.plot(agent.rewards)
-    N = 100
-    plt.plot(np.convolve(agent.rewards, np.ones((N,)) / N, mode='valid'))
-    plt.show()
+
+if __name__ == "__main__":
+    for i in range(9):
+        main("punish")
+        main("cumulative")
