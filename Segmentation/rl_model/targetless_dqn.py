@@ -107,7 +107,7 @@ if __name__ == "__main__":
                                  mlp_make_network, *mlp_make_network_args,
                                  random_actions=False, verbose=True)
 
-    n_steps = 10000
+    n_steps = 100000
     for i in range(n_steps):
         agent.step()
     env.env.close()

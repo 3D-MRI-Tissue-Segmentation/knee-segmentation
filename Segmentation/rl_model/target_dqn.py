@@ -17,11 +17,11 @@ def mlp_make_network(obs_shape, n_actions, fcs):
     return tf.keras.Model(network_input, network_output)
 
 
-class DQN_Agent:
+class Targetless_DQN_Agent:
 
     def __init__(self, env,
                  epsilon, gamma, alpha,
-                 batch_size, lr, memory,
+                 batch_size, lr, memory, target_freq,
                  make_network, *make_network_args,
                  random_actions=False, verbose=False):
         self.env = env
@@ -32,7 +32,11 @@ class DQN_Agent:
         self.alpha = alpha
         self.batch_size = batch_size
         self.memory = memory
+        self.update_target_freq = target_freq
         self.network = make_network(self.obs_shape, self.n_actions, *make_network_args)
+
+        self.target_network = make_network(self.obs_shape, self.n_actions, *make_network_args)
+        self.update_target_network()
         self.network.compile(optimizer=tf.keras.optimizers.Adam(lr),
                              loss='mse')
         self.rewards = []
@@ -43,8 +47,11 @@ class DQN_Agent:
         self.verbose = verbose
         self.episodes = 0
 
+    def update_target_network(self):
+        self.target_network.set_weights(self.network.get_weights())
+
     def update_Q_network(self, ob, a, r, ob_next, done):
-        state_qs = self.network.predict(ob)
+        state_qs = self.target_network.predict(ob)
         state_qs_next = self.network.predict(ob_next)
         max_q_next = state_qs_next.max(axis=1)
         for idx in range(self.batch_size):
@@ -78,6 +85,8 @@ class DQN_Agent:
         self.reward += r
         if done:
             self.episodes += 1
+            if self.episodes % self.update_target_freq == 0:
+                self.update_target_network()
             if self.verbose:
                 print(f"{self.episodes} - {self.reward} - {self.epsilon.value}")
             self.rewards.append(self.reward)
@@ -101,13 +110,13 @@ if __name__ == "__main__":
     memory = Uniform_Memory(2000)
     mlp_make_network_args = [[32, 32]]
 
-    agent = DQN_Agent(env,
+    agent = Targetless_DQN_Agent(env,
                                  e, gamma, alpha,
-                                 batch_size, lr, memory,
+                                 batch_size, lr, memory, 20,
                                  mlp_make_network, *mlp_make_network_args,
                                  random_actions=False, verbose=True)
 
-    n_steps = 10000
+    n_steps = 100000
     for i in range(n_steps):
         agent.step()
     env.env.close()
