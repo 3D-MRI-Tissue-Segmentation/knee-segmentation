@@ -77,7 +77,6 @@ class Targetless_DQN_Agent:
         a = self.act(self.ob)
         ob_next, r, done, _ = self.env.step(a)
         self.memory.remember(self.ob, a, r, ob_next, done)
-        self.memory
         self.reward += r
         if done:
             self.episodes += 1

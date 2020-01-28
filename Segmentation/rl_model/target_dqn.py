@@ -83,7 +83,6 @@ class Target_DQN_Agent:
         a = self.act(self.ob)
         ob_next, r, done, _ = self.env.step(a)
         self.memory.remember(self.ob, a, r, ob_next, done)
-        self.memory
         self.reward += r
         if done:
             self.episodes += 1
@@ -119,7 +118,7 @@ if __name__ == "__main__":
                              mlp_make_network, *mlp_make_network_args,
                              random_actions=False, verbose=True)
 
-    n_steps = 10000
+    n_steps = 20000
     for i in range(n_steps):
         agent.step()
     env.env.close()
