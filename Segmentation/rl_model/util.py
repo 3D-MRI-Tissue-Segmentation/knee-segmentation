@@ -1,6 +1,8 @@
 import numpy as np
 from collections import deque
 
+import random
+
 class Epsilon():
     def __init__(self, low, high, decay):
         assert 0. < decay < 1.0
@@ -20,17 +22,18 @@ class Uniform_Memory:
     def __init__(self, memory_length):
         self.samples = deque(maxlen=memory_length)
 
-    def remember(self, state, action, reward, next_state):
-        self.samples.append([state, action, reward, next_state])
+    def remember(self, ob, action, reward, next_ob, done):
+        self.samples.append([ob, action, reward, next_ob, done])
 
     def sample(self, n_samples):
-        if n_samples < len(self.sample):
+        if n_samples > len(self.samples):
             return
-        return np.random.sample(self.sample, n_samples)
+        return random.sample(self.samples, n_samples)
 
     def batch_to_np(self, batch):
-        states = np.array([val[0] for val in batch])
-        actions = np.array([val[1] for val in batch])
-        rewards = np.array([val[2] for val in batch])
-        next_states = np.array([val[3] for val in batch])
-        return states, actions, rewards, next_states
+        obs = np.array([val[0] for val in batch], dtype="float32")
+        actions = np.array([val[1] for val in batch], dtype="int8")
+        rewards = np.array([val[2] for val in batch], dtype="float32")
+        next_obs = np.array([val[3] for val in batch], dtype="float32")
+        dones = np.array([val[4] for val in batch])
+        return obs, actions, rewards, next_obs, dones

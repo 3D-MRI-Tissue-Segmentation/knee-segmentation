@@ -8,7 +8,7 @@ class Q_Learn:
 
     def __init__(self, env,
                  epsilon, gamma=0.99, alpha=0.5,
-                 obs_precision=[0, 0, 0, 0]):
+                 obs_precision=[1, 1, 1, 1]):
         assert isinstance(env.action_space, gym.spaces.Discrete), "requires discrete actions space"
         assert isinstance(env.observation_space, gym.spaces.Box), "Observation space required to be a box"
         assert len(env.observation_space.sample()) == len(obs_precision), "Size of obs space sample must equal precision list"
@@ -26,7 +26,7 @@ class Q_Learn:
         self.ob = self.env.reset()
         self.reward = 0.0
 
-    def update_Q(self, ob_str, r, a, ob_next_str, done):
+    def update_Q(self, ob_str, a, r, ob_next_str, done):
         max_q_next = max([self.Q[ob_next_str, a] for a in range(self.actions.n)])
         if not done:
             self.Q[ob_str, a] += self.alpha * (r + self.gamma * max_q_next - self.Q[ob_str, a])
@@ -47,7 +47,7 @@ class Q_Learn:
         if visualise:
             self.env.render()
         ob_next_str = self.box_to_string(ob_next)
-        self.update_Q(ob_str, r, a, ob_next_str, done)
+        self.update_Q(ob_str, a, r, ob_next_str, done)
         self.reward += r
         if done:
             self.rewards.append(self.reward)
@@ -69,11 +69,13 @@ if __name__ == "__main__":
     env_ = gym.make("CartPole-v0")
     e = Epsilon(0.01, 0.9, 0.99)
     agent = Q_Learn(env_, e)
-    n_steps = 1000
+    n_steps = 100000
     for i in range(n_steps):
         agent.step()
     env_.env.close()
 
     import matplotlib.pyplot as plt
     plt.plot(agent.rewards)
+    N = 100
+    plt.plot(np.convolve(agent.rewards, np.ones((N,)) / N, mode='valid'))
     plt.show()
