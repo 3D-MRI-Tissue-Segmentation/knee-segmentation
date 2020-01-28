@@ -50,7 +50,10 @@ class Memoryless_DQN_Agent:
         ob_next = np.asarray([ob_next], dtype="float32")
         state_qs_next = self.network.predict([ob_next])[0]
         max_q_next = max([state_qs_next[a] for a in range(self.n_actions)])
-        state_qs[a] += self.alpha * (r + self.gamma * max_q_next * (1 - done) - state_qs[a])
+        if done:
+            state_qs[a] += self.alpha * r
+        else:
+            state_qs[a] += self.alpha * (r + self.gamma * max_q_next - state_qs[a])
         state_qs = np.asarray([state_qs], dtype="float32")
         self.network.fit(ob, state_qs, epochs=1, verbose=0)
 

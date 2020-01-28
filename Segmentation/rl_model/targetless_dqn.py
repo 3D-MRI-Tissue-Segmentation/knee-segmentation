@@ -48,7 +48,10 @@ class Targetless_DQN_Agent:
         state_qs_next = self.network.predict(ob_next)
         max_q_next = state_qs_next.max(axis=1)
         for idx in range(self.batch_size):
-            state_qs[idx, a[idx]] += self.alpha * (r[idx] + self.gamma * max_q_next[idx] * (1 - done[idx]) - state_qs[idx, a[idx]])
+            if done[idx]:
+                state_qs[idx, a[idx]] += self.alpha * r[idx]
+            else:
+                state_qs[idx, a[idx]] += self.alpha * (r[idx] + self.gamma * max_q_next[idx] - state_qs[idx, a[idx]])
         self.network.fit(ob, state_qs, epochs=1, verbose=0)
 
     def act(self, ob):
