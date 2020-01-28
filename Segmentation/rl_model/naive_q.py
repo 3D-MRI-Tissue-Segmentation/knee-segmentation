@@ -8,7 +8,8 @@ class Q_Learn:
 
     def __init__(self, env,
                  epsilon, gamma=0.99, alpha=0.5,
-                 obs_precision=[1, 1, 1, 1]):
+                 obs_precision=[1, 1, 1, 1],
+                 random_actions=False, verbose=False):
         assert isinstance(env.action_space, gym.spaces.Discrete), "requires discrete actions space"
         assert isinstance(env.observation_space, gym.spaces.Box), "Observation space required to be a box"
         assert len(env.observation_space.sample()) == len(obs_precision), "Size of obs space sample must equal precision list"
@@ -26,6 +27,10 @@ class Q_Learn:
         self.ob = self.env.reset()
         self.reward = 0.0
 
+        self.random_actions = random_actions
+        self.verbose = verbose
+        self.episodes = 0
+
     def update_Q(self, ob_str, a, r, ob_next_str, done):
         max_q_next = max([self.Q[ob_next_str, a] for a in range(self.actions.n)])
         if not done:
@@ -33,6 +38,8 @@ class Q_Learn:
 
     def act(self, ob_str):
         """ given current observation, pick the action with highest q value"""
+        if self.random_actions:
+            return self.env.action_space.sample()
         if np.random.random() < self.epsilon.value:
             return self.actions.sample()
         states_qs = {a: self.Q[ob_str, a] for a in range(self.actions.n)}
@@ -51,6 +58,7 @@ class Q_Learn:
         self.reward += r
         if done:
             self.rewards.append(self.reward)
+            self.epsilon.update_epsilon()
             self.reward = 0.0
             self.ob = self.env.reset()
         else:
@@ -64,12 +72,12 @@ class Q_Learn:
         return ob_str
 
 if __name__ == "__main__":
-    print("Running")
+    print("Running...")
 
     env_ = gym.make("CartPole-v0")
-    e = Epsilon(0.01, 0.9, 0.99)
+    e = Epsilon(0.1, 0.9, 0.99)
     agent = Q_Learn(env_, e)
-    n_steps = 100000
+    n_steps = 1000000
     for i in range(n_steps):
         agent.step()
     env_.env.close()

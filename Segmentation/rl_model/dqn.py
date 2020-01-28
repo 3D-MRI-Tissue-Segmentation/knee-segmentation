@@ -22,7 +22,8 @@ class DQN_Agent:
     def __init__(self, env,
                  epsilon, gamma, alpha,
                  batch_size, lr, memory,
-                 make_network, *make_network_args, random_actions=False):
+                 make_network, *make_network_args,
+                 random_actions=False, verbose=False):
         self.env = env
         self.obs_shape = env.observation_space.shape
         self.n_actions = env.action_space.n
@@ -37,7 +38,10 @@ class DQN_Agent:
         self.rewards = []
         self.ob = self.env.reset()
         self.reward = 0.0
+
         self.random_actions = random_actions
+        self.verbose = verbose
+        self.episodes = 0
 
     def update_Q_network(self, ob, a, r, ob_next, done):
         state_qs = self.network.predict(ob)
@@ -73,36 +77,38 @@ class DQN_Agent:
         self.memory
         self.reward += r
         if done:
+            self.episodes += 1
+            if self.verbose:
+                print(f"{self.episodes} - {self.reward} - {self.epsilon.value}")
             self.rewards.append(self.reward)
             self.train()
             self.reward = 0.0
+            self.epsilon.update_epsilon()
             self.ob = self.env.reset()
         else:
             self.ob = ob_next
 
 
 if __name__ == "__main__":
-    print("running")
+    print("Running...")
+
     env = gym.make("CartPole-v0")
-    e = Epsilon(0.01, 0.9, 0.99)
+    e = Epsilon(0.1, 0.9, 0.99)
     gamma = 0.99
     alpha = 0.5
     batch_size = 120
-    lr = 0.01
-    memory = Uniform_Memory(10000)
-    mlp_make_network_args = [[5, 10]]
+    lr = 0.001
+    memory = Uniform_Memory(2000)
+    mlp_make_network_args = [[32, 32]]
 
     agent = DQN_Agent(env,
-                      e, gamma, alpha,
-                      batch_size, lr, memory,
-                      mlp_make_network, *mlp_make_network_args,
-                      random_actions=False)
+                                 e, gamma, alpha,
+                                 batch_size, lr, memory,
+                                 mlp_make_network, *mlp_make_network_args,
+                                 random_actions=False, verbose=True)
 
-    n_steps = 50000
-    percent = n_steps * 0.1
+    n_steps = 10000
     for i in range(n_steps):
-        if i % percent == 0:
-            print(i)
         agent.step()
     env.env.close()
 
