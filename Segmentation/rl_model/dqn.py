@@ -22,7 +22,7 @@ class DQN_Agent:
     def __init__(self, env,
                  epsilon, gamma, alpha,
                  batch_size, lr, memory,
-                 make_network, *make_network_args):
+                 make_network, *make_network_args, random_actions=False):
         self.env = env
         self.obs_shape = env.observation_space.shape
         self.n_actions = env.action_space.n
@@ -31,58 +31,26 @@ class DQN_Agent:
         self.alpha = alpha
         self.batch_size = batch_size
         self.memory = memory
-
         self.network = make_network(self.obs_shape, self.n_actions, *make_network_args)
         self.network.compile(optimizer=tf.keras.optimizers.Adam(lr),
                              loss='mse')
-
         self.rewards = []
         self.ob = self.env.reset()
         self.reward = 0.0
+        self.random_actions = random_actions
 
     def update_Q_network(self, ob, a, r, ob_next, done):
-        # print("==================================")
-        # print(ob)
-        # print(a)
-        # print(r)
-        # print(ob_next)
-        # print(done)
-        # print(1-done)
-        # print("==================================")
-        # print("a", a)
-        # print("==================================")
         state_qs = self.network.predict(ob)
-        # print(state_qs)
-        # print("==================================")
         state_qs_next = self.network.predict(ob_next)
-        # print(state_qs_next)
-        # print("==================================")
         max_q_next = state_qs_next.max(axis=1)
-        # print(max_q_next)
-        # print("==================================")
-        # print("old qs:\n", state_qs)
-        # print("==================================")
-
         for idx in range(self.batch_size):
-            # if idx == 0:
-            #     print("q val for each action:", state_qs[idx])
-            #     print(f"q val for action {a[idx]}:", state_qs[idx, a[idx]])
-            #     print("reward:", r[idx])
-            #     print("max next q", max_q_next[idx])
-            #     print("##############")
-            update = self.alpha * (r[idx] + self.gamma * max_q_next[idx] * (1 - done[idx] - state_qs[idx, a[idx]]))
-            # print(update)
-            state_qs[idx, a[idx]] += update
-
-        # print("==================================")
-
-        # print("updated qs:\n", state_qs)
-        # print("==================================")
-
+            state_qs[idx, a[idx]] += self.alpha * (r[idx] + self.gamma * max_q_next[idx] * (1 - done[idx] - state_qs[idx, a[idx]]))
         self.network.fit(ob, state_qs, epochs=1, verbose=0)
 
     def act(self, ob):
         """ given current observation, pick the action with highest q value"""
+        if self.random_actions:
+            return self.env.action_space.sample()
         if np.random.random() < self.epsilon.value:
             return self.env.action_space.sample()
         ob = np.asarray([ob], dtype="float32")
@@ -120,16 +88,17 @@ if __name__ == "__main__":
     gamma = 0.99
     alpha = 0.5
     batch_size = 120
-    lr = 0.001
+    lr = 0.01
     memory = Uniform_Memory(10000)
     mlp_make_network_args = [[5, 10]]
 
     agent = DQN_Agent(env,
                       e, gamma, alpha,
                       batch_size, lr, memory,
-                      mlp_make_network, *mlp_make_network_args)
+                      mlp_make_network, *mlp_make_network_args,
+                      random_actions=False)
 
-    n_steps = 100000
+    n_steps = 50000
     percent = n_steps * 0.1
     for i in range(n_steps):
         if i % percent == 0:
