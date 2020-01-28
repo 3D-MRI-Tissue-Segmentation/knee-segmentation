@@ -99,7 +99,8 @@ if __name__ == "__main__":
     agent = Memoryless_DQN_Agent(env,
                                  e, gamma, alpha,
                                  batch_size, lr,
-                                 mlp_make_network, *mlp_make_network_args)
+                                 mlp_make_network, *mlp_make_network_args,
+                                 verbose=True)
 
     n_steps = 10000
     for i in range(n_steps):

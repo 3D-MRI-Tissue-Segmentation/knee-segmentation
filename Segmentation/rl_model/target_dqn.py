@@ -4,7 +4,6 @@ import gym
 import tensorflow as tf
 import numpy as np
 
-
 def mlp_make_network(obs_shape, n_actions, fcs):
     assert type(fcs) is list and len(fcs) >= 1, "fcs needs to be of type list"
     network_input = tf.keras.Input(shape=obs_shape)
@@ -17,7 +16,7 @@ def mlp_make_network(obs_shape, n_actions, fcs):
     return tf.keras.Model(network_input, network_output)
 
 
-class Targetless_DQN_Agent:
+class Target_DQN_Agent:
 
     def __init__(self, env,
                  epsilon, gamma, alpha,
@@ -111,13 +110,14 @@ if __name__ == "__main__":
     batch_size = 120
     lr = 0.001
     memory = Uniform_Memory(2000)
+    target_freq = 20
     mlp_make_network_args = [[32, 32]]
 
-    agent = Targetless_DQN_Agent(env,
-                                 e, gamma, alpha,
-                                 batch_size, lr, memory, 20,
-                                 mlp_make_network, *mlp_make_network_args,
-                                 random_actions=False, verbose=True)
+    agent = Target_DQN_Agent(env,
+                             e, gamma, alpha,
+                             batch_size, lr, memory, target_freq,
+                             mlp_make_network, *mlp_make_network_args,
+                             random_actions=False, verbose=True)
 
     n_steps = 10000
     for i in range(n_steps):
