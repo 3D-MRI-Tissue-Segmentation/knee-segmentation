@@ -115,8 +115,8 @@ def discriminator_accuracy(real_pred, fake_pred):
 
 
 #Training
-epochs = 2
-number_of_generated_output = 16
+epochs = 3
+number_of_generated_output = 2
 noise_length = 100
 seed = tf.random.normal([number_of_generated_output, noise_length])
 
@@ -154,11 +154,9 @@ def training_epoch(images):
 
 def training(n_epochs, dataset):
     for epoch in range(epochs):
-        #i = 0
         for batch_im in dataset:
-            #print("when letfro %d" %i)
             training_epoch(batch_im)
-            #i = i+1
+            
         template = 'Generator Loss: {}, Discrimintor Loss: {}, Discriminator Accuracy_real: {}, Discriminator Accuracy_fake: {}'
         print(f"----------------\t{(epoch+1)}\t----------------")
         print (template.format(gen_loss_label.result(), 
@@ -171,19 +169,20 @@ def training(n_epochs, dataset):
         d_accurcy_real.reset_states()
         d_accurcy_fake.reset_states()
 
+        show_evolution()
 
-def generate_showIm():
+# def generate_showIm():
+#     prediction = generator(seed, training=False)
+#     plt.imshow(prediction[0,:,:,0], cmap='gray')
+#     plt.show()
+
+def show_evolution():
     prediction = generator(seed, training=False)
     plt.imshow(prediction[0,:,:,0], cmap='gray')
-    plt.show()
-
-# def show_im(image):
-#     plt.imshow(image[0,:,:,0], cmap='gray')
-#     plt.show(block=False)
-#     plt.pause(0.1)
-#     plt.close()
+    plt.draw()
+    #plt.pause(0.001)
 
 training(epochs, x_dataset)
-generate_showIm()
+# generate_showIm()
 
 
