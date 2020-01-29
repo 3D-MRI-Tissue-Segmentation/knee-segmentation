@@ -9,7 +9,8 @@
 - Q learning
 - DQN
 - Uniform experience replay
-- Target model
+- Fixed Q-target model 
+    - Every n steps we copy the weights of our model to a target network. The target network is used for predicting the target Q value. This target network will remain stationary until the next update, enabling our model to approach the target Q value without it moving away.
 - Double DQN
 - Dueling DQN
 - Prioritised experience replay
