@@ -91,7 +91,7 @@ class Up_Conv2D(tf.keras.layers.Layer):
 class Attention_Gate(tf.keras.layers.Layer):
 
     def __init__(self,
-                filters,
+                num_channels,
                 kernel_size = (1,1),
                 nonlinearity='relu',
                 padding='same',
@@ -102,9 +102,9 @@ class Attention_Gate(tf.keras.layers.Layer):
 
         super(Attention_Gate, self).__init__()
 
-        self.conv_1 = tf.keras.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
-        self.conv_2 = tf.keras.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
-        self.conv_3 = tf.keras.layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
+        self.conv_1 = tf.keras.layers.Conv2D(num_channels, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
+        self.conv_2 = tf.keras.layers.Conv2D(num_channels, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
+        self.conv_3 = tf.keras.layers.Conv2D(num_channels, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
         self.batch_norm_1 = tf.keras.layers.BatchNormalization(axis=-1, scale=False)
         self.batch_norm_2 = tf.keras.layers.BatchNormalization(axis=-1, scale=False)
         self.batch_norm_3 = tf.keras.layers.BatchNormalization(axis=-1, scale=False)
@@ -141,7 +141,7 @@ class Attention_Gate(tf.keras.layers.Layer):
 class MultiResBlock(tf.keras.layers.Layer):
 
     def __init__(self, 
-                filters, 
+                num_channels, 
                 kernel_size=(3,3),
                 nonlinearity='relu', 
                 padding='same',
@@ -152,10 +152,10 @@ class MultiResBlock(tf.keras.layers.Layer):
 
         super(MultiResBlock, self).__init__()
 
-        self.conv_1 = Conv2D_Block(1, 1, kernel_size=(1,1), nonlinearity=None, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
-        self.conv_2 = Conv2D_Block(1, 1, kernel_size, nonlinearity, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
-        self.conv_3 = Conv2D_Block(2, 1, kernel_size, nonlinearity, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
-        self.conv_4 = Conv2D_Block(3, 1, kernel_size, nonlinearity, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
+        self.conv_1 = Conv2D_Block(num_channels, 1, kernel_size=(1,1), nonlinearity=None, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
+        self.conv_2 = Conv2D_Block(num_channels, 1, kernel_size, nonlinearity, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
+        self.conv_3 = Conv2D_Block(num_channels, 1, kernel_size, nonlinearity, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
+        self.conv_4 = Conv2D_Block(num_channels, 1, kernel_size, nonlinearity, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last')
         
         self.batch_1 = tf.keras.layers.BatchNormalization(axis=3)
         self.batch_2 = tf.keras.layers.BatchNormalization(axis=3)
@@ -172,7 +172,7 @@ class MultiResBlock(tf.keras.layers.Layer):
         out = tf.keras.layers.concatenate([x2, x3, x4])
         out = self.batch_1(out)
 
-        out = tf.keras.layers.add([x1, out])
+        out = tf.keras.layers.concatenate([x1, out])
         out = self.activation_1(out)
 
         output = self.batch_2(out)
@@ -184,7 +184,7 @@ class ResPath(tf.keras.layers.Layer):
 
     def __init__(self,
                 length,
-                filters,
+                num_channels,
                 kernel_size=(1,1),
                 nonlinearity='relu',
                 padding='same',
@@ -201,8 +201,8 @@ class ResPath(tf.keras.layers.Layer):
         self.batch_norm = []
 
         for _ in range(length):
-            self.conv.append(Conv2D_Block(filters, 1, kernel_size, nonlinearity=None, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last'))
-            self.conv.append(Conv2D_Block(filters, 1, kernel_size=(3,3), nonlinearity='relu', use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last'))
+            self.conv.append(Conv2D_Block(num_channels, 1, kernel_size, nonlinearity=None, use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last'))
+            self.conv.append(Conv2D_Block(num_channels, 1, kernel_size=(3,3), nonlinearity='relu', use_batchnorm=False, use_dropout=False, use_spatial_dropout=False, data_format='channels_last'))
 
         for _ in range(length):
             self.batch_norm.append(tf.keras.layers.BatchNormalization(axis=3))
@@ -255,7 +255,7 @@ class UNet(tf.keras.Model):
         self.up_conv2 = Conv2D_Block(num_channels*2,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
         self.up_conv1 = Conv2D_Block(num_channels,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
 
-        #convolution filters at the output
+        #convolution num_channels at the output
         self.conv_output = tf.keras.layers.Conv2D(2, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
         self.conv_1x1 = tf.keras.layers.Conv2D(num_classes, kernel_size, padding='same', data_format=data_format)
 
