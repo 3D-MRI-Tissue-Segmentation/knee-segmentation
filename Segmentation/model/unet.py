@@ -72,7 +72,7 @@ class Up_Conv2D(tf.keras.layers.Layer):
         self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1)
         self.activation = tf.keras.layers.Activation(nonlinearity)
         self.use_transpose = use_transpose
-        self.conv_transpose = tf.keras.layers.Conv2DTranspose(num_channels, kernel_size, padding='same', strides=(1,1), data_format=data_format)
+        self.conv_transpose = tf.keras.layers.Conv2DTranspose(num_channels, kernel_size, padding='same', strides=(2,2), data_format=data_format)
         
     def call(self, inputs):
         
@@ -406,36 +406,81 @@ class MultiResUnet(tf.keras.Model):
                 nonlinearity='relu',
                 use_batchnorm = True,
                 use_transpose = True,
+                res_path_length,
                 data_format='channels_last',
                 name="MultiRes_Unet"):
                 
         
         super(MultiResUnet, self).__init__(name=name)
 
+        # ENCODING BLOCKS
         self.mresblock_1 = MultiResBlock(num_channels, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
         self.mresblock_2 = MultiResBlock(num_channels*2, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
         self.mresblock_3 = MultiResBlock(num_channels*4, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
         self.mresblock_4 = MultiResBlock(num_channels*8, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
+        self.mresblock_5 = MultiResBlock(num_channels*16, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
+        
+        # DECODING BLOCKS
+        self.mresblock_6 = MultiResBlock(num_channels, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
+        self.mresblock_7 = MultiResBlock(num_channels*2, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
+        self.mresblock_8 = MultiResBlock(num_channels*4, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
+        self.mresblock_9 = MultiResBlock(num_channels*8, kernel_size, nonlinearity, padding='same', strides=(1,1), data_format='channels_last')
 
         self.pool_1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
         self.pool_2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
         self.pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
         self.pool_4 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
 
-        self.up_1 = Up_Conv2D()
-        self.up_2 = Up_Conv2D()
-        self.up_3 = Up_Conv2D()
-        self.up_4 = Up_Conv2D()
+        self.up_1 = Up_Conv2D(num_channels*8, kernel_size=(3,3), nonlinearity='relu', use_batchnorm=True;, use_transpose=True; strides=(2,2), data_format='channels_last')
+        self.up_2 = Up_Conv2D(num_channels*4, kernel_size=(3,3), nonlinearity='relu', use_batchnorm=True;, use_transpose=True; strides=(2,2), data_format='channels_last')
+        self.up_3 = Up_Conv2D(num_channels*2, kernel_size=(3,3), nonlinearity='relu', use_batchnorm=True;, use_transpose=True; strides=(2,2), data_format='channels_last')
+        self.up_4 = Up_Conv2D(num_channels, kernel_size=(3,3), nonlinearity='relu', use_batchnorm=True;, use_transpose=True; strides=(2,2), data_format='channels_last')
 
-        self.respath_1 = ResPath()
-        self.respath_1 = ResPath()
-        self.respath_1 = ResPath()
-        self.respath_1 = ResPath()
+        self.respath_1 = ResPath(res_path_length, kernel_size=(1,1), nonlinearity='relu', padding='same', strides=(1,1), data_format='channels_last')
+        self.respath_2 = ResPath(res_path_length, kernel_size=(1,1), nonlinearity='relu', padding='same', strides=(1,1), data_format='channels_last')
+        self.respath_3 = ResPath(res_path_length, kernel_size=(1,1), nonlinearity='relu', padding='same', strides=(1,1), data_format='channels_last')
+        self.respath_4 = ResPath(res_path_length, kernel_size=(1,1), nonlinearity='relu', padding='same', strides=(1,1), data_format='channels_last')
 
-        self.conv_final = Conv2D_Block()
+        self.conv_1x1 = Conv2D_Block(num_classes,num_conv_layers,(1,1),nonlinearity,use_batchnorm=False,data_format=data_format)
        
     def call(self, input):
         
+        #ENCODER PATH
+
+        x1 = self.mresblock_1(input)
+        pool_1 = self.pool_1(x1)
+        res_1 = self.respath_1(x1)
+
+        x2 = self.mresblock_2(pool_1)
+        pool_2 = self.pool_2(x2)
+        res_2 = self.respath_2(x2)
+
+        x3 = self.mresblock_3(pool2)
+        pool_3 = self.pool_3(x3)
+        res_3 = self.respath_3(x_3)
+
+        x4 = self.mresblock_4(pool3)
+        pool_4 = self.pool_4(x3)
+        res_4 = self.respath_4(x_3)
+
+        x5 = self.mresblock_5(pool_4)
+
+        up6 = concatenate([self.up_1(x5), res_4])
+        x6 =  self.mresblock_6(up6)
+        
+        up7 = concatenate([self.up_2(x6), res_3])
+        x7 =  self.mresblock_7(up7)
+
+        up8 = concatenate([self.up_3(x7), res_2])
+        x8 =  self.mresblock_8(up8)
+
+        up9 = concatenate([self.up_4(x8), res_1])
+        x9 =  self.mresblock_9(up9)
+
+        output = conv_1x1(x9)
+
+        return output
+
     
         
 #This is the old build_unet function written in functional API. Don't delete until we test the UNet on actual data 

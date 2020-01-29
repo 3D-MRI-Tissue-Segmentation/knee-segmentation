@@ -1,5 +1,5 @@
 import tensorflow as tf
-from Segmentation.model.unet import UNet, AttentionUNet_v1
+from Segmentation.model.unet import UNet, AttentionUNet_v1, MultiResUnet
 
 dataset_size = 10
 batch_size = 5
