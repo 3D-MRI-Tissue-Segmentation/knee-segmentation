@@ -24,8 +24,9 @@ class Memoryless_DQN_Agent:
                  epsilon, gamma, alpha,
                  batch_size, lr,
                  make_network, *make_network_args,
-                 random_actions=False, verbose=False, 
-                 tf_writer=summary_writer):
+                 random_actions=False, verbose=False,
+                 visualise=False, tf_writer=None,
+                 reward_style=None):
         self.env = env
         self.obs_shape = env.observation_space.shape
         self.n_actions = env.action_space.n
@@ -44,7 +45,12 @@ class Memoryless_DQN_Agent:
 
         self.random_actions = random_actions
         self.verbose = verbose
+        self.visualise = visualise
         self.tf_writer = tf_writer
+        assert reward_style in [None, 'cumulative', 'punish', 'time']
+        self.reward_style = reward_style
+
+        self.steps = 0
         self.episodes = 0
 
     def update_Q_network(self, ob, a, r, ob_next, done):
@@ -72,10 +78,22 @@ class Memoryless_DQN_Agent:
         actions_with_max_q = [a for a, q in enumerate(states_qs) if q == max_q]  # List of actions with max q
         return np.random.choice(actions_with_max_q)  # In the case multiple actions have the max q value
 
+    def modify_reward(self, r, done):
+        reward_in = r
+        if self.reward_style == 'punish':
+            reward_in = r if not done else -20
+        elif self.reward_style == 'cumulative':
+            reward_in = self.reward
+        return reward_in
+
     def step(self):
+        self.steps += 1
         a = self.act(self.ob)
         ob_next, r, done, _ = self.env.step(a)
-        self.update_Q_network(self.ob, a, r, ob_next, done)
+        if self.visualise:
+            self.env.render()
+        reward_in = self.modify_reward(r, done)
+        self.update_Q_network(self.ob, a, reward_in, ob_next, done)
         self.reward += r
         if done:
             self.episodes += 1
@@ -91,30 +109,34 @@ class Memoryless_DQN_Agent:
         else:
             self.ob = ob_next
 
-def main():
+def main(reward_style=None, env_name="CartPole-v0", n_steps=5000):
+    if reward_style is None:
+        reward_style_str = "none"
+    else:
+        reward_style_str = reward_style
     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     log_dir = 'logs/dqn/' + current_time
     summary_writer = tf.summary.create_file_writer(log_dir)
-    
-    env = gym.make("CartPole-v0")
+
+    env = gym.make(env_name)
     e = Epsilon(0.1, 0.9, 0.99)
     gamma = 0.99
     alpha = 0.5
     batch_size = 32
     lr = 0.001
-    mlp_make_network_args = [[5, 10]]
+    mlp_make_network_args = [[32, 32]]
 
     agent = Memoryless_DQN_Agent(env,
                                  e, gamma, alpha,
                                  batch_size, lr,
                                  mlp_make_network, *mlp_make_network_args,
-                                 verbose=True, tf_writer=summary_writer)
-
-    n_steps = 5000
+                                 random_actions=False, verbose=True,
+                                 tf_writer=summary_writer, reward_style=reward_style)
     for i in range(n_steps):
         agent.step()
     env.env.close()
 
+
 if __name__ == "__main__":
-    for i in range(10):
+    for i in range(3):
         main()

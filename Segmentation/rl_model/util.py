@@ -37,3 +37,9 @@ class Uniform_Memory:
         next_obs = np.array([val[3] for val in batch], dtype="float32")
         dones = np.array([val[4] for val in batch])
         return obs, actions, rewards, next_obs, dones
+
+def plot_rewards(agent, N=100):
+    import matplotlib.pyplot as plt
+    plt.plot(agent.rewards)
+    plt.plot(np.convolve(agent.rewards, np.ones((N,)) / N, mode='valid'))
+    plt.show()

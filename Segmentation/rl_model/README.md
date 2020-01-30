@@ -36,7 +36,7 @@
 - [x] Cartpole
 - [ ] ITK Snap
  
-## Segmentation Engine
+## Segmentation Engine 
 
 - http://www.itksnap.org/pmwiki/pmwiki.php?n=SourceCode.SourceCode
 
@@ -47,6 +47,7 @@
     - Double DQNs
     - Dueling DQN
     - Prioritised Experience Replay
+- https://www.freecodecamp.org/news/improvements-in-deep-q-learning-dueling-double-dqn-prioritized-experience-replay-and-fixed-58b130cc5682/
 - https://danieltakeshi.github.io/2019/07/14/per/
 - https://arxiv.org/pdf/1812.02648.pdf
 - https://arxiv.org/abs/1511.05952
