@@ -22,9 +22,9 @@ class Q_Learn:
         self.gamma = gamma
         self.alpha = alpha
         self.obs_space = env.observation_space
-        assert type(self.obs_precision) is int
-        self.obs_precision = [obs_precision] * env.observation_space.sample()
-        assert len(env.observation_space.sample()) == len(obs_precision), "Size of obs space sample must equal precision list"
+        assert type(obs_precision) is int
+        self.obs_precision = [obs_precision] * len(env.observation_space.sample())
+        assert len(env.observation_space.sample()) == len(self.obs_precision), "Size of obs space sample must equal precision list"
 
         self.actions = env.action_space
         self.Q = defaultdict(float)
@@ -99,18 +99,37 @@ class Q_Learn:
             ob_str += f"_{o:.{p}f}_"
         return ob_str
 
-def main(env_name="CartPole-v0", n_steps=1000000):
+def main(env_name="CartPole-v0", n_steps=1000000,
+         random_actions=False, verbose=False,
+         visualise=False, reward_style=None, testing=False):
     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    log_dir = 'logs/dqn/' + current_time
+    test = "-test" if testing else ""
+    log_dir = 'logs/dqn/' + current_time + test
     summary_writer = tf_summary.create_file_writer(log_dir)
 
     env_ = gym.make(env_name)
     e = Epsilon(0.1, 0.9, 0.99)
     agent = Q_Learn(env_, e, obs_precision=1,
-                    tf_writer=summary_writer)
+                    tf_writer=summary_writer,
+                    random_actions=random_actions, verbose=verbose,
+                    visualise=visualise, reward_style=reward_style)
     for i in range(n_steps):
         agent.step()
 
+    env_.env.close()
+
 if __name__ == "__main__":
-    for i in range(1):
-        main(None)
+    test = True
+    if test:
+        print("Testing...")
+        main(env_name="CartPole-v0", n_steps=1000, testing=test)
+        main(env_name="MountainCar-v0", n_steps=1000, testing=test)
+
+        main(env_name="CartPole-v0", n_steps=100, random_actions=True, testing=test)
+        main(env_name="CartPole-v0", n_steps=100, verbose=True, testing=test)
+        main(env_name="CartPole-v0", n_steps=100, visualise=True, testing=test)
+        main(env_name="CartPole-v0", n_steps=100, reward_style="punish", testing=test)
+        main(env_name="CartPole-v0", n_steps=100, reward_style="cumulative", testing=test)
+    else:
+        for i in range(1):
+            main(None)
