@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from Segmentation.model.unet import UNet, AttentionUNet_v1
+from Segmentation.model.unet import UNet
 from Segmentation.utils.data_loader import create_OAI_dataset
 import matplotlib.pyplot as plt
 
