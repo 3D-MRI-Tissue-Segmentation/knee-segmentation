@@ -2,12 +2,13 @@ import h5py
 import numpy as np
 import os.path
 
-def create_OAI_dataset(data_folder, get_slices=True, save=False):
+# TODO (Joonsu): Integrate the function with Tensorflow Dataset 
+def create_OAI_dataset(data_folder, start=1, end=61, get_slices=True, save=False):
     
     img_list = []
     seg_list = []
 
-    for i in range(1,61):
+    for i in range(start,end):
         for j in range(2):
             
             if i <= 9:
@@ -28,12 +29,12 @@ def create_OAI_dataset(data_folder, get_slices=True, save=False):
             if get_slices:
                 img = np.rollaxis(img, 2, 0)
                 seg = np.rollaxis(seg, 2, 0)     
-                img = np.expand_dims(img, axis=3)      
-
+                
+            img = np.expand_dims(img, axis=3)      
             img_list.append(img)
             seg_list.append(seg)
 
-        print('%d out of 60 datasets have been processed' %i)
+        print('{} out of {} datasets have been processed'.format(i, end-start))
 
     x = np.asarray(img_list)
     y = np.asarray(seg_list)

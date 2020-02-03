@@ -482,8 +482,7 @@ class MultiResUnet(tf.keras.Model):
         output = self.conv_1x1(x9)
 
         return output
-    
-        
+     
 #This is the old build_unet function written in functional API. Don't delete until we test the UNet on actual data 
 #Build UNet using tf.keras Functional API
 
