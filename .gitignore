@@ -19,6 +19,7 @@ htmlcov/
 # Files
 *.json
 *.png
+*.h5
 
 # IDE
 .vscode/
