@@ -102,9 +102,8 @@ def mnist_3d_main():
 
     df = pd.DataFrame(np.asarray(label.coords),
                       columns=["idx", "radius", "x", "y", "z"])
-    df.to_csv("./Data/mnist_3d_centre_test_data.csv", index=False)
+    df.to_csv("./Data/Tests_data/mnist_3d_centre_test_data.csv", index=False)
 
 
 if __name__ == "__main__":
     mnist_3d_main()
-    

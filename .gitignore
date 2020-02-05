@@ -23,6 +23,7 @@ htmlcov/
 *.im
 *.seg
 *.h5
+*.csv
 
 # IDE
 .vscode/
