@@ -41,23 +41,30 @@ if __name__ == "__main__":
     x_train, y_train, max_rad = load_3d_mnist()
 
     model = tf.keras.Sequential()
-    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3), activation="relu", padding="same", input_shape=x_train.shape[1:]))
+    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3),
+                                     activation="relu", padding="same", input_shape=x_train.shape[1:]))
     model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.MaxPooling3D())  # (8,8,8)
-    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3), activation="relu", padding="same"))
+    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3),
+                                     activation="relu", padding="same"))
     model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.MaxPooling3D())  # (4,4,4)
-    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3), activation="relu", padding="same"))
+    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3),
+                                     activation="relu", padding="same"))
     model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.MaxPooling3D())  # (2,2,2)
-    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3), activation="relu", padding="same"))
+    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3),
+                                                     activation="relu", padding="same"))
     model.add(tf.keras.layers.BatchNormalization())
 
-    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3), strides=2, activation="relu", padding="same")) # (4,4,4)
+    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3), strides=2,
+                                                     activation="relu", padding="same"))  # (4,4,4)
     model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3), strides=2, activation="relu", padding="same")) # (8,8,8)
+    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3), strides=2,
+                                                     activation="relu", padding="same"))  # (8,8,8)
     model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.Convolution3DTranspose(1, kernel_size=(3, 3, 3), strides=2, activation="sigmoid", padding="same"))# (16,16,16)
+    model.add(tf.keras.layers.Convolution3DTranspose(1, kernel_size=(3, 3, 3), strides=2,
+                                                     activation="sigmoid", padding="same"))  # (16,16,16)
 
     model.compile(optimizer='rmsprop',
                   loss='binary_crossentropy',
