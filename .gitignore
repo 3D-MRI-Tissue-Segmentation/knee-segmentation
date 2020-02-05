@@ -5,3 +5,4 @@ ml_env/
 __pycache__/
 *.json
 *.png
+*.h5
