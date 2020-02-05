@@ -1,4 +1,4 @@
-# HiL Rl
+# HiL RL
 
 ## Plan
 
@@ -39,6 +39,7 @@
 ## Segmentation Engine 
 
 - http://www.itksnap.org/pmwiki/pmwiki.php?n=SourceCode.SourceCode
+- Add link to MM github code
 
 ## Resources
 
@@ -52,3 +53,5 @@
 - https://arxiv.org/pdf/1812.02648.pdf
 - https://arxiv.org/abs/1511.05952
 - https://arxiv.org/abs/1905.12726
+- https://github.com/tensorlayer/tensorlayer/tree/master/examples/reinforcement_learning
+
