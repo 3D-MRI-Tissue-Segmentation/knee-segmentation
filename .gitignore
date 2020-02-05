@@ -19,6 +19,9 @@ htmlcov/
 # Files
 *.json
 *.png
+*.jpg
+*.im
+*.seg
 *.h5
 
 # IDE
