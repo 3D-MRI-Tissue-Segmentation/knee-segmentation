@@ -1,27 +1,24 @@
 import numpy as np
-import tensorflow as tf
 import matplotlib.pyplot as plt
 
 class Label:
     def __init__(self, train_images, image_height,
-                 num_images=None, start_point=0,
-                 data=tf.keras.datasets.mnist):
+                 num_images=None, start_point=0, three_dim=True):
+        assert image_height == train_images.shape[1], "Unexpected shape for train image"
+        self.train_images = train_images
         self.num_images = num_images
         self.start_point = start_point
-        self.data = data
+        self.three_dim = three_dim
         self.coords = []
-
-        self.train_images = train_images
 
         self.image_counter = self.start_point
         self.ax = None
         self.im = None
 
         self.click_start = None
-        self.layer_idx = 0
-        self.layer_bounds = (0, image_height)
-
-        assert image_height == train_images.shape[1], "Unexpected shape for train image"
+        if self.three_dim:
+            self.layer_idx = 0
+            self.layer_bounds = (0, image_height)
 
         self.done = False
 
@@ -37,8 +34,12 @@ class Label:
     def onrelease(self, event):
         end = (int(event.xdata), int(event.ydata))
         dist = Label.calc_drag_distance(self.click_start, end)
-        self.coords.append([self.image_counter, dist,
-                            *self.click_start, self.layer_idx])
+        if self.three_dim:
+            self.coords.append([self.image_counter, dist,
+                                *self.click_start, self.layer_idx])
+        else:
+            self.coords.append([self.image_counter, dist,
+                                *self.click_start])
         self.image_counter += 1
 
         end = False
@@ -63,21 +64,32 @@ class Label:
             self.update_image()
 
     def update_image(self):
-        self.im.set_data(self.train_images[self.image_counter][self.layer_idx, :, :])
-        self.ax.set_title(f"Image being labeled: {self.image_counter}, layer: {self.layer_idx}")
+        if self.three_dim:
+            self.im.set_data(self.train_images[self.image_counter][self.layer_idx, :, :])
+            self.ax.set_title(f"Image being labeled: {self.image_counter}, layer: {self.layer_idx}")
+        else:
+            self.im.set_data(self.train_images[self.image_counter])
+            self.ax.set_title(f"Image being labeled: {self.image_counter}")
         plt.draw()
 
     def reset(self):
         self.fig = plt.figure()
         self.ax = self.fig.gca()
-        self.im = self.ax.imshow(self.train_images[self.image_counter][self.layer_idx, :, :])
+        if self.three_dim:
+            self.im = self.ax.imshow(self.train_images[self.image_counter][self.layer_idx, :, :])
+        else:
+            self.im = self.ax.imshow(self.train_images[self.image_counter])
 
     def start_loop(self):
         self.update_image()
-        self.im.set_data(self.train_images[self.image_counter][self.layer_idx, :, :])
+        if self.three_dim:
+            self.im.set_data(self.train_images[self.image_counter][self.layer_idx, :, :])
+        else:
+            self.im.set_data(self.train_images[self.image_counter])
         self.fig.canvas.mpl_connect('button_press_event', self.onclick)
         self.fig.canvas.mpl_connect('button_release_event', self.onrelease)
-        self.fig.canvas.mpl_connect('key_press_event', self.onarrowpress)
+        if self.three_dim:
+            self.fig.canvas.mpl_connect('key_press_event', self.onarrowpress)
         plt.show()
 
     def main(self):
@@ -105,5 +117,23 @@ def mnist_3d_main():
     df.to_csv("./Data/Tests_data/mnist_3d_centre_test_data.csv", index=False)
 
 
+def mnist_2d_main():
+    from tensorflow.keras.datasets import mnist
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    data = x_train
+
+    label = Label(data, 28, three_dim=False)
+    label.main()
+
+    for i in label.coords:
+        print(i)
+
+    import pandas as pd
+
+    df = pd.DataFrame(np.asarray(label.coords),
+                      columns=["idx", "radius", "x", "y"])
+    df.to_csv("./Data/Tests_data/mnist_2d_centre_test_data.csv", index=False)
+
+
 if __name__ == "__main__":
-    mnist_3d_main()
+    mnist_2d_main()
