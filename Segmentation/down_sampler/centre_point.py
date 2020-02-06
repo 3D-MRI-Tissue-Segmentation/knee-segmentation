@@ -37,40 +37,53 @@ def load_3d_mnist(visulise=False):
     return x_train, y_train, max(region_radiuses)
 
 
-if __name__ == "__main__":
-    x_train, y_train, max_rad = load_3d_mnist()
+def build_model(x_train_shape, depth=2):
+    assert depth >= 1
+    assert x_train_shape[1] == x_train_shape[2] == x_train_shape[3], "All dimensions need to be the same"
+    assert (x_train_shape[1] % (2 * 2**depth)) == 0, "Depth needs to be a power of 2."
 
     model = tf.keras.Sequential()
-    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3),
-                                     activation="relu", padding="same", input_shape=x_train.shape[1:]))
+
+    # input
+    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3),  # (original dim)
+                                     activation="relu", padding="same", input_shape=x_train_shape[1:]))
     model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.MaxPooling3D())  # (8,8,8)
-    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3),
-                                     activation="relu", padding="same"))
-    model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.MaxPooling3D())  # (4,4,4)
-    model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3),
-                                     activation="relu", padding="same"))
-    model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.MaxPooling3D())  # (2,2,2)
-    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3),
+    model.add(tf.keras.layers.MaxPooling3D())  # (original dim / 2)
+
+    # downsample
+    for i in range(depth):
+        model.add(tf.keras.layers.Conv3D(32, kernel_size=(3, 3, 3),  # original dim / (2 * 2**i))
+                                         activation="relu", padding="same"))
+        model.add(tf.keras.layers.BatchNormalization())
+        model.add(tf.keras.layers.MaxPooling3D())
+
+    # middle convolution
+    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3),  # original dim / (2 ** (depth+1))
                                                      activation="relu", padding="same"))
     model.add(tf.keras.layers.BatchNormalization())
 
-    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3), strides=2,
-                                                     activation="relu", padding="same"))  # (4,4,4)
-    model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3), strides=2,
-                                                     activation="relu", padding="same"))  # (8,8,8)
+    # upsample
+    for i in range(depth):
+        model.add(tf.keras.layers.Convolution3DTranspose(32, kernel_size=(3, 3, 3), strides=2,  # original dim / (2 ** (depth - i))
+                                                         activation="relu", padding="same"))
+        model.add(tf.keras.layers.BatchNormalization())
+
+    # output
     model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.Convolution3DTranspose(1, kernel_size=(3, 3, 3), strides=2,
-                                                     activation="sigmoid", padding="same"))  # (16,16,16)
+                                                     activation="sigmoid", padding="same"))  # original dim
 
     model.compile(optimizer='rmsprop',
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
     print(model.summary())
+    return model
+
+if __name__ == "__main__":
+    x_train, y_train, max_rad = load_3d_mnist()
+
+    model = build_model(x_train.shape)
 
     model.fit(x_train, y_train,
               batch_size=5, epochs=10, shuffle=True)
