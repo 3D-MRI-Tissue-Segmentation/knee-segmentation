@@ -16,9 +16,8 @@ class Label:
         self.im = None
 
         self.click_start = None
-        if self.three_dim:
-            self.layer_idx = 0
-            self.layer_bounds = (0, image_height)
+        self.layer_idx = 0
+        self.layer_bounds = (0, image_height)
 
         self.done = False
 
@@ -34,12 +33,8 @@ class Label:
     def onrelease(self, event):
         end = (int(event.xdata), int(event.ydata))
         dist = Label.calc_drag_distance(self.click_start, end)
-        if self.three_dim:
-            self.coords.append([self.image_counter, dist,
-                                *self.click_start, self.layer_idx])
-        else:
-            self.coords.append([self.image_counter, dist,
-                                *self.click_start])
+        self.coords.append([self.image_counter, dist,
+                            *self.click_start, self.layer_idx])
         self.image_counter += 1
 
         end = False
@@ -64,32 +59,21 @@ class Label:
             self.update_image()
 
     def update_image(self):
-        if self.three_dim:
-            self.im.set_data(self.train_images[self.image_counter][self.layer_idx, :, :])
-            self.ax.set_title(f"Image being labeled: {self.image_counter}, layer: {self.layer_idx}")
-        else:
-            self.im.set_data(self.train_images[self.image_counter])
-            self.ax.set_title(f"Image being labeled: {self.image_counter}")
+        self.im.set_data(self.train_images[self.image_counter][self.layer_idx, :, :])
+        self.ax.set_title(f"Image being labeled: {self.image_counter}, layer: {self.layer_idx}")
         plt.draw()
 
     def reset(self):
         self.fig = plt.figure()
         self.ax = self.fig.gca()
-        if self.three_dim:
-            self.im = self.ax.imshow(self.train_images[self.image_counter][self.layer_idx, :, :])
-        else:
-            self.im = self.ax.imshow(self.train_images[self.image_counter])
+        self.im = self.ax.imshow(self.train_images[self.image_counter][self.layer_idx, :, :])
 
     def start_loop(self):
         self.update_image()
-        if self.three_dim:
-            self.im.set_data(self.train_images[self.image_counter][self.layer_idx, :, :])
-        else:
-            self.im.set_data(self.train_images[self.image_counter])
+        self.im.set_data(self.train_images[self.image_counter][self.layer_idx, :, :])
         self.fig.canvas.mpl_connect('button_press_event', self.onclick)
         self.fig.canvas.mpl_connect('button_release_event', self.onrelease)
-        if self.three_dim:
-            self.fig.canvas.mpl_connect('key_press_event', self.onarrowpress)
+        self.fig.canvas.mpl_connect('key_press_event', self.onarrowpress)
         plt.show()
 
     def main(self):
