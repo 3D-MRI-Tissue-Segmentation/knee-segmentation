@@ -42,6 +42,7 @@ class MRI_Label:
         self.im_xy = None
 
         self.prev_3d_patch = [None, None, None]  # Stores the previous 3d patch used
+        self.cube = None
         self.prev_patch = [None, None, None]  # Stores the previous patch used
         self.focus_area = [Click(), Click(), Click()]  # Create click object for each of the axes
         self.idx = [0, 0, 0]  # idx of the tangental axis
@@ -111,11 +112,19 @@ class MRI_Label:
         z_max = max(z_)
         return x_min, x_max, y_min, y_max, z_min, z_max
 
+    def calculate_centre(self, mins, maxs):
+        centre = []
+        for min_, max_ in zip(mins, maxs):
+            centre.append(int((min_ + max_) / 2))
+        return centre
+
     def next_vol(self, event=None):
         """ update when current image is annonated """
         print("DONE")
         x_min, x_max, y_min, y_max, z_min, z_max = self.calculate_cube()
-        self.coords.append(["a", "b", "c"])
+        centre = self.calculate_centre([x_min, y_min, z_min],
+                                       [x_max, y_max, z_max])
+        self.coords.append([self.image_counter, *centre, x_min, x_max, y_min, y_max, z_min, z_max])
 
         self.image_counter += 1
         end = False
@@ -225,12 +234,13 @@ class MRI_Label:
                         [vertices[4], vertices[5], vertices[6], vertices[7]],
                         [vertices[1], vertices[2], vertices[7], vertices[6]],
                     ]
-                    self.ax[1][0].scatter3D(vertices[:, 0],
-                                            vertices[:, 1],
-                                            vertices[:, 2])
-                    self.ax[1][0].add_collection3d(art3d.Poly3DCollection(sides,
-                                                                          edgecolors='b', facecolors='w',
-                                                                          linewidths=1, alpha=0.2))
+
+                    if self.cube is not None:
+                        self.cube.remove()
+                    self.cube = art3d.Poly3DCollection(sides,
+                                                       edgecolors='b', facecolors='w',
+                                                       linewidths=1, alpha=0.2)
+                    self.ax[1][0].add_collection3d(self.cube)
 
     def update_yz(self, update_image=True):
         plt.sca(self.ax[0][0])
@@ -335,7 +345,9 @@ def mnist_3d_main():
     if (write == "y") or (write == "Y"):
         import pandas as pd
         df = pd.DataFrame(np.asarray(label.coords),
-                          columns=["idx", "radius", "x", "y", "z"])
+                          columns=["idx", "x", "y", "z",
+                                   "x_min", "x_max", "y_min",
+                                   "y_max", "z_min", "z_max"])
         df.to_csv(save_loc, index=False)
 
 
@@ -347,6 +359,19 @@ def mri_3d_main(img_name='./Data/train/train_001_V00.im'):
     print(image_list)
     label = MRI_Label(None, image_str_list=image_list)
     label.main()
+
+    print("========== Annotation complete ==========")
+    save_loc = "./Data/Tests_data/mri_3d_centre_test_data.csv"
+    print(f"Save location: {save_loc}")
+    write = input("Do you wish to write: (Enter 'y' to write): ")
+
+    if (write == "y") or (write == "Y"):
+        import pandas as pd
+        df = pd.DataFrame(np.asarray(label.coords),
+                          columns=["idx", "x", "y", "z",
+                                   "x_min", "x_max", "y_min",
+                                   "y_max", "z_min", "z_max"])
+        df.to_csv(save_loc, index=False)
 
 
 if __name__ == "__main__":
