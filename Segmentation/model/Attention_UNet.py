@@ -14,14 +14,12 @@ def conv2d_bn(input, filters, num_row, num_col, padding='same', strides=(1, 1), 
 
     return x
 
-
 def conv2d_up(input, filters, num_row, num_col, padding='same', strides=(1, 1), activation='relu', name=None):
 
     x = Conv2DTranspose(filters, (num_row, num_col), strides=strides, padding=padding)(input)
     x = BatchNormalization(axis=3, scale=False)(x)
     
     return x
-
 
 def d_conv_block(input, filters, num_row, num_col):
 
@@ -30,14 +28,12 @@ def d_conv_block(input, filters, num_row, num_col):
 
     return x
 
-
 def u_conv_block(input, filters, num_row, num_col):
 
     x = conv2d_up(input, filters, num_row, num_col)
     #x = conv2d_up(x, filters,num_row, num_col)
 
     return x
-
 
 def Attention_Gate(input_x, input_g, filters, num_row=1, num_col=1, padding='same', strides=(1, 1)):
 
@@ -72,7 +68,7 @@ def AttentionUNet(height, width, n_channels):
     kernel_size = (3,3)
     n_classes = 2
 
-    #DECODER PATH
+    #ENCODER PATH
 
     x1 = d_conv_block(input, filters[0], kernel_size[0], kernel_size[1])
     pool1 = MaxPooling2D(pool_size = (2, 2))(x1)
@@ -85,9 +81,9 @@ def AttentionUNet(height, width, n_channels):
 
     x4 = d_conv_block(pool3, filters[3], kernel_size[0], kernel_size[1])
     
-    #ENCODER PATH
+    #DECODER PATH
     
-    a1 = Attention_Gate(x3, x4, filters[0])
+    a1 = Attention_Gate(x3, x4, filters[2])
     up4 = UpSampling2D(size = (2, 2))(x4)
     y1 = concatenate([up4, a1])
     y1 = u_conv_block(y1, filters[2], kernel_size[0], kernel_size[1])
@@ -97,7 +93,7 @@ def AttentionUNet(height, width, n_channels):
     y2 = concatenate([up5, a2])
     y2 = u_conv_block(y2, filters[1], kernel_size[0], kernel_size[1])
 
-    a3 = Attention_Gate(x1, y2, filters[2])
+    a3 = Attention_Gate(x1, y2, filters[0])
     up6 = UpSampling2D(size = (2, 2))(y2)
     y3 = concatenate([up6, a3])
     y3 = u_conv_block(y3, filters[0], kernel_size[0], kernel_size[1])
