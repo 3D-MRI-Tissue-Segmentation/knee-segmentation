@@ -6,6 +6,6 @@ Automatic Segmentation of Knee Cartilage from MRI using Deep Learning
 - [x] Vanilla UNet 
 - [x] Attention UNet
 - [x] Multi-res UNet
-- [ ] VNet
+- [x] VNet
 - [ ] 100-layer Tiramisu
 - [ ] DeepLabv3+ 

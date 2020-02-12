@@ -10,3 +10,6 @@ ml_env/
 __pycache__/
 *.json
 *.png
+*.jpg
+*.im
+*.seg
