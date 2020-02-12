@@ -149,7 +149,7 @@ def training_epoch(images):
     d_loss_label.update_state(d_loss)
    # print (real_out.numpy())
     discriminator_accuracy(real_out, fake_out)
-
+    
     # show_im(generated_images.numpy())
 
 def training(n_epochs, dataset):

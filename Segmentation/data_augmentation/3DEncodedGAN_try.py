@@ -10,19 +10,26 @@ config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 batch_size = 16
 
-with h5py.File("../Data/Tests_data/3d-mnist/full_dataset_vectors.h5", "r") as hf:
+with h5py.File("../../Data/Tests_data/3d-mnist/full_dataset_vectors.h5", "r") as hf:
     print(hf)   
     X_train = hf["X_train"][:]
     y_train = hf["y_train"][:]  
     X_test = hf["X_test"][:]
     y_test = hf["y_test"][:]
 
-#Reshaping of the 3D mnist dataset
+#Reshaping the 3D mnist
 X_train = np.reshape(X_train, (X_train.shape[0], 16, 16, 16))
 X_test = np.reshape(X_test, (X_test.shape[0], 16, 16, 16))
 assert X_train.shape == (X_train.shape[0], 16, 16, 16), f"X_train's shape is {X_train.shape} != ({X_train.shape[0]}, 16, 16, 16)"
 
-print(f"the size of the training dataset is {X_train.shape}")
+print(f"\n the images in the train dataset are of size {X_train.shape}")
+
+#Create 2D dataset to train the encoder
+plt.imshow(X_train[0,:,:,6])
+plt.show()
+
+X_train_2d = X_train[:,:,:,6]
+assert X_train.shape == (X_train.shape[0], 16, 16, 16), f"X_train's shape is {X_train_2d.shape} != ({X_train_2d.shape[0]}, 16, 16)"
 
 dim = (1, 1, 1, batch_size) #Set the dimensions of the first input to the generator onvolution
 
@@ -128,4 +135,28 @@ def discriminator_model():
 
     return model
 
+#Loss functions
+cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)  #Defining the cross entropy loss function
+
+def discriminator_loss(real_ouput, fake_output):
+    real_loss = cross_entropy(tf.ones_like(real_ouput), real_ouput)
+    fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
+    total_loss = real_loss + fake_loss
+    return total_loss
+
+def generator_loss(fake_output):
+    return cross_entropy(tf.ones_like(fake_output), fake_output)
+
+#Optimizers
+generator_optimizer = tf.keras.optimizers.Adam(1e-4)
+discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
+
+#Training
+epochs = 3
+number_of_generated_output = 2
+noise_length = 100
+seed = tf.random.normal([number_of_generated_output, noise_length])
+
+generator = generator_model(noise_length)
+discriminator = discriminator_model()
 
