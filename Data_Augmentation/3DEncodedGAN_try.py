@@ -17,9 +17,16 @@ with h5py.File("../Data/Tests_data/3d-mnist/full_dataset_vectors.h5", "r") as hf
     X_test = hf["X_test"][:]
     y_test = hf["y_test"][:]
 
+#Reshaping the 3D mnist
 X_train = np.reshape(X_train, (X_train.shape[0], 16, 16, 16))
 X_test = np.reshape(X_test, (X_test.shape[0], 16, 16, 16))
 assert X_train.shape == (X_train.shape[0], 16, 16, 16), f"X_train's shape is {X_train.shape} != ({X_train.shape[0]}, 16, 16, 16)"
+
+print(f"\n the images in the train dataset are of size {X_train.shape}")
+
+#Create 2D dataset to train the encoder
+plt.imshow(X_train[0,:,:,8])
+plt.show()
 
 dim = (1, 1, 1, batch_size) #Set the dimensions of the first input to the generator onvolution
 
