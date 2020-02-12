@@ -120,7 +120,6 @@ class MRI_Label:
 
     def next_vol(self, event=None):
         """ update when current image is annonated """
-        print("DONE")
         x_min, x_max, y_min, y_max, z_min, z_max = self.calculate_cube()
         centre = self.calculate_centre([x_min, y_min, z_min],
                                        [x_max, y_max, z_max])
@@ -142,6 +141,7 @@ class MRI_Label:
             self.update_yz()
             self.update_xz()
             self.update_xy()
+            self.ax[1][0].set_title(f"Image being labeled: {self.image_counter}")
 
     def onkeypress(self, event):
         if event.key == "1":
@@ -250,7 +250,7 @@ class MRI_Label:
                 img_count = self.image_counter
             im = self.train_images[img_count, self.idx[0], :, :]
             self.im_yz.set_data(im)
-            self.ax[0][0].set_title(f"YZ plane - Image being labeled: {self.image_counter}\nlayer: {self.idx[0]}")
+            self.ax[0][0].set_title(f"YZ plane - layer: {self.idx[0]}")
         self.update_patch(0, self.ax[0][0])
         plt.draw()
 
@@ -262,7 +262,7 @@ class MRI_Label:
                 img_count = self.image_counter
             im = self.train_images[img_count, :, self.idx[1], :]
             self.im_xz.set_data(im)
-            self.ax[0][1].set_title(f"XZ plane - Image being labeled: {self.image_counter}\nlayer: {self.idx[1]}")
+            self.ax[0][1].set_title(f"XZ plane - layer: {self.idx[1]}")
         self.update_patch(1, self.ax[0][1])
         plt.draw()
 
@@ -274,14 +274,14 @@ class MRI_Label:
                 img_count = self.image_counter
             im = self.train_images[img_count, :, :, self.idx[2]]
             self.im_xy.set_data(im)
-            self.ax[1][1].set_title(f"XY plane - Image being labeled: {self.image_counter}\nlayer: {self.idx[2]}")
+            self.ax[1][1].set_title(f"XY plane - layer: {self.idx[2]}")
         self.update_patch(2, self.ax[1][1])
         plt.draw()
 
     def reset(self):
         self.ax = [[None, None], [None, None]]
-        # self.fig, self.ax = plt.subplots(2, 2)
         self.fig = plt.figure()
+        self.fig.suptitle(f"Bounding box annotator")
         self.ax[0][0] = self.fig.add_subplot(221)
         self.ax[0][0].set_xlabel('z plane')
         self.ax[0][0].set_ylabel('y plane')
@@ -289,6 +289,7 @@ class MRI_Label:
         self.ax[0][1].set_xlabel('z plane')
         self.ax[0][1].set_ylabel('x plane')
         self.ax[1][0] = self.fig.add_subplot(223, projection='3d')
+        self.ax[1][0].set_title(f"Image being labeled: {self.image_counter}")
         self.ax[1][0].set_xlim(0, self.bounds[0])
         self.ax[1][0].set_ylim(0, self.bounds[1])
         self.ax[1][0].set_zlim(0, self.bounds[2])
