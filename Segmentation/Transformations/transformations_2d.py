@@ -42,7 +42,7 @@ class Data_Generation():
                             [x_cropLimit_low, x_cropLimit_high, y_cropLimit_low-move, y_cropLimit_high+move, 0, self.dims['channels']+1]]
             for img in data:
                 for crop in range(0, len(cropped_area)):
-                    translated_dataset.append(img[cropped_area[crop][0]:cropped_area[crop][1], cropped_area[crop][2]:cropped_area[crop][3], cropped_area[crop][4]:cropped_area[crop][5]])
+                    translated_dataset.append(img[cropped_area[crop][2]:cropped_area[crop][3], cropped_area[crop][0]:cropped_area[crop][1], cropped_area[crop][4]:cropped_area[crop][5]])
         self.transformed_dataset['translated'] = translated_dataset
 
     def shuffleAugmentedData(self):
@@ -56,7 +56,6 @@ class Data_Generation():
         for img in data[0:(percentage/100)*len(data)]:
             self.addNoise(image)
             self.enhance(image, 3, 100)
-        
 
     def addNoise(image):
         return np.add(image, abs(np.random.normal(255/2, 10, image.shape)))
