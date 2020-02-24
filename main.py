@@ -37,8 +37,8 @@ flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
 flags.DEFINE_integer('num_classes', 7, 'number of classes: 1 for binary (default) and 7 for multi-class')
 
 ## Logging, saving and testing options
-flags.DEFINE_string('logdir', '/checkpoints/', 'directory for checkpoints')
-flags.DEFINE_string('savedir', '/checkpoints/', 'directory for saved models')
+flags.DEFINE_string('logdir', './checkpoints/', 'directory for checkpoints')
+flags.DEFINE_string('savedir', './checkpoints/', 'directory for saved models')
 
 FLAGS = flags.FLAGS
 
@@ -131,11 +131,9 @@ def main(argv):
                         max_queue_size=32)
 
     t = time.localtime()
-    current_time = time.strftime("%H:%M:%S", t)
-
-    model_path = FLAGS.model_architecture + '_' + current_time + '_' + str(FLAGS.num_classes) + '.ckpt'
+    current_time = time.strftime("%H%M%S", t)
+    model_path = FLAGS.model_architecture + '_' + current_time + '.ckpt'
     save_path = os.path.join(FLAGS.savedir, model_path)
-    
     model.save_weights(save_path)
         
 if __name__ == '__main__':

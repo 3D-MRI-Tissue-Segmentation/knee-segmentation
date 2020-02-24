@@ -1,5 +1,7 @@
 */env/
 env/
+*/checkpoints/
+checkpoints/
 */web_env/
 web_env/
 */ui_env/
@@ -14,4 +16,3 @@ __pycache__/
 *.im
 *.seg
 *.npy
-*.ckpt
