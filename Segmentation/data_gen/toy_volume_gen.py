@@ -150,14 +150,17 @@ def get_test_volume(n_reps, n_classes,
                                         colour_idx)
     return td.volume, td.one_hot_array
 
-def get_test_volumes(n_volumes, n_reps, n_classes, 
-                     width, height, depth, colour_channels):
+def get_test_volumes(n_volumes, n_reps, n_classes,
+                     width, height, depth, colour_channels, as_np=True):
     volumes, one_hots = [], []
     for i in range(n_volumes):
-        volume, one_hot = get_test_volume(n_reps, n_classes, 
+        volume, one_hot = get_test_volume(n_reps, n_classes,
                                           width, height, depth, colour_channels)
         volumes.append(volume)
         one_hots.append(one_hot)
+    if as_np:
+        volumes = np.stack(volumes)
+        one_hots = np.stack(one_hots)
     return volumes, one_hots
 
 def plot_volume(volume, show=True):
@@ -169,7 +172,6 @@ def plot_volume(volume, show=True):
     ax.voxels(voxel, facecolors=volume, linewidth=0.5)
     if show:
         plt.show()
-
 
 def rgb_to_hex(rgb):
     assert type(rgb) is list
@@ -188,17 +190,17 @@ if __name__ == "__main__":
         for colour_idx in range(n_classes):
             #td.set_colour_to_random_xyz(colour_idx)
             x, y, z = td.get_random_xyz()
-            rand_x_len = randint(1, int(td.width/4))
-            rand_y_len = randint(1, int(td.height/4))
-            rand_z_len = randint(1, int(td.depth/4))
+            rand_x_len = randint(1, int(td.width / 4))
+            rand_y_len = randint(1, int(td.height / 4))
+            rand_z_len = randint(1, int(td.depth / 4))
             rnd_i = randint(0, 1)
             if rnd_i == 0:
-                td.set_rect_cuboid_to_xyz(x, y, z, 
-                                          rand_x_len, rand_y_len, rand_z_len, 
+                td.set_rect_cuboid_to_xyz(x, y, z,
+                                          rand_x_len, rand_y_len, rand_z_len,
                                           colour_idx)
             elif rnd_i == 1:
                 td.set_ellipsoid_to_xyz(x, y, z,
-                                        rand_x_len, rand_y_len, rand_z_len, 
+                                        rand_x_len, rand_y_len, rand_z_len,
                                         colour_idx)
 
     plot_volume(td.volume)

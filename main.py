@@ -117,8 +117,8 @@ def main(argv):
                                                 shuffle=True,
                                                 multi_class=True)
         
-        model.compile(optimizer=optimiser, 
-                loss=tversky_loss, 
+        model.compile(optimizer=optimiser,
+                loss=tversky_loss,
                 metrics=['categorical_crossentropy'])
 
 
@@ -135,6 +135,6 @@ def main(argv):
     model_path = FLAGS.model_architecture + '_' + current_time + '.ckpt'
     save_path = os.path.join(FLAGS.savedir, model_path)
     model.save_weights(save_path)
-        
+
 if __name__ == '__main__':
   app.run(main)

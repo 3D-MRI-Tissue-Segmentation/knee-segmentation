@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Coverage report</title>
+    <link rel="stylesheet" href="style.css" type="text/css">
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript" src="jquery.ba-throttle-debounce.min.js"></script>
+    <script type="text/javascript" src="jquery.tablesorter.min.js"></script>
+    <script type="text/javascript" src="jquery.hotkeys.js"></script>
+    <script type="text/javascript" src="coverage_html.js"></script>
+    <script type="text/javascript">
+        jQuery(document).ready(coverage.index_ready);
+    </script>
+</head>
+<body class="indexfile">
+<div id="header">
+    <div class="content">
+        <h1>Coverage report:
+            <span class="pc_cov">51%</span>
+        </h1>
+        <img id="keyboard_icon" src="keybd_closed.png" alt="Show keyboard shortcuts" />
+        <form id="filter_container">
+            <input id="filter" type="text" value="" placeholder="filter..." />
+        </form>
+    </div>
+</div>
+<div class="help_panel">
+    <img id="panel_icon" src="keybd_open.png" alt="Hide keyboard shortcuts" />
+    <p class="legend">Hot-keys on this page</p>
+    <div>
+    <p class="keyhelp">
+        <span class="key">n</span>
+        <span class="key">s</span>
+        <span class="key">m</span>
+        <span class="key">x</span>
+        <span class="key">c</span> &nbsp; change column sorting
+    </p>
+    </div>
+</div>
+<div id="index">
+    <table class="index">
+        <thead>
+            <tr class="tablehead" title="Click to sort">
+                <th class="name left headerSortDown shortkey_n">Module</th>
+                <th class="shortkey_s">statements</th>
+                <th class="shortkey_m">missing</th>
+                <th class="shortkey_x">excluded</th>
+                <th class="right shortkey_c">coverage</th>
+            </tr>
+        </thead>
+        <tfoot>
+            <tr class="total">
+                <td class="name left">Total</td>
+                <td>920</td>
+                <td>453</td>
+                <td>0</td>
+                <td class="right" data-ratio="467 920">51%</td>
+            </tr>
+        </tfoot>
+        <tbody>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation___init___py.html">Segmentation/__init__.py</a></td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 0">100%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_data_augmentation_GAN_try_py.html">Segmentation/data_augmentation/GAN_try.py</a></td>
+                <td>79</td>
+                <td>79</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 79">0%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_data_augmentation___init___py.html">Segmentation/data_augmentation/__init__.py</a></td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 0">100%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_data_gen___init___py.html">Segmentation/data_gen/__init__.py</a></td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 0">100%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_data_gen_toy_image_gen_py.html">Segmentation/data_gen/toy_image_gen.py</a></td>
+                <td>129</td>
+                <td>16</td>
+                <td>0</td>
+                <td class="right" data-ratio="113 129">88%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_data_gen_toy_volume_gen_py.html">Segmentation/data_gen/toy_volume_gen.py</a></td>
+                <td>154</td>
+                <td>29</td>
+                <td>0</td>
+                <td class="right" data-ratio="125 154">81%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_model_Attention_UNet_py.html">Segmentation/model/Attention_UNet.py</a></td>
+                <td>57</td>
+                <td>57</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 57">0%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_model_Multi_Res_UNet_py.html">Segmentation/model/Multi_Res_UNet.py</a></td>
+                <td>75</td>
+                <td>75</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 75">0%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_model___init___py.html">Segmentation/model/__init__.py</a></td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 0">100%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_model_probabilistic_unet_py.html">Segmentation/model/probabilistic_unet.py</a></td>
+                <td>121</td>
+                <td>121</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 121">0%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_model_unet_py.html">Segmentation/model/unet.py</a></td>
+                <td>88</td>
+                <td>1</td>
+                <td>0</td>
+                <td class="right" data-ratio="87 88">99%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_tests_test_data_gen_py.html">Segmentation/tests/test_data_gen.py</a></td>
+                <td>101</td>
+                <td>2</td>
+                <td>0</td>
+                <td class="right" data-ratio="99 101">98%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_tests_test_unet_py.html">Segmentation/tests/test_unet.py</a></td>
+                <td>34</td>
+                <td>5</td>
+                <td>0</td>
+                <td class="right" data-ratio="29 34">85%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_tests_test_vnet_models_py.html">Segmentation/tests/test_vnet_models.py</a></td>
+                <td>6</td>
+                <td>0</td>
+                <td>0</td>
+                <td class="right" data-ratio="6 6">100%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_utils___init___py.html">Segmentation/utils/__init__.py</a></td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 0">100%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_utils_preprocessing_py.html">Segmentation/utils/preprocessing.py</a></td>
+                <td>48</td>
+                <td>48</td>
+                <td>0</td>
+                <td class="right" data-ratio="0 48">0%</td>
+            </tr>
+            <tr class="file">
+                <td class="name left"><a href="Segmentation_utils_training_utils_py.html">Segmentation/utils/training_utils.py</a></td>
+                <td>28</td>
+                <td>20</td>
+                <td>0</td>
+                <td class="right" data-ratio="8 28">29%</td>
+            </tr>
+        </tbody>
+    </table>
+    <p id="no_rows">
+        No items found using the specified filter.
+    </p>
+</div>
+<div id="footer">
+    <div class="content">
+        <p>
+            <a class="nav" href="https://coverage.readthedocs.io">coverage.py v5.0.3</a>,
+            created at 2020-01-20 21:43
+        </p>
+    </div>
+</div>
+</body>
+</html>
