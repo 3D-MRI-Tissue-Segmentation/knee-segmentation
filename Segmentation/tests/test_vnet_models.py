@@ -15,8 +15,7 @@ class TestVNet(tf.test.TestCase):
         vnet = VNet(colour_channels, n_classes)
 
         from tensorflow.keras.optimizers import Adam
-        #from Segmentation.utils.training_utils import tversky_loss
-        from Segmentation.utils.training_utils import dice_loss
+        from Segmentation.utils.training_utils import tversky_loss, dice_loss
         vnet.compile(optimizer=Adam(0.00001),
                      loss=dice_loss,
                      metrics=['categorical_crossentropy'],
@@ -32,7 +31,7 @@ class TestVNet(tf.test.TestCase):
 
     def test_small_vnet(self, n_volumes=3,
                         width=32, height=32, depth=32, colour_channels=3,
-                        n_reps=5, n_classes=3, epochs=10):
+                        n_reps=5, n_classes=3, epochs=2):
 
         from Segmentation.data_gen.toy_volume_gen import get_test_volumes
 
