@@ -12,7 +12,7 @@ class TestVNet(tf.test.TestCase):
                                              width, height, depth, colour_channels)
 
         from Segmentation.model.tiny_vnet import VNet_Tiny as VNet
-        vnet = VNet(colour_channels, n_classes)
+        vnet = VNet(colour_channels, n_classes, merge_connections=True)
 
         from tensorflow.keras.optimizers import Adam
         from Segmentation.utils.training_utils import tversky_loss, dice_loss
@@ -20,6 +20,9 @@ class TestVNet(tf.test.TestCase):
                      loss=dice_loss,
                      metrics=['categorical_crossentropy'],
                      experimental_run_tf_function=False)
+
+        # output = vnet(volumes)
+        # print("expect:", one_hots.shape)
 
         history = vnet.fit(volumes, one_hots, epochs=epochs)
         loss_history = history.history['loss']
@@ -39,7 +42,7 @@ class TestVNet(tf.test.TestCase):
                                              width, height, depth, colour_channels)
 
         from Segmentation.model.small_vnet import VNet_Small as VNet
-        vnet = VNet(colour_channels, n_classes)
+        vnet = VNet(colour_channels, n_classes, merge_connections=True)
 
         from tensorflow.keras.optimizers import Adam
         from Segmentation.utils.training_utils import dice_loss
@@ -60,7 +63,3 @@ if __name__ == '__main__':
     sys.path.insert(0, getcwd())
 
     tf.test.main()
-
-    # tv = TestVNet()
-    # tv.test_tiny_vnet()
-    # tv.test_small_vnet()
