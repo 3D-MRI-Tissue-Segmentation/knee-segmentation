@@ -11,6 +11,9 @@ python -m pytest --cov-report term-missing:skip-covered --cov=Segmentation && co
 - [x] Vanilla UNet 
 - [x] Attention UNet
 - [x] Multi-res UNet
+- [x] R2_UNet
+- [x] R2_Attention UNet
 - [x] VNet
+- [x] 3D UNet
 - [ ] 100-layer Tiramisu
 - [ ] DeepLabv3+ 
