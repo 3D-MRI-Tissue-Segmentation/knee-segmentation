@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from absl.testing import parameterized
 
 
@@ -25,42 +26,62 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
         {"testcase_name": "small_48-48-16-1-merge", "model": "small", "height": 48, "width": 48, "depth": 16, "colour_channels": 1, "merge_connections": True},
         {"testcase_name": "small_16-16-16-1-merge", "model": "small", "height": 16, "width": 16, "depth": 16, "colour_channels": 1, "merge_connections": True},
     )
-    def test_vnet(self, model, height, width, depth, colour_channels, merge_connections,
-                  epochs=2, n_volumes=3, n_reps=2, n_classes=2):
+    def test_run(self, model, height, width, depth, colour_channels, merge_connections,
+                 epochs=2, n_volumes=3, n_reps=2, n_classes=2, relative=False):
+        self.run_vnet(model, height, width, depth,
+                      colour_channels, merge_connections,
+                      epochs, n_volumes, n_reps, n_classes,
+                      relative)
+
+    def run_vnet(self, model, height, width, depth, colour_channels, merge_connections,
+                 epochs=2, n_volumes=3, n_reps=2, n_classes=2, relative=False):
         volumes, one_hots = self.create_test_volume(n_volumes, n_reps, n_classes,
                                                     width, height, depth, colour_channels)
+        inputs = volumes
+        if relative:
+            pos = np.array([1.0, 0.0, -0.5])
+            inputs = [volumes, pos]
 
         def build_vnet(model, colour_channels, n_classes, merge_connections):
             if model == "tiny":
                 from Segmentation.model.vnet_tiny import VNet_Tiny
-                return VNet_Tiny(colour_channels, n_classes, merge_connections)
+                return VNet_Tiny(colour_channels, n_classes, merge_connections=merge_connections)
             elif model == "small":
                 from Segmentation.model.vnet_small import VNet_Small
-                return VNet_Small(colour_channels, n_classes, merge_connections)
+                return VNet_Small(colour_channels, n_classes, merge_connections=merge_connections)
+            elif model == "small_relative":
+                from Segmentation.model.vnet_small_relative import VNet_Small_Relative
+                return VNet_Small_Relative(colour_channels, n_classes, merge_connections=merge_connections)
+            else:
+                raise NotImplementedError(f"no model named: {model}")
 
         vnet = build_vnet(model, colour_channels, n_classes, merge_connections)
 
-        def vnet_feedforward(vnet, volumes, one_hots):
+        # assert model == "small_relative"
+
+        def vnet_feedforward(vnet, inputs, one_hots):
             from tensorflow.keras.optimizers import Adam
             from Segmentation.utils.training_utils import tversky_loss, dice_loss
             vnet.compile(optimizer=Adam(0.00001),
                          loss=dice_loss,
                          metrics=['categorical_crossentropy'],
                          experimental_run_tf_function=True)
-            output = vnet(volumes)
+
+            output = vnet(inputs)
+            assert output.shape == one_hots.shape
+            output = vnet.predict(inputs)
             assert output.shape == one_hots.shape
 
-        vnet_feedforward(vnet, volumes, one_hots)
+        vnet_feedforward(vnet, inputs, one_hots)
 
-        def vnet_fit(vnet, volumes, one_hots, epochs):
-            history = vnet.fit(volumes, one_hots, epochs=epochs)
+        def vnet_fit(vnet, inputs, one_hots, epochs):
+            history = vnet.fit(x=inputs, y=one_hots, epochs=epochs, verbose=0)
             loss_history = history.history['loss']
             loss_history = history.history['loss']
-            pred = vnet.predict(volumes)
+            pred = vnet.predict(inputs)
             assert pred.shape == one_hots.shape
 
-        vnet_fit(vnet, volumes, one_hots, epochs)
-
+        vnet_fit(vnet, inputs, one_hots, epochs)
 
 if __name__ == '__main__':
     import sys
@@ -68,3 +89,8 @@ if __name__ == '__main__':
     sys.path.insert(0, getcwd())
 
     tf.test.main()
+
+    # tv = Test_VNet()
+    # tv.run_vnet(model="small_relative",
+    #             height=64, width=64, depth=32, colour_channels=1,
+    #             merge_connections=True, relative=True)

@@ -29,9 +29,9 @@ def test_random_shapes_gen_2D():
 
     for rep in range(n_reps):
         for colour_idx in range(n_classes):
-            x,y = test_ti.get_random_xy()
-            rand_width = randint(1, int(test_ti.width/8))
-            rand_height = randint(1, int(test_ti.height/8))
+            x, y = test_ti.get_random_xy()
+            rand_width = randint(1, int(test_ti.width / 8))
+            rand_height = randint(1, int(test_ti.height / 8))
             rnd_i = randint(0, 4)
             if rnd_i == 0:
                 test_ti.set_square_to_xy(x, y, rand_width, colour_idx)
@@ -63,7 +63,7 @@ def test_get_test_images():
     colour_channels = 3
 
     images, one_hots = get_test_images(n_images, n_reps, n_classes,
-                                            width, height, colour_channels)
+                                       width, height, colour_channels)
 
     assert len(images) == n_images
     assert len(one_hots) == n_images
@@ -92,25 +92,25 @@ def test_random_volumes_gen():
     for rep in range(n_reps):
         for colour_idx in range(n_classes):
             x, y, z = test_tv.get_random_xyz()
-            rand_x_len = randint(1, int(test_tv.width/4))
-            rand_y_len = randint(1, int(test_tv.height/4))
-            rand_z_len = randint(1, int(test_tv.depth/4))
+            rand_x_len = randint(1, int(test_tv.width / 4))
+            rand_y_len = randint(1, int(test_tv.height / 4))
+            rand_z_len = randint(1, int(test_tv.depth / 4))
             rnd_i = randint(0, 4)
             if rnd_i == 0:
-                test_tv.set_rect_cuboid_to_xyz(x, y, z, 
-                                               rand_x_len, rand_y_len, rand_z_len, 
+                test_tv.set_rect_cuboid_to_xyz(x, y, z,
+                                               rand_x_len, rand_y_len, rand_z_len,
                                                colour_idx)
             elif rnd_i == 1:
                 test_tv.set_ellipsoid_to_xyz(x, y, z,
-                                             rand_x_len, rand_y_len, rand_z_len, 
+                                             rand_x_len, rand_y_len, rand_z_len,
                                              colour_idx)
             elif rnd_i == 2:
-                test_tv.set_cube_to_xyz(x, y, z, 
-                                        rand_x_len, 
+                test_tv.set_cube_to_xyz(x, y, z,
+                                        rand_x_len,
                                         colour_idx)
             elif rnd_i == 3:
                 test_tv.set_sphere_to_xyz(x, y, z,
-                                          rand_x_len, 
+                                          rand_x_len,
                                           colour_idx)
             elif rnd_i == 4:
                 test_tv.set_colour_to_random_xyz(colour_idx)
@@ -139,4 +139,3 @@ def test_get_test_volumes():
     from Segmentation.data_gen.toy_volume_gen import plot_volume
     for volume in volumes:
         plot_volume(volume, False)
-    

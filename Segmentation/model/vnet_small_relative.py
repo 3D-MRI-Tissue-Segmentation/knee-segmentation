@@ -2,7 +2,7 @@ import tensorflow as tf
 from Segmentation.model.vnet_build_blocks import Conv3D_Block, Up_Conv3D
 
 
-class VNet_Small(tf.keras.Model):
+class VNet_Small_Relative(tf.keras.Model):
 
     def __init__(self,
                  num_channels,
@@ -15,9 +15,9 @@ class VNet_Small(tf.keras.Model):
                  use_spatial_dropout=True,
                  data_format='channels_last',
                  merge_connections=False,
-                 name="vnet_small"):
+                 name="vnet_small_relative"):
 
-        super(VNet_Small, self).__init__(name=name)
+        super(VNet_Small_Relative, self).__init__(name=name)
         self.merge_connections = merge_connections
 
         self.conv_1 = Conv3D_Block(num_channels, num_conv_layers, kernel_size,
@@ -44,10 +44,11 @@ class VNet_Small(tf.keras.Model):
         self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size, padding='same',
                                                data_format=data_format)
 
-    def call(self, inputs):
+    def call(self, inputs, training=True):
+        image_inputs, pos_inputs = inputs
 
         # 1->64
-        x1 = self.conv_1(inputs)
+        x1 = self.conv_1(image_inputs)
         # tf.print("x1:", x1.get_shape())
 
         # 64->128
