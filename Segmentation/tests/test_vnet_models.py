@@ -1,8 +1,11 @@
 import tensorflow as tf
 from absl.testing import parameterized
-import pytest
+
 
 class Test_VNet(parameterized.TestCase, tf.test.TestCase):
+
+    # def setUp(self):
+    #     assert True
 
     def create_test_volume(self, n_volumes, n_reps, n_classes,
                            width, height, depth, colour_channels):
