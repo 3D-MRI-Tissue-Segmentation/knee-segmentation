@@ -61,5 +61,4 @@ class VNet_Tiny(tf.keras.Model):
         # tf.print("u1:", u1.get_shape())
         output = self.conv_1x1(u1)
         # tf.print("output:", output.get_shape())
-
         return output
