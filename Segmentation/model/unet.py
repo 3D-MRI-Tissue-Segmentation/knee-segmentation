@@ -1,18 +1,18 @@
-import tensorflow as tf 
+import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Dropout, SpatialDropout2D, concatenate, add
 from tensorflow.keras import Model, Input
 
 class Conv2D_Block(tf.keras.layers.Layer):
 
-    def __init__(self, 
+    def __init__(self,
                  num_channels,
                  num_conv_layers=2,
-                 kernel_size=(3,3),
+                 kernel_size=(3, 3),
                  nonlinearity='relu',
-                 use_batchnorm = False,
-                 use_dropout = False,
-                 dropout_rate = 0.25, 
-                 use_spatial_dropout = True,
+                 use_batchnorm=False,
+                 use_dropout=False,
+                 dropout_rate=0.25,
+                 use_spatial_dropout=True,
                  data_format='channels_last',
                  name="convolution_block"):
 
@@ -26,8 +26,8 @@ class Conv2D_Block(tf.keras.layers.Layer):
         self.conv = []
         self.batchnorm = []
         self.activation = []
-        #self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
-        #self.activation = tf.keras.layers.Activation(nonlinearity)
+        # self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
+        # self.activation = tf.keras.layers.Activation(nonlinearity)
 
         if use_spatial_dropout:
             self.dropout = tf.keras.layers.SpatialDropout2D(rate=dropout_rate)
