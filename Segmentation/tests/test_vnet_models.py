@@ -29,10 +29,10 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
 
         def build_vnet(model, colour_channels, n_classes, merge_connections):
             if model == "tiny":
-                from Segmentation.model.tiny_vnet import VNet_Tiny
+                from Segmentation.model.vnet_tiny import VNet_Tiny
                 return VNet_Tiny(colour_channels, n_classes, merge_connections)
             elif model == "small":
-                from Segmentation.model.small_vnet import VNet_Small
+                from Segmentation.model.vnet_small import VNet_Small
                 return VNet_Small(colour_channels, n_classes, merge_connections)
 
         vnet = build_vnet(model, colour_channels, n_classes, merge_connections)
