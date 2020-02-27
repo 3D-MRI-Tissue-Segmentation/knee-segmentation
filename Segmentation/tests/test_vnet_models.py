@@ -32,7 +32,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
         {"testcase_name": "small_relative_128-128-128-1_no-merge_multi", "model": "small_relative", "shape": (128, 128, 128, 1), "merge_connections": False, "relative": True, 'relative_action': "multiply"},
     )
     def test_run(self, model, shape, merge_connections,
-                 epochs=2, n_volumes=3, n_reps=2, n_classes=2, relative=False, relative_action=None):
+                 epochs=2, n_volumes=3, n_reps=2, n_classes=2, relative=False, relative_action=None, custom_fit=False):
         height, width, depth, colour_channels = shape
         self.run_vnet(model, height, width, depth,
                       colour_channels, merge_connections,
@@ -40,7 +40,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                       relative, relative_action)
 
     def run_vnet(self, model, height, width, depth, colour_channels, merge_connections,
-                 epochs=2, n_volumes=3, n_reps=2, n_classes=2, relative=False, relative_action=None):
+                 epochs=2, n_volumes=3, n_reps=2, n_classes=2, relative=False, relative_action=None, custom_fit=False):
         volumes, one_hots = self.create_test_volume(n_volumes, n_reps, n_classes,
                                                     width, height, depth, colour_channels)
         inputs = volumes
@@ -57,7 +57,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                 return VNet_Tiny(colour_channels, n_classes, merge_connections=merge_connections)
             elif model == "small":
                 from Segmentation.model.vnet_small import VNet_Small
-                return VNet_Small(colour_channels, n_classes, merge_connections=merge_connections)
+                return VNet_Small(colour_channels, n_classes, merge_connections=merge_connections, use_batchnorm=False)
             elif model == "small_relative":
                 from Segmentation.model.vnet_small_relative import VNet_Small_Relative
                 return VNet_Small_Relative(colour_channels, n_classes, merge_connections=merge_connections,
@@ -68,33 +68,66 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
         vnet = build_vnet(model, colour_channels, n_classes, merge_connections)
 
         def vnet_feedforward(vnet, inputs, one_hots):
-            output = vnet(inputs)
+            output = vnet(inputs, training=False)
             assert output.shape == one_hots.shape
             output = vnet.predict(inputs)
             assert output.shape == one_hots.shape
 
         vnet_feedforward(vnet, inputs, one_hots)
 
-        def vnet_fit(vnet, inputs, one_hots, epochs):
+        def vnet_fit(vnet, inputs, one_hots, epochs, custom_fit):
             from tensorflow.keras.optimizers import Adam
             from Segmentation.utils.training_utils import tversky_loss, dice_loss
+            from tensorflow.keras.losses import MSE
 
-            # grads = tape.gradient(loss, model.trainable_variables)
-            # grads = [grad if grad is not None else tf.zeros_like(var)
-            # for var, grad in zip(model.trainable_variables, grads)]
+            loss_func = dice_loss
 
-            vnet.compile(optimizer=Adam(0.00001),
-                         loss=dice_loss,
-                         metrics=['categorical_crossentropy'],
-                         experimental_run_tf_function=True)
+            if custom_fit:
 
-            history = vnet.fit(x=inputs, y=one_hots, epochs=epochs, verbose=1)
-            loss_history = history.history['loss']
-            loss_history = history.history['loss']
-            pred = vnet.predict(inputs)
-            assert pred.shape == one_hots.shape
+                def loss(model, x, y, training, loss_func):
+                    y_ = model(x, training=training)
+                    return loss_func(y_true=y, y_pred=y_)
 
-        vnet_fit(vnet, inputs, one_hots, epochs)
+                def grad(model, inputs, targets, loss_func):
+                    with tf.GradientTape() as tape:
+                        loss_value = loss(model, inputs, targets, True, loss_func)
+                    return loss_value, tape.gradient(loss_value, model.trainable_variables)
+
+                current_l = loss(vnet, inputs, one_hots, False, loss_func)
+                print(f"Loss test: {current_l}, {np.mean(current_l)}")
+
+                optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
+                loss_value, grads = grad(vnet, inputs, one_hots, loss_func)
+                print("===========================")
+                for var, grad in zip(vnet.trainable_variables, grads):
+                    if grad is None:
+                        print(var.name)
+                        print("-----------------")
+                        print(var)
+                        print("---------------------")
+                        print(grad)
+                        print("===========================")
+
+                # grads = [grad if grad is not None else tf.zeros_like(var) for var, grad in zip(vnet.trainable_variables, grads)]
+
+                optimizer.apply_gradients(zip(grads, vnet.trainable_variables))
+
+                current_l = loss(vnet, inputs, one_hots, False, loss_func)
+                print(f"Loss test: {current_l}, {np.mean(current_l)}")
+
+            else:
+                vnet.compile(optimizer=Adam(0.00001),
+                             loss=dice_loss,
+                             metrics=['categorical_crossentropy'],
+                             experimental_run_tf_function=True)
+
+                history = vnet.fit(x=inputs, y=one_hots, epochs=epochs, verbose=1)
+                loss_history = history.history['loss']
+                loss_history = history.history['loss']
+                pred = vnet.predict(inputs)
+                assert pred.shape == one_hots.shape
+
+        vnet_fit(vnet, inputs, one_hots, epochs, custom_fit)
 
 if __name__ == '__main__':
     import sys
@@ -104,9 +137,9 @@ if __name__ == '__main__':
     gpus = tf.config.experimental.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(gpus[0], True)
 
-    tf.test.main()
+    # tf.test.main()
 
-    # tv = Test_VNet()
-    # tv.run_vnet(model="small_relative",
-    #             height=96, width=96, depth=96, colour_channels=1,
-    #             merge_connections=False, relative=True, relative_action="add", epochs=20)
+    tv = Test_VNet()
+    tv.run_vnet(model="small",
+                height=96, width=96, depth=96, colour_channels=1,
+                merge_connections=False, relative=False, relative_action="add", epochs=20, custom_fit=True)
