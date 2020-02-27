@@ -17,10 +17,14 @@ class VNet_Small_Relative(tf.keras.Model):
                  merge_connections=False,
                  num_compressors=3,
                  compressor_filters=3,
+                 action='add',
                  name="vnet_small_relative"):
 
         super(VNet_Small_Relative, self).__init__(name=name)
         self.merge_connections = merge_connections
+        self.action = action
+
+        assert self.action in ['add', 'multiply'], f"{self.action} not in action list"
 
         self.conv_1 = Conv3D_Block(num_channels, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
@@ -69,82 +73,44 @@ class VNet_Small_Relative(tf.keras.Model):
         # decoder
         # 1->64
         x1 = self.conv_1(image_inputs)
-        tf.print("x1:", x1.get_shape())
 
         # 64->128
         x2 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x1)
         x2 = self.conv_2(x2)
-        tf.print("x2:", x2.get_shape())
 
         # 128->256
         x3 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x2)
         x3 = self.conv_3(x3)
-        tf.print("x3:", x3.get_shape())
 
         # compressor
-
-        asd = 0
         comp = x3
         for i in self.compressors:
             comp = i(comp)
-            tf.print(f"compressor {asd}:", comp.get_shape())
-            asd += 1
-
         comp = tf.keras.layers.Flatten()(comp)
-        tf.print("flat shape:", comp.get_shape())
         comp = self.comp_dense_1(comp)
-        tf.print("flat shape:", comp.get_shape())
         comp = self.comp_dense_2(comp)
-        tf.print("flat shape:", comp.get_shape())
-        tf.print("pos:", pos_inputs.get_shape())
-        tf.print("====================")
         comp_cat = tf.concat([comp, pos_inputs], axis=-1)
-        tf.print("comp_cat:", comp_cat.get_shape())
-        comp = self.comp_dense_3(comp)
-        tf.print("flat shape:", comp.get_shape())
+        comp = self.comp_dense_3(comp_cat)
         assert comp.get_shape()[-1] == 1
 
         # encoder
         # 256->128
-        tf.print(x3.get_shape())
-
         u3 = self.up_3(x3)
-
-        tf.print("===============")
-
-        tf.print(u3[0, :3, 0, 0])
-        tf.print(u3[1, :3, 0, 0])
-        tf.print(u3[2, :3, 0, 0])
-
-        u3 = tf.keras.layers.add([u3, comp])
-
-        tf.print("===============")
-
-        tf.print(u3[0, :3, 0, 0])
-        tf.print(u3[1, :3, 0, 0])
-        tf.print(u3[2, :3, 0, 0])
-
-        tf.print("===============")
-
-        tf.print(u3.get_shape())
-
+        if self.action == 'add':
+            u3 = tf.keras.layers.add([u3, comp])
+        elif self.action == 'multiply':
+            u3 = tf.keras.layers.multiply([u3, comp])
         if self.merge_connections:
             u3 = tf.keras.layers.concatenate([x2, u3], axis=4)
         u3 = self.up_conv2(u3)
-        tf.print("u3:", u3.get_shape())
 
         # 128->64
         u2 = self.up_2(x2)
-        tf.print("before u2:", u2.get_shape())
         if self.merge_connections:
             u2 = tf.keras.layers.concatenate([x1, u2], axis=4)
-        tf.print("after u2:", u2.get_shape())
         u2 = self.up_conv1(u2)
-        tf.print("u2:", u2.get_shape())
 
         u1 = self.conv_output(u2)
-        tf.print("u1:", u1.get_shape())
         output = self.conv_1x1(u1)
 
-        tf.print("output:", output.get_shape())
         return output
