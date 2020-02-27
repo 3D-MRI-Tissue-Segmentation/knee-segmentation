@@ -13,21 +13,23 @@ class Conv2D_Block(tf.keras.layers.Layer):
                  use_dropout = False,
                  dropout_rate = 0.25, 
                  use_spatial_dropout = True,
-                 data_format='channels_last',
-                 name="convolution_block"):
+                 data_format='channels_last'):
 
-        super(Conv2D_Block, self).__init__(name=name)
+        super(Conv2D_Block, self).__init__()
 
+        self.num_channels = num_channels
         self.num_conv_layers = num_conv_layers
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
         self.use_batchnorm = use_batchnorm
         self.use_dropout = use_dropout
+        self.dropout_rate = dropout_rate
         self.use_spatial_dropout = use_spatial_dropout
-
+        self.data_format = data_format
+        
         self.conv = []
         self.batchnorm = []
         self.activation = []
-        #self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
-        #self.activation = tf.keras.layers.Activation(nonlinearity)
 
         if use_spatial_dropout:
             self.dropout = tf.keras.layers.SpatialDropout2D(rate=dropout_rate)
@@ -46,9 +48,7 @@ class Conv2D_Block(tf.keras.layers.Layer):
         for i in range(self.num_conv_layers):
             x = self.conv[i](x)
             if self.use_batchnorm:
-                #x = self.batchnorm(x)
                 x = self.batchnorm[i](x)
-            #x = self.activation(x)
             x = self.activation[i](x)
         if self.use_dropout:
             x = self.dropout(x)
@@ -56,7 +56,23 @@ class Conv2D_Block(tf.keras.layers.Layer):
         outputs = x
 
         return outputs
+    
+    def get_config(self):
+
+        config = {
+            'num_channels': self.num_channels,
+            'num_conv_layers': self.num_conv_layers,
+            'kernel_size': self.kernel_size,
+            'nonlinearity': self.nonlinearity,
+            'use_batchnorm': self.use_batchnorm,
+            'use_dropout': self.use_dropout,
+            'dropout_rate': self.dropout_rate, 
+            'use_spatial_dropout': self.use_spatial_dropout, 
+            'data_format': self.data_format
+        }
         
+        return config
+
 class Up_Conv2D(tf.keras.layers.Layer):
 
     def __init__(self, 
@@ -66,17 +82,22 @@ class Up_Conv2D(tf.keras.layers.Layer):
                  use_batchnorm = False,
                  use_transpose = False,
                  strides=(2,2),
-                 data_format='channels_last',
-                 name="upsampling_convolution_block"):
+                 data_format='channels_last'):
 
-        super(Up_Conv2D, self).__init__(name=name)
+        super(Up_Conv2D, self).__init__()
 
+        self.num_channels = num_channels
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
         self.use_batchnorm = use_batchnorm
+        self.use_transpose = use_transpose
+        self.strides = strides
+        self.data_format = data_format
+
         self.upsample = tf.keras.layers.UpSampling2D(size=(2,2))
         self.conv = tf.keras.layers.Conv2D(num_channels, kernel_size, padding='same', data_format=data_format)
         self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1, momentum=0.95, epsilon=0.001)
         self.activation = tf.keras.layers.Activation(nonlinearity)
-        self.use_transpose = use_transpose
         self.conv_transpose = tf.keras.layers.Conv2DTranspose(num_channels, kernel_size, padding='same', strides=strides, data_format=data_format)
         
     def call(self, inputs):
@@ -92,6 +113,20 @@ class Up_Conv2D(tf.keras.layers.Layer):
         outputs = self.activation(x)
 
         return outputs
+    
+    def get_config(self):
+        
+        config = {
+            'num_channels': self.num_channels,
+            'kernel_size': self.kernel_size,
+            'nonlinearity': self.nonlinearity,
+            'use_batchnorm': self.use_batchnorm,
+            'use_transpose': self.use_transpose,
+            'strides': self.strides, 
+            'data_format': self.data_format
+        }
+        
+        return config
 
 class Attention_Gate(tf.keras.layers.Layer):
 
@@ -120,14 +155,9 @@ class Attention_Gate(tf.keras.layers.Layer):
 
         x_g = self.conv_1(input_g)
         x_g = self.batch_norm_1(x_g)
-        #x_g_shape = tf.shape(x_g)
-        #w1 = x_g_shape.numpy()[1]
-        #w1 = tf.math.divide(w1,2)
-        #w1 = tf.cast(w1, tf.int32)
 
         x_l = self.conv_2(input_x)
         x_l = self.batch_norm_2(x_l)
-        #x_l = tf.keras.layers.Cropping2D(cropping=((w1,w1), (w1,w1)))(x_l)
 
         x = tf.keras.layers.concatenate([x_g, x_l], axis=3)
         x = self.relu(x)
@@ -135,9 +165,7 @@ class Attention_Gate(tf.keras.layers.Layer):
         x = self.conv_3(x)
         x = self.batch_norm_3(x)
         alpha = self.sigmoid(x)
-        #resampled_alpha = tf.keras.layers.UpSampling2D()(alpha)
 
-        #outputs = tf.math.multiply(resampled_alpha, input_x)
         outputs = tf.math.multiply(alpha, input_x)
 
         return outputs
@@ -239,10 +267,9 @@ class UNet(tf.keras.Model):
                  use_batchnorm=True,
                  dropout_rate = 0.25, 
                  use_spatial_dropout = True,
-                 data_format='channels_last',
-                 name="unet"):
+                 data_format='channels_last'):
 
-        super(UNet, self).__init__(name=name)
+        super(UNet, self).__init__()
 
         self.num_classes = num_classes
 

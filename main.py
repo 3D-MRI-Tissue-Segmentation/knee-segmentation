@@ -17,11 +17,11 @@ from Segmentation.utils.training_utils import plot_train_history_loss, plot_resu
 ## Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
 flags.DEFINE_integer('batch_size', 4, 'Batch size per GPU')
-flags.DEFINE_float('base_learning_rate', 1e-04, 'base learning rate at the start of training session')
+flags.DEFINE_float('base_learning_rate', 5e-05, 'base learning rate at the start of training session')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
-flags.DEFINE_integer('train_epochs', 20, 'Number of training epochs.')
+flags.DEFINE_integer('train_epochs', 10, 'Number of training epochs.')
 
 ## Model options
 flags.DEFINE_string('model_architecture', 'unet', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
@@ -38,7 +38,7 @@ flags.DEFINE_integer('num_classes', 7, 'number of classes: 1 for binary (default
 
 ## Logging, saving and testing options
 flags.DEFINE_string('logdir', './checkpoints/', 'directory for checkpoints')
-flags.DEFINE_string('savedir', './checkpoints/', 'directory for saved models')
+flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
 FLAGS = flags.FLAGS
 
@@ -87,7 +87,7 @@ def main(argv):
         print("%s is not a valid or supported model architecture." % FLAGS.model_architecture)
     
     optimiser = tf.keras.optimizers.Adam(learning_rate=FLAGS.base_learning_rate)
-
+    
     if FLAGS.num_classes == 1:
         if FLAGS.dataset == 'oai_challenge':
                 generator_train = DataGenerator("./Data/train_2d/samples/", 
@@ -101,8 +101,8 @@ def main(argv):
                                                 shuffle=True,
                                                 multi_class=False)
         model.compile(optimizer=optimiser, 
-                loss=dice_loss, 
-                metrics=[dice_coef_loss, 'binary_crossentropy'])
+                    loss=dice_loss, 
+                    metrics=[dice_coef_loss, 'binary_crossentropy', 'acc'])
 
     else:
         if FLAGS.dataset == 'oai_challenge':
@@ -119,22 +119,35 @@ def main(argv):
         
         model.compile(optimizer=optimiser, 
                 loss=tversky_loss, 
-                metrics=['categorical_crossentropy'])
+                metrics=['categorical_crossentropy', 'acc'])
 
+    #Note that fit_generator will be deprecated in future Tensorflow version. 
+    #Use model.fit instead but ensure that your Tensorflow version is >= 2.1.0 or else it won't work with tf.keras.utils.Sequence object 
+    
+    if FLAGS.train:
+        model.fit_generator(generator=generator_train,
+                            epochs=FLAGS.train_epochs, 
+                            validation_data=generator_valid,
+                            use_multiprocessing=True,
+                            workers=8,
+                            max_queue_size=16)
 
-    model.fit_generator(generator=generator_train,
-                        epochs=FLAGS.train_epochs, 
-                        validation_data=generator_valid,
-                        use_multiprocessing=True,
-                        shuffle=True,
-                        workers=16,
-                        max_queue_size=32)
+        t = time.localtime()    
+        current_time = time.strftime("%H%M%S", t)
+        model_path = FLAGS.model_architecture + '_' + current_time + '.ckpt'
+        save_path = os.path.join(FLAGS.logdir, model_path)
+        model.save_weights(save_path)
 
-    t = time.localtime()
-    current_time = time.strftime("%H%M%S", t)
-    model_path = FLAGS.model_architecture + '_' + current_time + '.ckpt'
-    save_path = os.path.join(FLAGS.savedir, model_path)
-    model.save_weights(save_path)
+    else:
+        #load the latest checkpoint in the FLAGS.logdir file 
+        latest = tf.train.latest_checkpoint(FLAGS.logdir)
+        model.load_weights(latest).expect_partial()
+
+        #this is just to roughly preview the results, we need to build a proper pipeline for visualising & saving output segmentation 
+        x_val, y_val = generator_valid.__getitem__(idx=100)
         
+        y_pred = model.predict(x_val)
+        visualise_multi_class(y_val, y_pred)
+
 if __name__ == '__main__':
   app.run(main)
