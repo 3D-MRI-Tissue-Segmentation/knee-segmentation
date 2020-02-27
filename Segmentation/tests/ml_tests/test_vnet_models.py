@@ -73,23 +73,24 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
 
         def vnet_feedforward(vnet, inputs, one_hots):
             output = vnet(inputs, training=False)
-            assert output.shape == target_shape
-            #assert output.shape == one_hots.shape
+            #assert output.shape == target_shape
+            assert output.shape == one_hots.shape
             output = vnet.predict(inputs)
-            assert output.shape == target_shape
-            #assert output.shape == one_hots.shape
+            #assert output.shape == target_shape
+            assert output.shape == one_hots.shape
 
         vnet_feedforward(vnet, inputs, one_hots)
 
         def vnet_fit(vnet, inputs, one_hots, epochs, custom_fit, n_classes):
             from tensorflow.keras.optimizers import Adam
-            from Segmentation.utils.training_utils import tversky_loss, dice_loss, dice_coef_loss
+            from Segmentation.utils.training_utils import tversky_loss, dice_loss, dice_coef_loss, tversky
             from tensorflow.keras.losses import MSE
 
             if n_classes == 1:
                 loss_func = dice_loss
             else:
-                loss_func = tversky_loss
+                #loss_func = tversky_loss
+                loss_func = tversky
 
             if custom_fit:
 
@@ -123,7 +124,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                 metrics = ['categorical_crossentropy']
                 if n_classes == 1:
                     metrics.append(dice_coef_loss)
-                vnet.compile(optimizer=Adam(0.00001),
+                vnet.compile(optimizer=Adam(0.001),
                              loss=loss_func,
                              metrics=metrics,
                              experimental_run_tf_function=True)
@@ -141,9 +142,10 @@ if __name__ == '__main__':
     gpus = tf.config.experimental.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(gpus[0], True)
 
-    # tf.test.main()
+    tf.test.main()
 
-    tv = Test_VNet()
-    tv.run_vnet(model="tiny",
-                height=96, width=96, depth=96, colour_channels=1,
-                merge_connections=False, relative=False, n_classes=3, relative_action="add", epochs=5, custom_fit=False)
+    # tv = Test_VNet()
+    # tv.run_vnet(model="small_relative", n_volumes=3,
+    #             height=96, width=96, depth=96, colour_channels=1,
+    #             merge_connections=False, relative=True, n_classes=3,
+    #             relative_action="add", epochs=20, custom_fit=False)

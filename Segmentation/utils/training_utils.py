@@ -31,6 +31,18 @@ def dice_loss(y_true, y_pred):
 
     return loss
 
+def tversky(y_true, y_pred):
+    # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
+    smooth = 1.0
+    y_true_pos = K.flatten(y_true)
+    y_pred_pos = K.flatten(y_pred)
+    true_pos = K.sum(y_true_pos * y_pred_pos)
+    false_neg = K.sum(y_true_pos * (1-y_pred_pos))
+    false_pos = K.sum((1-y_true_pos)*y_pred_pos)
+    alpha = 0.7
+    return (true_pos + smooth)/(true_pos + alpha*false_neg + (1-alpha)*false_pos + smooth)
+
+
 def tversky_loss(y_true, y_pred):
     #hyperparameters
     alpha = 0.5
@@ -146,4 +158,3 @@ def label2color(img):
             img_color[row, col] = np.array(colour_maps[label])
 
     return img_color
-    

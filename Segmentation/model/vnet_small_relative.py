@@ -23,6 +23,7 @@ class VNet_Small_Relative(tf.keras.Model):
 
         super(VNet_Small_Relative, self).__init__(name=name)
         self.merge_connections = merge_connections
+        self.num_classes = num_classes
         self.action = action
 
         assert self.action in ['add', 'multiply'], f"{self.action} not in action list"
@@ -63,14 +64,18 @@ class VNet_Small_Relative(tf.keras.Model):
         self.comp_dense_3 = tf.keras.layers.Dense(1, activation="tanh")
 
         # convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv3D(2, kernel_size, activation=nonlinearity, padding='same',
+        self.conv_output = tf.keras.layers.Conv3D(num_classes, kernel_size, activation=nonlinearity, padding='same',
                                                   data_format=data_format)
         if output_activation is None:
             output_activation = 'sigmoid'
             if num_classes > 1:
                 output_activation = 'softmax'
-        self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size, padding='same',
-                                               data_format=data_format, activation=output_activation)
+        if num_classes == 1:
+            self.conv_1x1_binary = tf.keras.layers.Conv3D(num_classes, (1, 1, 1), activation='sigmoid',
+                                                          padding='same', data_format=data_format)
+        else:
+            self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size=(1, 1, 1), activation='softmax',
+                                                   padding='same', data_format=data_format)
 
     def call(self, inputs, training=True):
         image_inputs, pos_inputs = inputs
@@ -118,4 +123,8 @@ class VNet_Small_Relative(tf.keras.Model):
         u1 = self.conv_output(u2)
         output = self.conv_1x1(u1)
 
+        if self.num_classes == 1:
+            output = self.conv_1x1_binary(output)
+        else:
+            output = self.conv_1x1(output)
         return output

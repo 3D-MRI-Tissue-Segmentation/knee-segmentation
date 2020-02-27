@@ -20,6 +20,7 @@ class VNet_Small(tf.keras.Model):
 
         super(VNet_Small, self).__init__(name=name)
         self.merge_connections = merge_connections
+        self.num_classes = num_classes
 
         self.conv_1 = Conv3D_Block(num_channels, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
@@ -40,14 +41,18 @@ class VNet_Small(tf.keras.Model):
                                      use_batchnorm=use_batchnorm, data_format=data_format, name="upc1")
 
         # convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv3D(2, kernel_size, activation=nonlinearity, padding='same',
+        self.conv_output = tf.keras.layers.Conv3D(num_classes, kernel_size, activation=nonlinearity, padding='same',
                                                   data_format=data_format)
         if output_activation is None:
             output_activation = 'sigmoid'
             if num_classes > 1:
                 output_activation = 'softmax'
-        self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size, padding='same',
-                                               data_format=data_format, activation=output_activation)
+        if num_classes == 1:
+            self.conv_1x1_binary = tf.keras.layers.Conv3D(num_classes, (1, 1, 1), activation='sigmoid',
+                                                          padding='same', data_format=data_format)
+        else:
+            self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size=(1, 1, 1), activation='softmax',
+                                                   padding='same', data_format=data_format)
 
     def call(self, inputs):
 
@@ -77,4 +82,8 @@ class VNet_Small(tf.keras.Model):
         u1 = self.conv_output(u2)
         output = self.conv_1x1(u1)
 
+        if self.num_classes == 1:
+            output = self.conv_1x1_binary(output)
+        else:
+            output = self.conv_1x1(output)
         return output
