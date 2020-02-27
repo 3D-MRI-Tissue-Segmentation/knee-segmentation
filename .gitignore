@@ -16,5 +16,4 @@ __pycache__/
 *.im
 *.seg
 *.npy
-
 *.h5
