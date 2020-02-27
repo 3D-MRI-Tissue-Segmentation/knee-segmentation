@@ -50,21 +50,42 @@ def tversky_loss(y_true, y_pred):
     Ncl = K.cast(K.shape(y_true)[-1], 'float32')
     return Ncl-T
 
-def plot_train_history_loss(history):
-    # summarize history for loss
-    plt.plot(history.history['dice_coef_loss'])
-    plt.plot(history.history['val_dice_coef_loss'])
-    plt.plot(history.history['jaccard_distance_loss'])
-    plt.plot(history.history['val_jaccard_distance_loss'])
-    plt.title('Model Loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train_dice', 'val_dice', 'train_jaccard', 'val_jaccard'], loc='upper right')
-    plt.show()
+def plot_train_history_loss(history, multi_class=True):
     
-def plot_results(y_true, y_pred):
+    # summarize history for loss
+    fig, ax = plt.subplots(2,1)
+    if multi_class:
+        ax[0].plot(history.history['loss'])
+        ax[0].plot(history.history['val_loss'])
+        ax[0].plot(history.history['categorical_crossentropy'])
+        ax[0].plot(history.history['val_categorical_crossentropy'])
+        ax[0].set_title('Model Loss')
+        ax[0].set(xlabel='epoch', ylabel='loss')
+        ax[0].legend(['train_tversky', 'val_tversky', 'train_cce', 'val_cce'], loc='upper right')
+        
+    else:
+        ax[0].plot(history.history['dice_coef_loss'])
+        ax[0].plot(history.history['val_dice_coef_loss'])
+        ax[0].plot(history.history['binary_crossentropy'])
+        ax[0].plot(history.history['val_binary_crossentropy'])
+        ax[0].set_title('Model Loss')
+        ax[0].set(xlabel='epoch', ylabel='loss')
+        ax[0].legend(['train_dice', 'val_dice', 'train_bce', 'val_bce'], loc='upper right')
+        
+    ax[1].plot(history.history['acc'])
+    ax[1].plot(history.history['val_acc'])
+    ax[1].set_title('Model Accuracy')
+    ax[1].set(xlabel='epoch', ylabel='accuracy')
+    ax[1].legend(['train_accuracy', 'val_accuracy'], loc='upper right')
 
-    for i in range(0, 40):
+    fig.tight_layout()
+    plt.show()    
+    
+def visualise_binary(y_true, y_pred):
+
+    batch_size = y_true.shape[0]
+
+    for i in range(batch_size):
         fig, ax = plt.subplots(2,1)
         ax[0].imshow(y_true[i,:,:,0], cmap='gray')
         ax[0].set_title('Ground Truth')

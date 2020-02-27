@@ -12,7 +12,7 @@ from Segmentation.model.unet import UNet, AttentionUNet_v1, MultiResUnet
 from Segmentation.tests.test_unet import UNetTest
 from Segmentation.utils.data_loader import DataGenerator
 from Segmentation.utils.training_utils import dice_loss, jaccard_distance_loss, dice_coef_loss, tversky_loss
-from Segmentation.utils.training_utils import plot_train_history_loss, plot_results, visualise_multi_class
+from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class
 
 ## Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -117,7 +117,6 @@ def main(argv):
                                                 shuffle=True,
                                                 multi_class=True)
         
-<<<<<<< HEAD
         model.compile(optimizer=optimiser, 
                 loss=tversky_loss, 
                 metrics=['categorical_crossentropy', 'acc'])
@@ -126,17 +125,12 @@ def main(argv):
     #Use model.fit instead but ensure that your Tensorflow version is >= 2.1.0 or else it won't work with tf.keras.utils.Sequence object 
     
     if FLAGS.train:
-        model.fit_generator(generator=generator_train,
-                            epochs=FLAGS.train_epochs, 
-                            validation_data=generator_valid,
-                            use_multiprocessing=True,
-                            workers=8,
-                            max_queue_size=16)
-=======
-        model.compile(optimizer=optimiser,
-                loss=tversky_loss,
-                metrics=['categorical_crossentropy'])
->>>>>>> acc25fb4830175d9b14ce5eeea6e08e878b4de3a
+        history = model.fit_generator(generator=generator_train,
+                                    epochs=FLAGS.train_epochs, 
+                                    validation_data=generator_valid,
+                                    use_multiprocessing=True,
+                                    workers=8,
+                                    max_queue_size=16)
 
         t = time.localtime()    
         current_time = time.strftime("%H%M%S", t)
@@ -144,24 +138,21 @@ def main(argv):
         save_path = os.path.join(FLAGS.logdir, model_path)
         model.save_weights(save_path)
 
+        if FLAGS.num_classes == 1:
+            plot_train_history_loss(history, multi_class=False)
+        else:
+            plot_train_history_loss(history, multi_class=True)
+
     else:
         #load the latest checkpoint in the FLAGS.logdir file 
         latest = tf.train.latest_checkpoint(FLAGS.logdir)
         model.load_weights(latest).expect_partial()
 
-<<<<<<< HEAD
         #this is just to roughly preview the results, we need to build a proper pipeline for visualising & saving output segmentation 
         x_val, y_val = generator_valid.__getitem__(idx=100)
         
         y_pred = model.predict(x_val)
         visualise_multi_class(y_val, y_pred)
-=======
-    t = time.localtime()
-    current_time = time.strftime("%H%M%S", t)
-    model_path = FLAGS.model_architecture + '_' + current_time + '.ckpt'
-    save_path = os.path.join(FLAGS.savedir, model_path)
-    model.save_weights(save_path)
->>>>>>> acc25fb4830175d9b14ce5eeea6e08e878b4de3a
 
 if __name__ == '__main__':
   app.run(main)
