@@ -290,7 +290,6 @@ class UNet(tf.keras.Model):
         self.up_conv1 = Conv2D_Block(num_channels,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
 
         #convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv2D(2, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
         self.conv_1x1_binary = tf.keras.layers.Conv2D(num_classes, (1,1), activation='sigmoid', padding='same', data_format=data_format)
         self.conv_1x1 = tf.keras.layers.Conv2D(num_classes, (1,1), activation='linear', padding='same', data_format=data_format)
 
@@ -337,14 +336,12 @@ class UNet(tf.keras.Model):
         u8 = tf.keras.layers.concatenate([x1, u8], axis=3)
         u8 = self.up_conv1(u8)
 
-        u9 = self.conv_output(u8)
-
         if self.num_classes == 1:
-            output = self.conv_1x1_binary(u9)
+            output = self.conv_1x1_binary(u8)
         else:
-            u10 = self.conv_1x1(u9)
-            u11 = tf.keras.layers.Reshape((-1, inputs.shape[1]*inputs.shape[2], self.num_classes))(u10)
-            output = tf.keras.layers.Activation('softmax')(u11)
+            u9 = self.conv_1x1(u8)
+            u10 = tf.keras.layers.Reshape((-1, inputs.shape[1]*inputs.shape[2], self.num_classes))(u9)
+            output = tf.keras.layers.Activation('softmax')(u10)
         return output
 
 class AttentionUNet_v1(tf.keras.Model):
