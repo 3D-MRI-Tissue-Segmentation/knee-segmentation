@@ -26,7 +26,7 @@ class Toy_Image:
         for class_idx in range(n_classes):
             count = 0
             valid = False
-            while( not valid ):
+            while(not valid):
                 colour = Toy_Image.get_random_colour(colour_channels)
                 if colour not in classes:
                     classes.append(colour)
@@ -37,21 +37,21 @@ class Toy_Image:
     def get_random_colour(colour_channels):
         """ Returns a random colour """
         if colour_channels == 1:
-            return [randint(1,255)]
-        return [randint(1,255),randint(1,255),randint(1,255)]
-    
+            return [randint(1, 255)]
+        return [randint(1, 255), randint(1, 255), randint(1, 255)]
+
     def get_colour_from_idx(self, colour_idx):
         return self.class_colours[colour_idx]
-    
+
     def get_empty_array(self, channels=None):
         """ Empty starting array """
         if channels is None:
             channels = self.colour_channels
-        return np.zeros([self.width, self.height, channels], dtype=int)
-    
+        return np.zeros([self.width, self.height, channels], dtype=np.float32)
+
     def get_random_xy(self):
-        x = randint(0, self.width-1)
-        y = randint(0, self.height-1)
+        x = randint(0, self.width - 1)
+        y = randint(0, self.height - 1)
         return x, y
 
     def set_colour_to_xy(self, x, y, colour_idx):
@@ -67,7 +67,7 @@ class Toy_Image:
 
     def set_colour_to_random_xy(self, colour_idx):
         self.set_colour_to_xy(*self.get_random_xy(), colour_idx)
-    
+
     def get_shape_square_range(self, x, y, length):
         assert type(length) is int, "length must be an int, it should be half the width of the object"
         (x_min, x_max) = self.get_axis_range(x, length, self.width)
@@ -81,13 +81,13 @@ class Toy_Image:
 
     def get_shape_range_min(self, axis_pos, length):
         assert type(length) is int, "length must be an int"
-        temp_min = axis_pos - length 
+        temp_min = axis_pos - length
         range_min = temp_min if temp_min > 0 else 0
         return range_min
 
     def get_shape_range_max(self, axis_pos, length, frame_length):
         assert type(length) is int, "length must be an int"
-        temp_max = axis_pos + length 
+        temp_max = axis_pos + length
         range_max = temp_max if temp_max < (frame_length - 1) else frame_length
         return range_max
 
@@ -106,13 +106,13 @@ class Toy_Image:
 
     def is_in_ellipse(self, x, y, centre, x_radius, y_radius):
         x_centre, y_centre = centre
-        if ((x_centre-x)**2)/x_radius**2 + ((y_centre-y)**2)/y_radius**2 < 1:
+        if ((x_centre - x)**2) / x_radius**2 + ((y_centre - y)**2) / y_radius**2 < 1:
             return True
         return False
 
     def set_circle_to_xy(self, x, y, radius, colour_idx):
         self.set_ellipse_to_xy(x, y, radius, radius, colour_idx)
-    
+
     def set_ellipse_to_xy(self, x, y, x_radius, y_radius, colour_idx):
         (x_min, x_max) = self.get_axis_range(x, x_radius, self.width)
         (y_min, y_max) = self.get_axis_range(y, y_radius, self.height)
@@ -121,16 +121,16 @@ class Toy_Image:
                 if self.is_in_ellipse(x_, y_, (x, y), x_radius, y_radius):
                     self.set_colour_to_xy(x_, y_, colour_idx)
 
-    
-def get_test_image(n_reps, n_classes, 
+
+def get_test_image(n_reps, n_classes,
                    image_width, image_height, image_depth):
-    td = Toy_Image(n_classes, 
+    td = Toy_Image(n_classes,
                    image_width, image_height, image_depth)
     for rep in range(n_reps):
         for colour_idx in range(n_classes):
-            x,y = td.get_random_xy()
-            rand_width = randint(1, int(td.width/8))
-            rand_height = randint(1, int(td.height/8))
+            x, y = td.get_random_xy()
+            rand_width = randint(1, int(td.width / 8))
+            rand_height = randint(1, int(td.height / 8))
             rnd_i = randint(0, 3)
             if rnd_i == 0:
                 td.set_square_to_xy(x, y, rand_width, colour_idx)
@@ -143,11 +143,11 @@ def get_test_image(n_reps, n_classes,
     return td.image, td.one_hot_array
 
 
-def get_test_images(n_images, n_reps, n_classes, 
-                   image_width, image_height, colour_channels):
+def get_test_images(n_images, n_reps, n_classes,
+                    image_width, image_height, colour_channels):
     images, one_hots = [], []
     for i in range(n_images):
-        image, one_hot = get_test_image(n_reps, n_classes, 
+        image, one_hot = get_test_image(n_reps, n_classes,
                                         image_width, image_height, colour_channels)
         images.append(image)
         one_hots.append(one_hot)
@@ -158,10 +158,9 @@ if __name__ == "__main__":
     n_classes = 5
     width, height = 400, 400
     colour_channels = 3
-    image, one_hot = get_test_image(n_reps, n_classes, 
+    image, one_hot = get_test_image(n_reps, n_classes,
                                     width, height, colour_channels)
 
     import matplotlib.pyplot as plt
     plt.imshow(image, cmap='jet')
     plt.show()
-    

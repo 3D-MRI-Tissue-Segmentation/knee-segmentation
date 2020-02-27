@@ -117,6 +117,7 @@ def main(argv):
                                                 shuffle=True,
                                                 multi_class=True)
         
+<<<<<<< HEAD
         model.compile(optimizer=optimiser, 
                 loss=tversky_loss, 
                 metrics=['categorical_crossentropy', 'acc'])
@@ -131,6 +132,11 @@ def main(argv):
                             use_multiprocessing=True,
                             workers=8,
                             max_queue_size=16)
+=======
+        model.compile(optimizer=optimiser,
+                loss=tversky_loss,
+                metrics=['categorical_crossentropy'])
+>>>>>>> acc25fb4830175d9b14ce5eeea6e08e878b4de3a
 
         t = time.localtime()    
         current_time = time.strftime("%H%M%S", t)
@@ -143,11 +149,19 @@ def main(argv):
         latest = tf.train.latest_checkpoint(FLAGS.logdir)
         model.load_weights(latest).expect_partial()
 
+<<<<<<< HEAD
         #this is just to roughly preview the results, we need to build a proper pipeline for visualising & saving output segmentation 
         x_val, y_val = generator_valid.__getitem__(idx=100)
         
         y_pred = model.predict(x_val)
         visualise_multi_class(y_val, y_pred)
+=======
+    t = time.localtime()
+    current_time = time.strftime("%H%M%S", t)
+    model_path = FLAGS.model_architecture + '_' + current_time + '.ckpt'
+    save_path = os.path.join(FLAGS.savedir, model_path)
+    model.save_weights(save_path)
+>>>>>>> acc25fb4830175d9b14ce5eeea6e08e878b4de3a
 
 if __name__ == '__main__':
   app.run(main)
