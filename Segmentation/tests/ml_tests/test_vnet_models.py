@@ -32,7 +32,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
         {"testcase_name": "small_relative_128-128-128-1_no-merge_multi", "model": "small_relative", "shape": (128, 128, 128, 1), "merge_connections": False, "relative": True, 'relative_action': "multiply"},
     )
     def test_run(self, model, shape, merge_connections,
-                 epochs=2, n_volumes=3, n_reps=2, n_classes=2, relative=False, relative_action=None, custom_fit=False):
+                 epochs=2, n_volumes=1, n_reps=2, n_classes=2, relative=False, relative_action=None, custom_fit=False):
         height, width, depth, colour_channels = shape
         self.run_vnet(model, height, width, depth,
                       colour_channels, merge_connections,
@@ -40,7 +40,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                       relative, relative_action)
 
     def run_vnet(self, model, height, width, depth, colour_channels, merge_connections,
-                 epochs=2, n_volumes=3, n_reps=2, n_classes=2, relative=False, relative_action=None, custom_fit=False):
+                 epochs=2, n_volumes=5, n_reps=2, n_classes=1, relative=False, relative_action=None, custom_fit=False):
         volumes, one_hots = self.create_test_volume(n_volumes, n_reps, n_classes,
                                                     width, height, depth, colour_channels)
         inputs = volumes
@@ -67,20 +67,29 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
 
         vnet = build_vnet(model, colour_channels, n_classes, merge_connections)
 
+        target_shape = one_hots.shape
+        if n_classes > 1:
+            target_shape = (n_volumes, target_shape[1] * target_shape[2] * target_shape[3], n_classes)
+
         def vnet_feedforward(vnet, inputs, one_hots):
             output = vnet(inputs, training=False)
-            assert output.shape == one_hots.shape
+            assert output.shape == target_shape
+            #assert output.shape == one_hots.shape
             output = vnet.predict(inputs)
-            assert output.shape == one_hots.shape
+            assert output.shape == target_shape
+            #assert output.shape == one_hots.shape
 
         vnet_feedforward(vnet, inputs, one_hots)
 
-        def vnet_fit(vnet, inputs, one_hots, epochs, custom_fit):
+        def vnet_fit(vnet, inputs, one_hots, epochs, custom_fit, n_classes):
             from tensorflow.keras.optimizers import Adam
-            from Segmentation.utils.training_utils import tversky_loss, dice_loss
+            from Segmentation.utils.training_utils import tversky_loss, dice_loss, dice_coef_loss
             from tensorflow.keras.losses import MSE
 
-            loss_func = dice_loss
+            if n_classes == 1:
+                loss_func = dice_loss
+            else:
+                loss_func = tversky_loss
 
             if custom_fit:
 
@@ -88,46 +97,41 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                     y_ = model(x, training=training)
                     return loss_func(y_true=y, y_pred=y_)
 
+                print(inputs.shape)
+                print(one_hots.shape)
+
+                current_l = loss(vnet, inputs, one_hots, False, loss_func)
+                print(f"Loss test: {current_l.shape}, {current_l}")
+
                 def grad(model, inputs, targets, loss_func):
                     with tf.GradientTape() as tape:
                         loss_value = loss(model, inputs, targets, True, loss_func)
                     return loss_value, tape.gradient(loss_value, model.trainable_variables)
 
-                current_l = loss(vnet, inputs, one_hots, False, loss_func)
-                print(f"Loss test: {current_l}, {np.mean(current_l)}")
-
                 optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
                 loss_value, grads = grad(vnet, inputs, one_hots, loss_func)
-                print("===========================")
-                for var, grad in zip(vnet.trainable_variables, grads):
-                    if grad is None:
-                        print(var.name)
-                        print("-----------------")
-                        print(var)
-                        print("---------------------")
-                        print(grad)
-                        print("===========================")
 
-                # grads = [grad if grad is not None else tf.zeros_like(var) for var, grad in zip(vnet.trainable_variables, grads)]
+                for var, grad in zip(vnet.trainable_variables, grads):
+                    assert grad is not None, f"gradient must not be none for {var.name}"
 
                 optimizer.apply_gradients(zip(grads, vnet.trainable_variables))
 
                 current_l = loss(vnet, inputs, one_hots, False, loss_func)
-                print(f"Loss test: {current_l}, {np.mean(current_l)}")
+                print(f"Loss test: {current_l.shape}")
 
             else:
+                metrics = ['categorical_crossentropy']
+                if n_classes == 1:
+                    metrics.append(dice_coef_loss)
                 vnet.compile(optimizer=Adam(0.00001),
-                             loss=dice_loss,
-                             metrics=['categorical_crossentropy'],
+                             loss=loss_func,
+                             metrics=metrics,
                              experimental_run_tf_function=True)
 
                 history = vnet.fit(x=inputs, y=one_hots, epochs=epochs, verbose=1)
                 loss_history = history.history['loss']
-                loss_history = history.history['loss']
-                pred = vnet.predict(inputs)
-                assert pred.shape == one_hots.shape
 
-        vnet_fit(vnet, inputs, one_hots, epochs, custom_fit)
+        vnet_fit(vnet, inputs, one_hots, epochs, custom_fit, n_classes)
 
 if __name__ == '__main__':
     import sys
@@ -140,6 +144,6 @@ if __name__ == '__main__':
     # tf.test.main()
 
     tv = Test_VNet()
-    tv.run_vnet(model="small",
+    tv.run_vnet(model="tiny",
                 height=96, width=96, depth=96, colour_channels=1,
-                merge_connections=False, relative=False, relative_action="add", epochs=20, custom_fit=True)
+                merge_connections=False, relative=False, n_classes=3, relative_action="add", epochs=5, custom_fit=False)
