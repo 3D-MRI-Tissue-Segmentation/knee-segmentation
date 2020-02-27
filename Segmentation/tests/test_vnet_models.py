@@ -39,7 +39,10 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                                                     width, height, depth, colour_channels)
         inputs = volumes
         if relative:
-            pos = np.array([1.0, 0.0, -0.5])
+            pos = np.array([[1.0, 0.0, -0.5]], dtype=np.float32)
+
+            pos = np.repeat(pos, volumes.shape[0], axis=0)
+            assert volumes.shape[0] == pos.shape[0]
             inputs = [volumes, pos]
 
         def build_vnet(model, colour_channels, n_classes, merge_connections):
@@ -69,28 +72,31 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
 
             output = vnet(inputs)
             assert output.shape == one_hots.shape
-            output = vnet.predict(inputs)
-            assert output.shape == one_hots.shape
+            # output = vnet.predict(inputs)
+            # assert output.shape == one_hots.shape
 
         vnet_feedforward(vnet, inputs, one_hots)
 
-        def vnet_fit(vnet, inputs, one_hots, epochs):
-            history = vnet.fit(x=inputs, y=one_hots, epochs=epochs, verbose=0)
-            loss_history = history.history['loss']
-            loss_history = history.history['loss']
-            pred = vnet.predict(inputs)
-            assert pred.shape == one_hots.shape
+        # def vnet_fit(vnet, inputs, one_hots, epochs):
+        #     history = vnet.fit(x=inputs, y=one_hots, epochs=epochs, verbose=0)
+        #     loss_history = history.history['loss']
+        #     loss_history = history.history['loss']
+        #     pred = vnet.predict(inputs)
+        #     assert pred.shape == one_hots.shape
 
-        vnet_fit(vnet, inputs, one_hots, epochs)
+        # vnet_fit(vnet, inputs, one_hots, epochs)
 
 if __name__ == '__main__':
     import sys
     from os import getcwd
     sys.path.insert(0, getcwd())
 
-    tf.test.main()
+    # tf.test.main()
 
-    # tv = Test_VNet()
-    # tv.run_vnet(model="small_relative",
-    #             height=64, width=64, depth=32, colour_channels=1,
-    #             merge_connections=True, relative=True)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    tf.config.experimental.set_memory_growth(gpus[0], True)
+
+    tv = Test_VNet()
+    tv.run_vnet(model="small_relative",
+                height=128, width=128, depth=128, colour_channels=1,
+                merge_connections=True, relative=True)

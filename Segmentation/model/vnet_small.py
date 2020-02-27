@@ -26,7 +26,7 @@ class VNet_Small(tf.keras.Model):
         self.conv_2 = Conv3D_Block(num_channels * 2, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format, name="c2")
-        self.conv_3 = Conv3D_Block(num_channels * 4, 1, kernel_size,
+        self.conv_3 = Conv3D_Block(num_channels * 4, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format, name="c3")
         self.up_3 = Up_Conv3D(num_channels * 2, (2, 2, 2), nonlinearity,
