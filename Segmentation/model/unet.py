@@ -9,20 +9,11 @@ class Conv2D_Block(tf.keras.layers.Layer):
                  num_conv_layers=2,
                  kernel_size=(3, 3),
                  nonlinearity='relu',
-<<<<<<< HEAD
                  use_batchnorm = False,
                  use_dropout = False,
                  dropout_rate = 0.25, 
                  use_spatial_dropout = True,
                  data_format='channels_last'):
-=======
-                 use_batchnorm=False,
-                 use_dropout=False,
-                 dropout_rate=0.25,
-                 use_spatial_dropout=True,
-                 data_format='channels_last',
-                 name="convolution_block"):
->>>>>>> acc25fb4830175d9b14ce5eeea6e08e878b4de3a
 
         super(Conv2D_Block, self).__init__()
 
@@ -39,11 +30,6 @@ class Conv2D_Block(tf.keras.layers.Layer):
         self.conv = []
         self.batchnorm = []
         self.activation = []
-<<<<<<< HEAD
-=======
-        # self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
-        # self.activation = tf.keras.layers.Activation(nonlinearity)
->>>>>>> acc25fb4830175d9b14ce5eeea6e08e878b4de3a
 
         if use_spatial_dropout:
             self.dropout = tf.keras.layers.SpatialDropout2D(rate=dropout_rate)
