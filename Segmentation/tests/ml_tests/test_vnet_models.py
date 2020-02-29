@@ -73,10 +73,8 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
 
         def vnet_feedforward(vnet, inputs, one_hots):
             output = vnet(inputs, training=False)
-            #assert output.shape == target_shape
             assert output.shape == one_hots.shape
             output = vnet.predict(inputs)
-            #assert output.shape == target_shape
             assert output.shape == one_hots.shape
 
         vnet_feedforward(vnet, inputs, one_hots)
@@ -89,7 +87,6 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
             if n_classes == 1:
                 loss_func = dice_loss
             else:
-                #loss_func = tversky_loss
                 loss_func = tversky
 
             if custom_fit:
@@ -142,10 +139,10 @@ if __name__ == '__main__':
     gpus = tf.config.experimental.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(gpus[0], True)
 
-    tf.test.main()
+    # tf.test.main()
 
-    # tv = Test_VNet()
-    # tv.run_vnet(model="small_relative", n_volumes=3,
-    #             height=96, width=96, depth=96, colour_channels=1,
-    #             merge_connections=False, relative=True, n_classes=3,
-    #             relative_action="add", epochs=20, custom_fit=False)
+    tv = Test_VNet()
+    tv.run_vnet(model="small", n_volumes=10,
+                height=96, width=96, depth=96, colour_channels=1,
+                merge_connections=False, relative=False, n_classes=3,
+                relative_action="add", epochs=20, custom_fit=True)
