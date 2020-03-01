@@ -1,31 +1,35 @@
-import tensorflow as tf 
+import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Dropout, SpatialDropout2D, concatenate, add
 from tensorflow.keras import Model, Input
 
 class Conv2D_Block(tf.keras.layers.Layer):
 
-    def __init__(self, 
+    def __init__(self,
                  num_channels,
                  num_conv_layers=2,
-                 kernel_size=(3,3),
+                 kernel_size=(3, 3),
                  nonlinearity='relu',
                  use_batchnorm = False,
                  use_dropout = False,
                  dropout_rate = 0.25, 
                  use_spatial_dropout = True,
-                 data_format='channels_last',
-                 name="convolution_block"):
+                 data_format='channels_last'):
 
-        super(Conv2D_Block, self).__init__(name=name)
+        super(Conv2D_Block, self).__init__()
 
+        self.num_channels = num_channels
         self.num_conv_layers = num_conv_layers
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
         self.use_batchnorm = use_batchnorm
         self.use_dropout = use_dropout
+        self.dropout_rate = dropout_rate
         self.use_spatial_dropout = use_spatial_dropout
-
+        self.data_format = data_format
+        
         self.conv = []
-        self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
-        self.activation = tf.keras.layers.Activation(nonlinearity)
+        self.batchnorm = []
+        self.activation = []
 
         if use_spatial_dropout:
             self.dropout = tf.keras.layers.SpatialDropout2D(rate=dropout_rate)
@@ -34,7 +38,9 @@ class Conv2D_Block(tf.keras.layers.Layer):
 
         for _ in range(num_conv_layers):
             self.conv.append(tf.keras.layers.Conv2D(num_channels, kernel_size, padding='same', data_format=data_format))
-        
+            self.batchnorm.append(tf.keras.layers.BatchNormalization(axis=-1, momentum=0.95, epsilon=0.001))
+            self.activation.append(tf.keras.layers.Activation(nonlinearity))
+
     def call(self, inputs):
 
         x = inputs
@@ -42,16 +48,31 @@ class Conv2D_Block(tf.keras.layers.Layer):
         for i in range(self.num_conv_layers):
             x = self.conv[i](x)
             if self.use_batchnorm:
-                x = self.batchnorm(x)
-            x = self.activation(x)
-
+                x = self.batchnorm[i](x)
+            x = self.activation[i](x)
         if self.use_dropout:
             x = self.dropout(x)
 
         outputs = x
 
         return outputs
+    
+    def get_config(self):
+
+        config = {
+            'num_channels': self.num_channels,
+            'num_conv_layers': self.num_conv_layers,
+            'kernel_size': self.kernel_size,
+            'nonlinearity': self.nonlinearity,
+            'use_batchnorm': self.use_batchnorm,
+            'use_dropout': self.use_dropout,
+            'dropout_rate': self.dropout_rate, 
+            'use_spatial_dropout': self.use_spatial_dropout, 
+            'data_format': self.data_format
+        }
         
+        return config
+
 class Up_Conv2D(tf.keras.layers.Layer):
 
     def __init__(self, 
@@ -61,17 +82,22 @@ class Up_Conv2D(tf.keras.layers.Layer):
                  use_batchnorm = False,
                  use_transpose = False,
                  strides=(2,2),
-                 data_format='channels_last',
-                 name="upsampling_convolution_block"):
+                 data_format='channels_last'):
 
-        super(Up_Conv2D, self).__init__(name=name)
+        super(Up_Conv2D, self).__init__()
 
+        self.num_channels = num_channels
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
         self.use_batchnorm = use_batchnorm
+        self.use_transpose = use_transpose
+        self.strides = strides
+        self.data_format = data_format
+
         self.upsample = tf.keras.layers.UpSampling2D(size=(2,2))
         self.conv = tf.keras.layers.Conv2D(num_channels, kernel_size, padding='same', data_format=data_format)
-        self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1)
+        self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1, momentum=0.95, epsilon=0.001)
         self.activation = tf.keras.layers.Activation(nonlinearity)
-        self.use_transpose = use_transpose
         self.conv_transpose = tf.keras.layers.Conv2DTranspose(num_channels, kernel_size, padding='same', strides=strides, data_format=data_format)
         
     def call(self, inputs):
@@ -87,6 +113,20 @@ class Up_Conv2D(tf.keras.layers.Layer):
         outputs = self.activation(x)
 
         return outputs
+    
+    def get_config(self):
+        
+        config = {
+            'num_channels': self.num_channels,
+            'kernel_size': self.kernel_size,
+            'nonlinearity': self.nonlinearity,
+            'use_batchnorm': self.use_batchnorm,
+            'use_transpose': self.use_transpose,
+            'strides': self.strides, 
+            'data_format': self.data_format
+        }
+        
+        return config
 
 class Attention_Gate(tf.keras.layers.Layer):
 
@@ -115,14 +155,9 @@ class Attention_Gate(tf.keras.layers.Layer):
 
         x_g = self.conv_1(input_g)
         x_g = self.batch_norm_1(x_g)
-        #x_g_shape = tf.shape(x_g)
-        #w1 = x_g_shape.numpy()[1]
-        #w1 = tf.math.divide(w1,2)
-        #w1 = tf.cast(w1, tf.int32)
 
         x_l = self.conv_2(input_x)
         x_l = self.batch_norm_2(x_l)
-        #x_l = tf.keras.layers.Cropping2D(cropping=((w1,w1), (w1,w1)))(x_l)
 
         x = tf.keras.layers.concatenate([x_g, x_l], axis=3)
         x = self.relu(x)
@@ -130,9 +165,7 @@ class Attention_Gate(tf.keras.layers.Layer):
         x = self.conv_3(x)
         x = self.batch_norm_3(x)
         alpha = self.sigmoid(x)
-        #resampled_alpha = tf.keras.layers.UpSampling2D()(alpha)
 
-        #outputs = tf.math.multiply(resampled_alpha, input_x)
         outputs = tf.math.multiply(alpha, input_x)
 
         return outputs
@@ -234,10 +267,11 @@ class UNet(tf.keras.Model):
                  use_batchnorm=True,
                  dropout_rate = 0.25, 
                  use_spatial_dropout = True,
-                 data_format='channels_last',
-                 name="unet"):
+                 data_format='channels_last'):
 
-        super(UNet, self).__init__(name=name)
+        super(UNet, self).__init__()
+
+        self.num_classes = num_classes
 
         self.conv_1 = Conv2D_Block(num_channels,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
         self.conv_2 = Conv2D_Block(num_channels*2,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
@@ -256,8 +290,8 @@ class UNet(tf.keras.Model):
         self.up_conv1 = Conv2D_Block(num_channels,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
 
         #convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv2D(2, kernel_size, activation = nonlinearity, padding='same', data_format=data_format)
-        self.conv_1x1 = tf.keras.layers.Conv2D(num_classes, kernel_size, padding='same', data_format=data_format)
+        self.conv_1x1_binary = tf.keras.layers.Conv2D(num_classes, (1,1), activation='sigmoid', padding='same', data_format=data_format)
+        self.conv_1x1 = tf.keras.layers.Conv2D(num_classes, (1,1), activation='linear', padding='same', data_format=data_format)
 
     def call(self, inputs):
         
@@ -302,14 +336,16 @@ class UNet(tf.keras.Model):
         u8 = tf.keras.layers.concatenate([x1, u8], axis=3)
         u8 = self.up_conv1(u8)
 
-        u9 = self.conv_output(u8)
-        output = self.conv_1x1(u9)
-
+        if self.num_classes == 1:
+            output = self.conv_1x1_binary(u8)
+        else:
+            u9 = self.conv_1x1(u8)
+            u10 = tf.keras.layers.Reshape((-1, inputs.shape[1]*inputs.shape[2], self.num_classes))(u9)
+            output = tf.keras.layers.Activation('softmax')(u10)
         return output
 
 class AttentionUNet_v1(tf.keras.Model):
-    """Tensorflow 2 Implementation of 'U-Net: Convolutional Networks for Biomedical Image Segmentation'
-    https://arxiv.org/pdf/1804.03999.pdf. """
+    "Tensorflow 2 Implementation of Attention UNet"
 
     def __init__(self, 
                  num_channels,
@@ -333,7 +369,7 @@ class AttentionUNet_v1(tf.keras.Model):
         self.conv_3 = Conv2D_Block(num_channels*4,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
         self.conv_4 = Conv2D_Block(num_channels*8,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
         self.conv_5 = Conv2D_Block(num_channels*16,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=True,data_format=data_format)
-        self.conv_1x1 = Conv2D_Block(num_classes,num_conv_layers,(1,1),nonlinearity,use_batchnorm=False,data_format=data_format)
+        self.conv_1x1 = Conv2D_Block(num_classes,num_conv_layers,(1,1),'softmax',use_batchnorm=False,data_format=data_format)
 
         self.up_conv_1 = Up_Conv2D(num_channels*8,(3,3),nonlinearity,use_batchnorm=True,data_format=data_format)
         self.up_conv_2 = Up_Conv2D(num_channels*4,(3,3),nonlinearity,use_batchnorm=True,data_format=data_format)
@@ -393,10 +429,11 @@ class AttentionUNet_v1(tf.keras.Model):
         return output
 
 class MultiResUnet(tf.keras.Model):
+    "Tensorflow 2 Implementation of Multires UNet"
 
     def __init__(self,
-                num_classes,
                 num_channels,
+                num_classes,
                 res_path_length,
                 num_conv_layers=1,
                 kernel_size=(3,3),
@@ -408,7 +445,7 @@ class MultiResUnet(tf.keras.Model):
                 use_batchnorm = True,
                 use_transpose = True,
                 data_format='channels_last',
-                name="MultiRes_Unet"):
+                name="multires_unet"):
                 
         
         super(MultiResUnet, self).__init__(name=name)
@@ -441,7 +478,7 @@ class MultiResUnet(tf.keras.Model):
         self.respath_3 = ResPath(res_path_length, num_channels*4,kernel_size=(1,1), nonlinearity='relu', padding='same', strides=(1,1), data_format='channels_last')
         self.respath_4 = ResPath(res_path_length, num_channels*8,kernel_size=(1,1), nonlinearity='relu', padding='same', strides=(1,1), data_format='channels_last')
 
-        self.conv_1x1 = Conv2D_Block(num_classes,num_conv_layers,(1,1),nonlinearity,use_batchnorm=False,data_format=data_format)
+        self.conv_1x1 = Conv2D_Block(num_classes,num_conv_layers,(1,1),'softmax',use_batchnorm=False,data_format=data_format)
        
     def call(self, input):
         
@@ -486,9 +523,8 @@ class MultiResUnet(tf.keras.Model):
 #This is the old build_unet function written in functional API. Don't delete until we test the UNet on actual data 
 #Build UNet using tf.keras Functional API
 
-"""
 def build_unet(num_classes,
-            input_size = (256,256,1), 
+            input_size = (384,384,1), 
             num_channels=64, 
             kernel_size=3, 
             non_linearity=tf.keras.activations.relu,
@@ -543,9 +579,8 @@ def build_unet(num_classes,
     conv9 = Conv2D(64, 3, activation = non_linearity, padding = 'same', data_format=data_format)(merge9)
     conv9 = Conv2D(64, 3, activation = non_linearity, padding = 'same', data_format=data_format)(conv9)
     conv9 = Conv2D(2, 3, activation = non_linearity, padding = 'same', data_format=data_format)(conv9)
-    conv10 = Conv2D(num_classes, 1, data_format=data_format)(conv9)
+    conv10 = Conv2D(num_classes, 1, activation='sigmoid', data_format=data_format)(conv9)
 
     model = Model(inputs = inputs, outputs = conv10)    
 
     return model
-"""
