@@ -2,6 +2,9 @@
 **/env/
 env/
 **/web_env/
+*/checkpoints/
+checkpoints/
+*/web_env/
 web_env/
 **/ui_env/
 ui_env/
@@ -29,5 +32,5 @@ htmlcov/
 .vscode/
 
 # Logging
-
 **/logs/
+*.npy
