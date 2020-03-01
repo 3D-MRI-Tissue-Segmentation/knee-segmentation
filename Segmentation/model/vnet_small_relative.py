@@ -121,10 +121,9 @@ class VNet_Small_Relative(tf.keras.Model):
         u2 = self.up_conv1(u2)
 
         u1 = self.conv_output(u2)
-        output = self.conv_1x1(u1)
 
         if self.num_classes == 1:
-            output = self.conv_1x1_binary(output)
+            output = self.conv_1x1_binary(u1)
         else:
-            output = self.conv_1x1(output)
+            output = self.conv_1x1(u1)
         return output
