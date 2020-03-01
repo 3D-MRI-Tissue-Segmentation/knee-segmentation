@@ -127,8 +127,8 @@ class Transformations3D():
 
         # self.rot()
         self.XY_rotation()
-        self.YZ_rotation()
-        self.XZ_rotation()
+        # self.YZ_rotation()
+        # self.XZ_rotation()
         self.carvingTranslation()
 
     def getTransformedPair(self):
@@ -187,9 +187,9 @@ cube = np.zeros((150,160,160))
 cube[70:90,70:90,70:90] = 1
 
 #Testing the transformations
-anaconda = 50
-dataset = [X_train[40], X_train[500]]
-# print(y_train[anaconda])
+anaconda = 100
+dataset = [X_train[40], X_train[anaconda]]
+print(y_train[anaconda])
 # plt.imshow(dataset[0][:,0:10,5])
 # plt.show()
 # dataset = [cube, cube]
@@ -206,7 +206,7 @@ print(transformation_report)
 
 #display results
 disp3D = Image3D()
-# disp3D.make_mesh(dataset[0][:,0:15,:], 0)
+# disp3D.make_mesh(dataset[1][:,:,:], 0)
 disp3D.make_mesh(new_dataset[1], 0)
 # disp3D.make_mesh(cube, 0)
 disp3D.show_mesh()
