@@ -1,7 +1,7 @@
 import numpy as np
-import scipy
-from scipy.spatial.transform import Rotation as R
-from scipy import ndimage
+# import scipy
+# from scipy.spatial.transform import Rotation as R
+# from scipy import ndimage
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import cv2
@@ -55,7 +55,7 @@ class Transformations3D():
         for render_counter, render in enumerate(self.pair):
             for z in range(0, self.dims[2]):
                 self.pair[render_counter, :, :, z] = cv2.warpAffine(render[:,:,z], M, (self.dims[1], self.dims[0]))
-                print(f"render shape: {render[:,:,z].shape}")
+                # print(f"render shape: {render[:,:,z].shape}")
     
     def YZ_rotation(self, scale=1.0):
         teta = random.randint(-self.angle, self.angle)
@@ -79,9 +79,10 @@ class Transformations3D():
 
     def carvingTranslation(self):
         move = [0, 0, 0]
-        random_range = random.choice(((-self.translation,-1), (1,self.translation)))
-        which = random.randint(0, 2)
-        move[which] = random.randint(random_range[0], random_range[1])
+        if (self.translation != 0):
+            random_range = random.choice(((-self.translation,-1), (1,self.translation)))
+            which = random.randint(0, 2)
+            move[which] = random.randint(random_range[0], random_range[1])
         # move[which] = random.randint(-self.translation, self.translation)
         # move[0] = ranrandom.randint(-self.translation, self.translation) #translation in the x
         # move[1] = ranrandom.randint(-self.translation, self.translation) #translation in the y
@@ -186,16 +187,16 @@ cube = np.zeros((150,160,160))
 cube[70:90,70:90,70:90] = 1
 
 #Testing the transformations
-# anaconda = 50
-# dataset = [X_train[anaconda], cube]
+anaconda = 50
+dataset = [X_train[40], X_train[500]]
 # print(y_train[anaconda])
 # plt.imshow(dataset[0][:,0:10,5])
 # plt.show()
-dataset = [cube, cube]
-print(f"cube: {np.shape(dataset[0])}")
+# dataset = [cube, cube]
+# print(f"cube: {np.shape(dataset[0])}")
 # dataset = np.reshape(dataset, (16, 16, 16, 1))
-output_size = (100, 100, 100, 1)
-transformation = Transformations3D(10, 2, output_size)
+output_size = (16, 16, 16, 1)
+transformation = Transformations3D(10, 0, output_size)
 
 transformation.random_transform(dataset)
 new_dataset = transformation.getTransformedPair()[0]

@@ -47,9 +47,10 @@ class Transformations3D():
 
     def carvingTranslation(self):
         move = [0, 0, 0]
-        random_range = random.choice(((-self.translation,-1), (1,self.translation)))
-        which = random.randint(0, 2)
-        move[which] = random.randint(random_range[0], random_range[1])
+        if(self.translation != 0):
+            random_range = random.choice(((-self.translation,-1), (1,self.translation)))
+            which = random.randint(0, 2)
+            move[which] = random.randint(random_range[0], random_range[1])
 
         # move[0] = ranrandom.randint(-self.translation, self.translation) #translation in the x
         # move[1] = ranrandom.randint(-self.translation, self.translation) #translation in the y
