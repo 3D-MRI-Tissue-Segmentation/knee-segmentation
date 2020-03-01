@@ -1,15 +1,24 @@
-*/env/
+# Environments
+**/env/
 env/
 */checkpoints/
 checkpoints/
 */web_env/
 web_env/
-*/ui_env/
+**/ui_env/
 ui_env/
-*/ml_env/
+**/ml_env/
 ml_env/
-.pytest_cache/
+
+# Python
 __pycache__/
+
+# Pytest and coverage
+.pytest_cache/
+*.coverage
+htmlcov/
+
+# Files
 *.json
 *.png
 *.jpg
@@ -17,3 +26,13 @@ __pycache__/
 *.seg
 *.npy
 *.h5
+*.csv
+
+# IDE
+.vscode/
+
+# Logging
+**/logs/
+
+# Data
+checkpoints/
