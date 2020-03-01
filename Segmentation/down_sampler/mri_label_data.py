@@ -4,6 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import mpl_toolkits.mplot3d.art3d as art3d
 import matplotlib.patches as patches
 from matplotlib.widgets import Button
+import glob
 
 class Click:
 
@@ -24,9 +25,11 @@ class Click:
 class MRI_Label:
 
     def __init__(self, train_images,
-                 num_images=None, start_point=0, image_str_list=None):
+                 num_images=None, start_point=0,
+                 image_str_list=None, target=False):
         self.train_images = train_images
         self.image_str_list = image_str_list
+        self.target = target
 
         self.num_images = num_images
         self.start_point = start_point
@@ -95,7 +98,11 @@ class MRI_Label:
         import h5py
         with h5py.File(self.image_str_list[self.image_counter], 'r') as hf:
             img = np.array(hf['data'])
-        self.train_images = np.reshape(img, (1, *img.shape))
+        img = np.reshape(img, (1, *img.shape))
+        if self.target:
+            img = np.any(img, axis=-1)
+            img = img.astype(np.float32)
+        self.train_images = img
 
     def calculate_cube(self):
         yz_bound = self.focus_area[0].bound
@@ -352,13 +359,26 @@ def mnist_3d_main():
         df.to_csv(save_loc, index=False)
 
 
-def mri_3d_main(img_name='./Data/train/train_001_V00.im'):
-    image_list = []
-    for i in range(2):
-        i_str = str(i).zfill(2)
-        image_list.append(f"./Data/train/train_001_V{i_str}.im")
+def get_list_of_data(file_path='./Data/train/', data_type='train', target=False):
+    X_list = glob.glob(f'{file_path}*.im')
+    Y_list = glob.glob(f'{file_path}*.seg')
+    data = []
+    for x_name in X_list:
+        x_id = x_name[-10:-3]
+        y_name = f'{file_path}{data_type}_{x_id}.seg'
+        assert y_name in Y_list, "{y_name} is missing in the data file"
+        if target:
+            data.append(y_name)
+        else:
+            data.append(x_name)
+    return data
+
+
+def mri_3d_main(file_path='./Data/train/', data_type='train', target=False):
+    image_list = get_list_of_data(file_path, data_type, target)
     print(image_list)
-    label = MRI_Label(None, image_str_list=image_list)
+
+    label = MRI_Label(None, image_str_list=image_list, target=target)
     label.main()
 
     print("========== Annotation complete ==========")
@@ -376,4 +396,4 @@ def mri_3d_main(img_name='./Data/train/train_001_V00.im'):
 
 
 if __name__ == "__main__":
-    mri_3d_main()
+    mri_3d_main(file_path='./Data/valid/', data_type='valid', target=True)
