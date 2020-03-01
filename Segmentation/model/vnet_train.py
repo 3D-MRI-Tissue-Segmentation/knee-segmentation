@@ -7,7 +7,7 @@ def running_mean(x, N):
 if __name__ == "__main__":
     n_classes = 1
     batch_size = 3
-    shape = (156, 156, 156)
+    shape = (100, 100, 100)
 
     import sys
     from os import getcwd
@@ -30,15 +30,12 @@ if __name__ == "__main__":
     vnet = VNet_Small_Relative(1, n_classes, merge_connections=True)
 
     from tensorflow.keras.optimizers import Adam
-    from Segmentation.utils.training_utils import dice_loss, dice_coef_loss, tversky
+    from Segmentation.utils.losses import dice_loss, tversky_loss, bce_dice_loss, focal_tversky
     metrics = ['categorical_crossentropy']
     if n_classes == 1:
         loss_func = dice_loss
     else:
-        loss_func = tversky
-        metrics.append(tversky)
-
-    # loss_func = loss_func + tf.keras.losses.categorical_crossentropy
+        loss_func = tversky_loss
 
     vnet.compile(optimizer=Adam(5e-4),
                  loss=loss_func,

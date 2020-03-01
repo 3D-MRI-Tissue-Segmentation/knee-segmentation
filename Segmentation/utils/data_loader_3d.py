@@ -103,15 +103,14 @@ class VolumeGenerator(Sequence):
         pos = np.array((pos_x, pos_y, pos_z), dtype=np.float32)
 
         volume_x_sample = VolumeGenerator.sample_from_volume(volume_x, sample_shape, centre)
-        volume_x_sample = np.expand_dims(volume_x, axis=-1)
-        volume_x_sample = volume_x.astype(np.float32)
-        volume_y = VolumeGenerator.load_file(y)
+        volume_x_sample = np.expand_dims(volume_x_sample, axis=-1)
+        volume_x_sample = volume_x_sample.astype(np.float32)
 
+        volume_y = VolumeGenerator.load_file(y)
         volume_y_sample = VolumeGenerator.sample_from_volume(volume_y, sample_shape, centre)
-        volume_y_sample = np.any(volume_y, axis=-1)
-        volume_y_sample = np.expand_dims(volume_y, axis=-1)
-        volume_y_sample = volume_y.astype(np.float32)
-        print(np.sum(volume_y_sample))
+        volume_y_sample = np.any(volume_y_sample, axis=-1)
+        volume_y_sample = np.expand_dims(volume_y_sample, axis=-1)
+        volume_y_sample = volume_y_sample.astype(np.float32)
 
         # print(volume_x.shape, volume_y.shape, pos)
         return volume_x_sample, volume_y_sample, pos
