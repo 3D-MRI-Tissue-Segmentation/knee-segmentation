@@ -7,7 +7,7 @@ def running_mean(x, N):
 if __name__ == "__main__":
     n_classes = 1
     batch_size = 3
-    shape = (100, 100, 100)
+    shape = (128, 128, 128)
 
     import sys
     from os import getcwd
@@ -29,8 +29,8 @@ if __name__ == "__main__":
     from Segmentation.model.vnet_small_relative import VNet_Small_Relative
     vnet = VNet_Small_Relative(1, n_classes, merge_connections=True)
 
-    from tensorflow.keras.optimizers import Adam
-    from Segmentation.utils.losses import dice_loss, tversky_loss, bce_dice_loss, focal_tversky, precision, recall
+    from tensorflow.keras.optimizers import Adam, RMSprop
+    from Segmentation.utils.losses import dsc, dice_loss, tversky_loss, bce_dice_loss, focal_tversky, precision, recall, bce_precise_dice_loss
 
     if n_classes == 1:
         loss_func = dice_loss
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     roll_period = 5
 
-    history = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=500, verbose=1)
+    history = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=1000, verbose=1)
 
     import matplotlib.pyplot as plt
     f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)

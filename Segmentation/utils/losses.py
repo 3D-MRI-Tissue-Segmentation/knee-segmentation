@@ -24,6 +24,10 @@ def bce_dice_loss(y_true, y_pred):
     loss = binary_crossentropy(y_true, y_pred) + dice_loss(y_true, y_pred)
     return loss
 
+def bce_precise_dice_loss(y_true, y_pred):
+    loss = binary_crossentropy(y_true, y_pred) + dice_loss(y_true, y_pred) - precision(y_true, y_pred)
+    return loss
+
 def precision(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
     smooth = 1
@@ -46,7 +50,7 @@ def recall(y_true, y_pred):
     tp = K.sum(y_pos * y_pred_pos)
     fn = K.sum(y_pos * y_pred_neg)
     recall = (tp + smooth) / (tp + fn + smooth)
-    return prec, recall
+    return recall
 
 def confusion(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
