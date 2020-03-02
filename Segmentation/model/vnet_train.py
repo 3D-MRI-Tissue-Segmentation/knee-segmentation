@@ -30,8 +30,8 @@ if __name__ == "__main__":
     vnet = VNet_Small_Relative(1, n_classes, merge_connections=True)
 
     from tensorflow.keras.optimizers import Adam
-    from Segmentation.utils.losses import dice_loss, tversky_loss, bce_dice_loss, focal_tversky
-    metrics = ['categorical_crossentropy']
+    from Segmentation.utils.losses import dice_loss, tversky_loss, bce_dice_loss, focal_tversky, precision, recall
+
     if n_classes == 1:
         loss_func = dice_loss
     else:
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     vnet.compile(optimizer=Adam(5e-4),
                  loss=loss_func,
-                 metrics=metrics,
+                 metrics=['categorical_crossentropy', precision, recall],
                  experimental_run_tf_function=True)
 
     callbacks = [
@@ -48,22 +48,20 @@ if __name__ == "__main__":
             verbose=1)
     ]
 
-    history = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=20, verbose=1)
-    loss_history = history.history['loss']
+    roll_period = 5
 
-    loss_roll = running_mean(loss_history, 5)
-    categorical_crossentropy_roll = running_mean(history.history['categorical_crossentropy'], 5)
+    history = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=500, verbose=1)
 
     import matplotlib.pyplot as plt
     f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-    ax1.plot(loss_history, label="loss")
-    ax1.plot(loss_roll, label="loss roll")
+    ax1.plot(history.history['loss'], label="loss")
+    ax1.plot(running_mean(history.history['loss'], roll_period), label="loss roll")
     ax1.plot(history.history['val_loss'], label="val loss")
-    ax1.plot(running_mean(history.history['val_loss'], 15), label="val loss roll")
+    ax1.plot(running_mean(history.history['val_loss'], roll_period), label="val loss roll")
     ax1.legend()
     ax2.plot(history.history['categorical_crossentropy'], label="catcross")
-    ax2.plot(categorical_crossentropy_roll, label="catcross roll")
+    ax2.plot(running_mean(history.history['categorical_crossentropy'], roll_period), label="catcross roll")
     ax2.plot(history.history['val_categorical_crossentropy'], label="val catcross")
-    ax2.plot(running_mean(history.history['val_categorical_crossentropy'], 15), label="val catcross roll")
+    ax2.plot(running_mean(history.history['val_categorical_crossentropy'], roll_period), label="val catcross roll")
     ax2.legend()
     plt.show()

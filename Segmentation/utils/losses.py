@@ -24,6 +24,30 @@ def bce_dice_loss(y_true, y_pred):
     loss = binary_crossentropy(y_true, y_pred) + dice_loss(y_true, y_pred)
     return loss
 
+def precision(y_true, y_pred):
+    # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
+    smooth = 1
+    y_pred_pos = K.clip(y_pred, 0, 1)
+    y_pred_neg = 1 - y_pred_pos
+    y_pos = K.clip(y_true, 0, 1)
+    y_neg = 1 - y_pos
+    tp = K.sum(y_pos * y_pred_pos)
+    fp = K.sum(y_neg * y_pred_pos)
+    prec = (tp + smooth) / (tp + fp + smooth)
+    return prec
+
+def recall(y_true, y_pred):
+    # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
+    smooth = 1
+    y_pred_pos = K.clip(y_pred, 0, 1)
+    y_pred_neg = 1 - y_pred_pos
+    y_pos = K.clip(y_true, 0, 1)
+    y_neg = 1 - y_pos
+    tp = K.sum(y_pos * y_pred_pos)
+    fn = K.sum(y_pos * y_pred_neg)
+    recall = (tp + smooth) / (tp + fn + smooth)
+    return prec, recall
+
 def confusion(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
     smooth = 1
