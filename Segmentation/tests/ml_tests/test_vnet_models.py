@@ -81,13 +81,13 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
 
         def vnet_fit(vnet, inputs, one_hots, epochs, custom_fit, n_classes):
             from tensorflow.keras.optimizers import Adam
-            from Segmentation.utils.training_utils import tversky_loss, dice_loss, dice_coef_loss, tversky
+            from Segmentation.utils.losses import dice_loss, tversky_loss, bce_dice_loss, focal_tversky
             from tensorflow.keras.losses import MSE
 
             if n_classes == 1:
                 loss_func = dice_loss
             else:
-                loss_func = tversky
+                loss_func = tversky_loss
 
             if custom_fit:
 
@@ -139,10 +139,10 @@ if __name__ == '__main__':
     gpus = tf.config.experimental.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(gpus[0], True)
 
-    # tf.test.main()
+    tf.test.main()
 
-    tv = Test_VNet()
-    tv.run_vnet(model="small", n_volumes=10,
-                height=96, width=96, depth=96, colour_channels=1,
-                merge_connections=False, relative=False, n_classes=3,
-                relative_action="add", epochs=20, custom_fit=True)
+    # tv = Test_VNet()
+    # tv.run_vnet(model="small", n_volumes=10,
+    #             height=96, width=96, depth=96, colour_channels=1,
+    #             merge_connections=False, relative=False, n_classes=3,
+    #             relative_action="add", epochs=20, custom_fit=True)
