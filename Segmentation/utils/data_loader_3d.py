@@ -3,16 +3,18 @@ import h5py
 import numpy as np
 from random import randint
 from tensorflow.keras.utils import Sequence
+from tensorflow.math import reduce_mean, reduce_std
 from math import ceil
 
 
 class VolumeGenerator(Sequence):
     def __init__(self, batch_size, volume_shape, add_pos=False,
-                 file_path='./Data/train/', data_type='train', random=True):
+                 file_path='./Data/train/', data_type='train', random=True, norm=False):
         self.batch_size = batch_size
         self.volume_shape = volume_shape
         self.add_pos = add_pos
         self.random = random
+        self.norm = norm
 
         self.data_paths = VolumeGenerator.get_list_of_data(file_path, data_type)
         assert self.batch_size <= len(self.data_paths), "Batch size must be less than or equal to number of training examples"
@@ -39,7 +41,7 @@ class VolumeGenerator(Sequence):
             image_arr = []
             pos_arr = []
         for sample in batch:
-            image, y, pos = VolumeGenerator.load_sample(sample, self.volume_shape, self.random)
+            image, y, pos = VolumeGenerator.load_sample(sample, self.volume_shape, self.random, self.norm)
             if self.add_pos:
                 image_arr.append(image)
                 pos_arr.append(pos)
@@ -83,7 +85,7 @@ class VolumeGenerator(Sequence):
         return volume_sample
 
     @staticmethod
-    def load_sample(sample, sample_shape, random):
+    def load_sample(sample, sample_shape, random, norm):
         x, y = sample
 
         volume_x = VolumeGenerator.load_file(x)
@@ -94,9 +96,9 @@ class VolumeGenerator(Sequence):
             rand_y = randint(sample_shape[1], vol_x_shape[1])
             rand_z = randint(sample_shape[2], vol_x_shape[2])
         else:
-            rand_x = int((vol_x_shape[0]-sample_shape[0])/2)
-            rand_y = int((vol_x_shape[1]-sample_shape[1])/2)
-            rand_z = int((vol_x_shape[2]-sample_shape[2])/2)
+            rand_x = int((vol_x_shape[0] - sample_shape[0]) / 2)
+            rand_y = int((vol_x_shape[1] - sample_shape[1]) / 2)
+            rand_z = int((vol_x_shape[2] - sample_shape[2]) / 2)
 
         centre = rand_x, rand_y, rand_z
 
@@ -111,6 +113,11 @@ class VolumeGenerator(Sequence):
         volume_x_sample = VolumeGenerator.sample_from_volume(volume_x, sample_shape, centre)
         volume_x_sample = np.expand_dims(volume_x_sample, axis=-1)
         volume_x_sample = volume_x_sample.astype(np.float32)
+
+        if norm:
+            mean = reduce_mean(volume_x_sample)
+            std = reduce_std(volume_x_sample)
+            volume_x_sample = (volume_x_sample - mean) / std
 
         volume_y = VolumeGenerator.load_file(y)
         volume_y_sample = VolumeGenerator.sample_from_volume(volume_y, sample_shape, centre)
