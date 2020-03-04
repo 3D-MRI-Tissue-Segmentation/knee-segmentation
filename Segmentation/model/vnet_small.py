@@ -79,8 +79,7 @@ class VNet_Small(tf.keras.Model):
             u2 = tf.keras.layers.concatenate([x1, u2], axis=4)
         u2 = self.up_conv1(u2)
 
-        u1 = self.conv_output(u2)
-        output = self.conv_1x1(u1)
+        output = self.conv_output(u2)
 
         if self.num_classes == 1:
             output = self.conv_1x1_binary(output)

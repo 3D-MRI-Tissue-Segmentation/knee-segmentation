@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 def running_mean(x, N):
     cumsum = np.cumsum(np.insert(x, 0, 0))
@@ -6,8 +7,9 @@ def running_mean(x, N):
 
 if __name__ == "__main__":
     n_classes = 1
-    batch_size = 3
-    shape = (128, 128, 128)
+    batch_size = 10
+    shape = (96, 96, 96)
+    epochs = 100
 
     import sys
     from os import getcwd
@@ -30,20 +32,19 @@ if __name__ == "__main__":
             # Memory growth must be set before GPUs have been initialized
             print(e)
 
-
-
     from Segmentation.utils.data_loader_3d import VolumeGenerator
 
-    train_gen = VolumeGenerator(batch_size, shape, add_pos=True)
-    # valid_gen = VolumeGenerator(batch_size, shape, add_pos=True,
-    #                             file_path="./Data/valid/", data_type='valid')
+    train_gen = VolumeGenerator(batch_size, shape)
+    valid_gen = VolumeGenerator(batch_size, shape,
+                                file_path="./Data/valid/", data_type='valid', random=True)
 
     from Segmentation.model.vnet_tiny import VNet_Tiny
     from Segmentation.model.vnet_small import VNet_Small
     from Segmentation.model.vnet_small_relative import VNet_Small_Relative
-    vnet = VNet_Small_Relative(1, n_classes, merge_connections=True)
+    #vnet = VNet_Small_Relative(1, n_classes, merge_connections=True)
+    vnet = VNet_Small(1, n_classes, merge_connections=True)
 
-    from tensorflow.keras.optimizers import Adam, RMSprop
+    from tensorflow.keras.optimizers import Adam
     from Segmentation.utils.losses import dsc, dice_loss, tversky_loss, bce_dice_loss, focal_tversky, precision, recall, bce_precise_dice_loss
 
     if n_classes == 1:
@@ -51,7 +52,7 @@ if __name__ == "__main__":
     else:
         loss_func = tversky_loss
 
-    vnet.compile(optimizer=Adam(5e-4),
+    vnet.compile(optimizer=Adam(lr=5e-4),
                  loss=loss_func,
                  metrics=['categorical_crossentropy', precision, recall],
                  experimental_run_tf_function=True)
@@ -59,13 +60,12 @@ if __name__ == "__main__":
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(
             filepath='checkpoints/mymodel_{epoch}',
-            verbose=1)
+            verbose=1),
     ]
-
     roll_period = 5
 
-    # history = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=1000, verbose=1)
-    history = vnet.fit(x=train_gen, callbacks=callbacks, epochs=1000, verbose=1)
+    history = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=epochs, verbose=1)
+    # history = vnet.fit(x=train_gen, callbacks=callbacks, epochs=40, verbose=1)
 
     import matplotlib.pyplot as plt
     f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)

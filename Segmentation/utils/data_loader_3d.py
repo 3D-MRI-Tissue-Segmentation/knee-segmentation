@@ -7,22 +7,20 @@ from math import ceil
 
 
 class VolumeGenerator(Sequence):
-    def __init__(self, batch_size, volume_shape, shuffle=True, add_pos=False,
-                 file_path='./Data/train/', data_type='train'):
+    def __init__(self, batch_size, volume_shape, add_pos=False,
+                 file_path='./Data/train/', data_type='train', random=True):
         self.batch_size = batch_size
         self.volume_shape = volume_shape
-        self.shuffle = shuffle
         self.add_pos = add_pos
+        self.random = random
 
         self.data_paths = VolumeGenerator.get_list_of_data(file_path, data_type)
-        print(self.batch_size)
-        print(len(self.data_paths))
         assert self.batch_size <= len(self.data_paths), "Batch size must be less than or equal to number of training examples"
         self.on_epoch_end()
 
     def on_epoch_end(self):
         self.indexes = np.arange(len(self.data_paths))
-        if self.shuffle:
+        if self.random:
             np.random.shuffle(self.indexes)
 
     def __len__(self):
@@ -41,7 +39,7 @@ class VolumeGenerator(Sequence):
             image_arr = []
             pos_arr = []
         for sample in batch:
-            image, y, pos = VolumeGenerator.load_sample(sample, self.volume_shape)
+            image, y, pos = VolumeGenerator.load_sample(sample, self.volume_shape, self.random)
             if self.add_pos:
                 image_arr.append(image)
                 pos_arr.append(pos)
@@ -85,15 +83,21 @@ class VolumeGenerator(Sequence):
         return volume_sample
 
     @staticmethod
-    def load_sample(sample, sample_shape):
+    def load_sample(sample, sample_shape, random):
         x, y = sample
 
         volume_x = VolumeGenerator.load_file(x)
         vol_x_shape = volume_x.shape
 
-        rand_x = randint(sample_shape[0], vol_x_shape[0])
-        rand_y = randint(sample_shape[1], vol_x_shape[1])
-        rand_z = randint(sample_shape[2], vol_x_shape[2])
+        if random:
+            rand_x = randint(sample_shape[0], vol_x_shape[0])
+            rand_y = randint(sample_shape[1], vol_x_shape[1])
+            rand_z = randint(sample_shape[2], vol_x_shape[2])
+        else:
+            rand_x = int((vol_x_shape[0]-sample_shape[0])/2)
+            rand_y = int((vol_x_shape[1]-sample_shape[1])/2)
+            rand_z = int((vol_x_shape[2]-sample_shape[2])/2)
+
         centre = rand_x, rand_y, rand_z
 
         pos_x = ((rand_x - sample_shape[0]) / (vol_x_shape[0] - sample_shape[0])) - 0.5

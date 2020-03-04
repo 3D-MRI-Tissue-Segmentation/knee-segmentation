@@ -67,9 +67,7 @@ class VNet_Tiny(tf.keras.Model):
         u2 = self.up_conv1(u2)
         # tf.print("u2:", u2.get_shape())
 
-        u1 = self.conv_output(u2)
-        # tf.print("u1:", u1.get_shape())
-        output = self.conv_1x1(u1)
+        output = self.conv_output(u2)
         # tf.print("output:", output.get_shape())
 
         if self.num_classes == 1:
