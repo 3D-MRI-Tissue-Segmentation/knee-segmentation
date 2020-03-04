@@ -15,14 +15,28 @@ if __name__ == "__main__":
 
     import tensorflow as tf
 
+    # gpus = tf.config.experimental.list_physical_devices('GPU')
+    # tf.config.experimental.set_memory_growth(gpus[0], True)
+
     gpus = tf.config.experimental.list_physical_devices('GPU')
-    tf.config.experimental.set_memory_growth(gpus[0], True)
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
+
+
 
     from Segmentation.utils.data_loader_3d import VolumeGenerator
 
     train_gen = VolumeGenerator(batch_size, shape, add_pos=True)
-    valid_gen = VolumeGenerator(batch_size, shape, add_pos=True,
-                                file_path="./Data/valid/", data_type='valid')
+    # valid_gen = VolumeGenerator(batch_size, shape, add_pos=True,
+    #                             file_path="./Data/valid/", data_type='valid')
 
     from Segmentation.model.vnet_tiny import VNet_Tiny
     from Segmentation.model.vnet_small import VNet_Small
@@ -50,7 +64,8 @@ if __name__ == "__main__":
 
     roll_period = 5
 
-    history = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=1000, verbose=1)
+    # history = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=1000, verbose=1)
+    history = vnet.fit(x=train_gen, callbacks=callbacks, epochs=1000, verbose=1)
 
     import matplotlib.pyplot as plt
     f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)

@@ -15,6 +15,8 @@ class VolumeGenerator(Sequence):
         self.add_pos = add_pos
 
         self.data_paths = VolumeGenerator.get_list_of_data(file_path, data_type)
+        print(self.batch_size)
+        print(len(self.data_paths))
         assert self.batch_size <= len(self.data_paths), "Batch size must be less than or equal to number of training examples"
         self.on_epoch_end()
 
