@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 from random import randint
 from tensorflow.keras.utils import Sequence
-from tensorflow.math import reduce_mean, reduce_std
+import tensorflow as tf
 from math import ceil
 
 
@@ -115,8 +115,8 @@ class VolumeGenerator(Sequence):
         volume_x_sample = volume_x_sample.astype(np.float32)
 
         if norm:
-            mean = reduce_mean(volume_x_sample)
-            std = reduce_std(volume_x_sample)
+            mean = tf.math.reduce_mean(volume_x_sample)
+            std = tf.math.reduce_std(volume_x_sample)
             volume_x_sample = (volume_x_sample - mean) / std
 
         volume_y = VolumeGenerator.load_file(y)
