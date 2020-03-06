@@ -6,6 +6,11 @@ from tensorflow.keras.utils import Sequence
 import tensorflow as tf
 from math import ceil
 
+import sys, os
+sys.path.insert(0, os.getcwd())
+
+from Segmentation.transformations.tansformations_3d import Transformations3D 
+
 class VolumeGenerator(Sequence):
     def __init__(self, batch_size, volume_shape, add_pos=False,
                  file_path='./Data/train/', data_type='train',
@@ -181,10 +186,7 @@ class VolumeGenerator(Sequence):
 
 
 if __name__ == "__main__":
-    import sys, os
-    sys.path.insert(0, os.getcwd())
-
-    from Segmentation.transformations.tansformations_3d import Transformations3D 
+    
 
     add_pos = True
     # vol_gen = VolumeGenerator(3, (384,384,5), add_pos=add_pos, slice_index=3)
