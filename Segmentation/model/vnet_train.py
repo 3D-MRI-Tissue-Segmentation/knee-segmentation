@@ -78,7 +78,7 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
     else:
         loss_func = tversky_loss
 
-    vnet.compile(optimizer=Adam(lr=5e-4),
+    vnet.compile(optimizer=Adam(lr=1e-5),
                  loss=loss_func,
                  metrics=['categorical_crossentropy', precision, recall],
                  experimental_run_tf_function=True)
@@ -121,7 +121,10 @@ if __name__ == "__main__":
 
     e = 150
 
-    train("tiny", epochs=e, examples_per_load=3)
-    train("small", epochs=e, examples_per_load=3)
-    train("small_relative", epochs=e, examples_per_load=3)
+    # train("tiny", epochs=e, examples_per_load=3)
+    # train("small", epochs=e, examples_per_load=3)
+    # train("small_relative", epochs=e, examples_per_load=3)
+    train("slice", epochs=e, shape=(384, 384, 3), slice_index=2, examples_per_load=10)
     train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10)
+    train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10)
+    train("slice", epochs=e, shape=(384, 384, 9), slice_index=5, examples_per_load=10)
