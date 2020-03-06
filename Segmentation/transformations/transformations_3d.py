@@ -75,7 +75,7 @@ class Transformations3D():
         self.pair = np.asarray(pair)
         self.dims = self.pair[0].shape
 
-        assert self.translation <= (min(self.dims) - self.output_size[0])/2, f"You cannot translate by more than the available pixels"
+        # assert self.translation <= (min(self.dims) - self.output_size[0])/2, f"You cannot translate by more than the available pixels"
 
         self.center[0] = (int(math.floor(self.dims[1]/2)), int(math.floor(self.dims[0]/2))) #center for frontal slice
         self.center[1] = (int(math.floor(self.dims[2]/2)), int(math.floor(self.dims[0]/2))) #center for lateral slice
@@ -118,35 +118,37 @@ class Image3D():
         self.ax.voxels(self.voxels_arr)
         plt.show()
 
-with h5py.File("../../Data/Tests_data/3d-mnist/full_dataset_vectors.h5", "r") as hf:
-    print(hf)   
-    X_train = hf["X_train"][:]
-    y_train = hf["y_train"][:]  
-    X_test = hf["X_test"][:]
-    y_test = hf["y_test"][:]
 
-#Reshaping the 3D mnist
-X_train = np.reshape(X_train, (X_train.shape[0], 16, 16, 16))
-X_test = np.reshape(X_test, (X_test.shape[0], 16, 16, 16))
-assert X_train.shape == (X_train.shape[0], 16, 16, 16), f"X_train's shape is {X_train.shape} != ({X_train.shape[0]}, 16, 16, 16)"
+if __name__=="__main__":
+    with h5py.File("../../Data/Tests_data/3d-mnist/full_dataset_vectors.h5", "r") as hf:
+        print(hf)   
+        X_train = hf["X_train"][:]
+        y_train = hf["y_train"][:]  
+        X_test = hf["X_test"][:]
+        y_test = hf["y_test"][:]
 
-#cube
-cube = np.zeros((150,160,160))
-cube[70:90,70:90,70:90] = 1
+    #Reshaping the 3D mnist
+    X_train = np.reshape(X_train, (X_train.shape[0], 16, 16, 16))
+    X_test = np.reshape(X_test, (X_test.shape[0], 16, 16, 16))
+    assert X_train.shape == (X_train.shape[0], 16, 16, 16), f"X_train's shape is {X_train.shape} != ({X_train.shape[0]}, 16, 16, 16)"
 
-#Testing the transformations
-dataset = [cube, cube]
-output_size = (40, 40, 40, 1)
+    #cube
+    cube = np.zeros((150,160,160))
+    cube[70:90,70:90,70:90] = 1
 
-transformation = Transformations3D(10, 2, output_size)
-transformation.random_transform(dataset)
-new_dataset = transformation.getTransformedPair()[0]
-transformation_report = transformation.getTransformedPair()[1]
+    #Testing the transformations
+    dataset = [cube, cube]
+    output_size = (40, 40, 40, 1)
 
-print(transformation_report)
+    transformation = Transformations3D(10, 2, output_size)
+    transformation.random_transform(dataset)
+    new_dataset = transformation.getTransformedPair()[0]
+    transformation_report = transformation.getTransformedPair()[1]
 
-#display results
-disp3D = Image3D()
-disp3D.make_mesh(new_dataset[1], 0)
-disp3D.show_mesh()
+    print(transformation_report)
+
+    #display results
+    disp3D = Image3D()
+    disp3D.make_mesh(new_dataset[1], 0)
+    disp3D.show_mesh()
 

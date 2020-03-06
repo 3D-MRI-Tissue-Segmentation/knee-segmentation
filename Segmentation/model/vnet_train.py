@@ -27,8 +27,8 @@ def setup_gpu():
 
 
 def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
-          validate=True, merge_connect=True, norm=True, save_model=True, 
-          slice_index=None, examples_per_load=1):
+          validate=True, merge_connect=True, norm=True, save_model=True,
+          slice_index=None, examples_per_load=1, max_angle=None):
     add_pos = False
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
@@ -61,14 +61,14 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
     setup_gpu()
 
     from Segmentation.utils.data_loader_3d import VolumeGenerator
-    train_gen = VolumeGenerator(batch_size, shape, 
+    train_gen = VolumeGenerator(batch_size, shape,
                                 norm=norm, add_pos=add_pos,
                                 slice_index=slice_index,
-                                examples_per_load=examples_per_load)
+                                examples_per_load=examples_per_load, max_angle=max_angle)
     valid_gen = VolumeGenerator(batch_size, shape,
-                                file_path="./Data/valid/", data_type='valid', 
+                                file_path="./Data/valid/", data_type='valid',
                                 norm=norm, add_pos=add_pos,
-                                slice_index=slice_index, 
+                                slice_index=slice_index,
                                 examples_per_load=examples_per_load)
 
     from Segmentation.utils.losses import dsc, dice_loss, tversky_loss, bce_dice_loss, focal_tversky, precision, recall, bce_precise_dice_loss
@@ -119,12 +119,15 @@ if __name__ == "__main__":
     import sys, os
     sys.path.insert(0, os.getcwd())
 
-    e = 150
+    e = 3
 
-    # train("tiny", epochs=e, examples_per_load=3)
-    # train("small", epochs=e, examples_per_load=3)
+    train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, max_angle=2)
+    #train("small", epochs=e, examples_per_load=3)
+    #train("small", epochs=e, examples_per_load=3, max_angle=1)
+    #train("small", epochs=e, examples_per_load=3, max_angle=3)
+    #train("small", epochs=e, examples_per_load=3, max_angle=5)
     # train("small_relative", epochs=e, examples_per_load=3)
-    train("slice", epochs=e, shape=(384, 384, 3), slice_index=2, examples_per_load=10)
-    train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10)
-    train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10)
-    train("slice", epochs=e, shape=(384, 384, 9), slice_index=5, examples_per_load=10)
+    # train("slice", epochs=e, shape=(384, 384, 3), slice_index=2, examples_per_load=10)
+    # train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10)
+    # train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10)
+    # train("slice", epochs=e, shape=(384, 384, 9), slice_index=5, examples_per_load=10)

@@ -6,18 +6,14 @@ from tensorflow.keras.utils import Sequence
 import tensorflow as tf
 from math import ceil
 
-import sys, os
-sys.path.insert(0, os.getcwd())
-
-from Segmentation.transformations.transformations_3d import Transformations3D 
 
 class VolumeGenerator(Sequence):
     def __init__(self, batch_size, volume_shape, add_pos=False,
                  file_path='./Data/train/', data_type='train',
                  random=True, norm=False,
                  slice_index=None,
-                 examples_per_load=1, 
-                 max_angle=3):
+                 examples_per_load=1,
+                 max_angle=None):
         self.batch_size = batch_size
         self.volume_shape = volume_shape
         self.add_pos = add_pos
@@ -25,13 +21,16 @@ class VolumeGenerator(Sequence):
         self.norm = norm
         self.slice_index = slice_index
         self.examples_per_load = examples_per_load
-        self.trans = Transformations3D(max_angle, 0, volume_shape)
-
+        self.trans = None
+        if max_angle is not None:
+            from Segmentation.transformations.transformations_3d import Transformations3D
+            self.trans = Transformations3D(max_angle, 0, volume_shape)
         self.data_paths = VolumeGenerator.get_list_of_data(file_path, data_type)
         assert self.batch_size <= len(self.data_paths), "Batch size must be less than or equal to number of training examples"
         self.on_epoch_end()
 
     def on_epoch_end(self):
+        print("reset")
         self.indexes = np.arange(len(self.data_paths))
         if self.random:
             np.random.shuffle(self.indexes)
@@ -57,12 +56,12 @@ class VolumeGenerator(Sequence):
             volume_y = VolumeGenerator.load_file(y)
             for i in range(self.examples_per_load):
                 if self.slice_index is None:
-                    image, y, pos = VolumeGenerator.load_sample(volume_x, volume_y, self.volume_shape, 
-                                                                self.random, self.norm)
+                    image, y, pos = VolumeGenerator.load_sample(volume_x, volume_y, self.volume_shape,
+                                                                self.random, self.norm, self.trans)
                 else:
-                    image, y, pos = VolumeGenerator.load_sample_slice(volume_x, volume_y, self.volume_shape, 
+                    image, y, pos = VolumeGenerator.load_sample_slice(volume_x, volume_y, self.volume_shape,
                                                                       self.random, self.norm,
-                                                                      self.slice_index)
+                                                                      self.slice_index, self.trans)
                 if self.add_pos:
                     image_arr.append(image)
                     pos_arr.append(pos)
@@ -106,7 +105,7 @@ class VolumeGenerator(Sequence):
         return volume_sample
 
     @staticmethod
-    def load_sample(volume_x, volume_y, sample_shape, random, norm):
+    def load_sample(volume_x, volume_y, sample_shape, random, norm, trans):
         vol_x_shape = volume_x.shape
         if random:
             rand_x = randint(sample_shape[0], vol_x_shape[0])
@@ -125,7 +124,7 @@ class VolumeGenerator(Sequence):
         pos_z *= 2
         pos = np.array((pos_x, pos_y, pos_z), dtype=np.float32)
         volume_x = VolumeGenerator.sample_from_volume(volume_x, sample_shape, centre)
-        volume_x = np.expand_dims(volume_x, axis=-1)
+        #volume_x = np.expand_dims(volume_x, axis=-1)
         volume_x = volume_x.astype(np.float32)
         if norm:
             mean = tf.math.reduce_mean(volume_x)
@@ -133,17 +132,21 @@ class VolumeGenerator(Sequence):
             volume_x = (volume_x - mean) / std
         volume_y = VolumeGenerator.sample_from_volume(volume_y, sample_shape, centre)
         volume_y = np.any(volume_y, axis=-1)
-        volume_y = np.expand_dims(volume_y, axis=-1)
+        #        volume_y = np.expand_dims(volume_y, axis=-1)
         volume_y = volume_y.astype(np.float32)
 
         print(volume_x.shape)
         print(volume_y.shape)
-        self.trans.random_transform([volume_x, volume_y])
-        volume_x, volume_y = self.trans.getTransformedPair()[0]
+        if trans is not None:
+            trans.random_transform([volume_x, volume_y])
+            volume_x, volume_y = trans.getTransformedPair()[0]
         print(volume_x.shape)
         print(volume_y.shape)
 
-        # print(volume_x.shape, volume_y.shape, pos)
+        volume_x = np.expand_dims(volume_x, axis=-1)
+        volume_y = np.expand_dims(volume_y, axis=-1)
+
+        print(volume_x.shape, volume_y.shape, pos)
         return volume_x, volume_y, pos
 
     @staticmethod
@@ -156,13 +159,11 @@ class VolumeGenerator(Sequence):
     @staticmethod
     def load_sample_slice(volume_x, volume_y, sample_shape, random, norm, slice_index):
         vol_x_shape = volume_x.shape
-        
         rand_z = randint(sample_shape[2], vol_x_shape[2])
         pos_z = ((rand_z - sample_shape[2]) / (vol_x_shape[2] - sample_shape[2])) - 0.5
         pos_z *= 2
         pos = np.array([pos_z], dtype=np.float32)
         volume_x = VolumeGenerator.sample_slice_from_volume(volume_x, (vol_x_shape[0], vol_x_shape[1], sample_shape[2]), rand_z)
-        
         volume_x = np.expand_dims(volume_x, axis=-1)
         volume_x = volume_x.astype(np.float32)
 
@@ -186,11 +187,12 @@ class VolumeGenerator(Sequence):
 
 
 if __name__ == "__main__":
-    
+    import sys, os
+    sys.path.insert(0, os.getcwd())
 
     add_pos = True
     # vol_gen = VolumeGenerator(3, (384,384,5), add_pos=add_pos, slice_index=3)
-    vol_gen = VolumeGenerator(3, (128, 128, 128), add_pos=add_pos)
+    vol_gen = VolumeGenerator(3, (128, 128, 128), add_pos=add_pos, max_angle=1)
     x, y = vol_gen.__getitem__(0)
     if add_pos:
         print(x[0].shape)
