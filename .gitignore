@@ -30,6 +30,7 @@ htmlcov/
 
 # IDE
 .vscode/
+.ipynb_checkpoints/
 
 # Logging
 **/logs/

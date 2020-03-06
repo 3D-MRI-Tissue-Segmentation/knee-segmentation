@@ -43,6 +43,14 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                  epochs=2, n_volumes=5, n_reps=2, n_classes=1, relative=False, relative_action=None, custom_fit=False):
         volumes, one_hots = self.create_test_volume(n_volumes, n_reps, n_classes,
                                                     width, height, depth, colour_channels)
+        print("=============================")
+        print(one_hots.shape)
+        print(one_hots[:, :, :, 3].shape)
+
+        if model == "slice":
+            one_hots = one_hots[:, :, :, 3]
+        print("=============================")
+
         inputs = volumes
         if relative:
             pos = np.array([[1.0, 0.0, -0.5]], dtype=np.float32)
@@ -62,6 +70,9 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                 from Segmentation.model.vnet_small_relative import VNet_Small_Relative
                 return VNet_Small_Relative(colour_channels, n_classes, merge_connections=merge_connections,
                                            action=relative_action)
+            elif model == "slice":
+                from Segmentation.model.vnet_slice import VNet_Slice
+                return VNet_Slice(colour_channels, n_classes, merge_connections=merge_connections)
             else:
                 raise NotImplementedError(f"no model named: {model}")
 
@@ -129,7 +140,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                 history = vnet.fit(x=inputs, y=one_hots, epochs=epochs, verbose=1)
                 loss_history = history.history['loss']
 
-        vnet_fit(vnet, inputs, one_hots, epochs, custom_fit, n_classes)
+        # vnet_fit(vnet, inputs, one_hots, epochs, custom_fit, n_classes)
 
 if __name__ == '__main__':
     import sys
@@ -137,12 +148,21 @@ if __name__ == '__main__':
     sys.path.insert(0, getcwd())
 
     gpus = tf.config.experimental.list_physical_devices('GPU')
-    tf.config.experimental.set_memory_growth(gpus[0], True)
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
 
-    tf.test.main()
+    # tf.test.main()
 
-    # tv = Test_VNet()
-    # tv.run_vnet(model="small", n_volumes=10,
-    #             height=96, width=96, depth=96, colour_channels=1,
-    #             merge_connections=False, relative=False, n_classes=3,
-    #             relative_action="add", epochs=20, custom_fit=True)
+    tv = Test_VNet()
+    tv.run_vnet(model="slice", n_volumes=3,
+                height=96, width=96, depth=5, colour_channels=1,
+                merge_connections=False, relative=False, n_classes=1,
+                epochs=2, custom_fit=True)

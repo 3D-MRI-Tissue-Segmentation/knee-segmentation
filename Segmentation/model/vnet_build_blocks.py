@@ -8,8 +8,8 @@ class Conv3D_Block(tf.keras.layers.Layer):
                  num_conv_layers=2,
                  kernel_size=(3, 3, 3),
                  nonlinearity='relu',
-                 use_batchnorm=False,
-                 use_dropout=False,
+                 use_batchnorm=True,
+                 use_dropout=True,
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
@@ -58,13 +58,14 @@ class Up_Conv3D(tf.keras.layers.Layer):
                  use_batchnorm=False,
                  use_transpose=False,
                  strides=(2, 2, 2),
+                 upsample_size=(2, 2, 2),
                  data_format='channels_last',
                  name="upsampling_convolution_block"):
 
         super(Up_Conv3D, self).__init__(name=name)
 
         self.use_batchnorm = use_batchnorm
-        self.upsample = tf.keras.layers.UpSampling3D(size=(2, 2, 2))
+        self.upsample = tf.keras.layers.UpSampling3D(size=upsample_size)
         self.conv = tf.keras.layers.Conv3D(num_channels, kernel_size,
                                            padding='same', data_format=data_format)
         self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1)
