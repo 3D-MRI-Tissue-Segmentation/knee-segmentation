@@ -174,8 +174,8 @@ class VolumeGenerator(Sequence):
 
 if __name__ == "__main__":
     add_pos = True
-    vol_gen = VolumeGenerator(3, (384,384,5), add_pos=add_pos, slice_index=3)
-    # vol_gen = VolumeGenerator(3, (128, 128, 128), add_pos=add_pos)
+    # vol_gen = VolumeGenerator(3, (384,384,5), add_pos=add_pos, slice_index=3)
+    vol_gen = VolumeGenerator(3, (128, 128, 128), add_pos=add_pos)
     x, y = vol_gen.__getitem__(0)
     if add_pos:
         print(x[0].shape)
