@@ -6,13 +6,13 @@ from tensorflow.keras.utils import Sequence
 import tensorflow as tf
 from math import ceil
 
-
 class VolumeGenerator(Sequence):
     def __init__(self, batch_size, volume_shape, add_pos=False,
                  file_path='./Data/train/', data_type='train',
                  random=True, norm=False,
                  slice_index=None,
-                 examples_per_load=1):
+                 examples_per_load=1, 
+                 max_angle=3):
         self.batch_size = batch_size
         self.volume_shape = volume_shape
         self.add_pos = add_pos
@@ -20,6 +20,7 @@ class VolumeGenerator(Sequence):
         self.norm = norm
         self.slice_index = slice_index
         self.examples_per_load = examples_per_load
+        self.trans = Transformations3D(max_angle, 0, volume_shape)
 
         self.data_paths = VolumeGenerator.get_list_of_data(file_path, data_type)
         assert self.batch_size <= len(self.data_paths), "Batch size must be less than or equal to number of training examples"
@@ -130,6 +131,13 @@ class VolumeGenerator(Sequence):
         volume_y = np.expand_dims(volume_y, axis=-1)
         volume_y = volume_y.astype(np.float32)
 
+        print(volume_x.shape)
+        print(volume_y.shape)
+        self.trans.random_transform([volume_x, volume_y])
+        volume_x, volume_y = self.trans.getTransformedPair()[0]
+        print(volume_x.shape)
+        print(volume_y.shape)
+
         # print(volume_x.shape, volume_y.shape, pos)
         return volume_x, volume_y, pos
 
@@ -173,6 +181,11 @@ class VolumeGenerator(Sequence):
 
 
 if __name__ == "__main__":
+    import sys, os
+    sys.path.insert(0, os.getcwd())
+
+    from Segmentation.utils.transformations.tansformations_3d import Transformations3D 
+
     add_pos = True
     # vol_gen = VolumeGenerator(3, (384,384,5), add_pos=add_pos, slice_index=3)
     vol_gen = VolumeGenerator(3, (128, 128, 128), add_pos=add_pos)
