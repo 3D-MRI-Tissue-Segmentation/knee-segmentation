@@ -1,6 +1,7 @@
 # Environments
 **/env/
 env/
+**/web_env/
 */checkpoints/
 checkpoints/
 */web_env/
@@ -34,6 +35,7 @@ htmlcov/
 
 # Logging
 **/logs/
+<<<<<<< HEAD
 
 # Data
 checkpoints/
