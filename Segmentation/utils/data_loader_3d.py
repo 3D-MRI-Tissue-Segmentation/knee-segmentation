@@ -184,7 +184,7 @@ if __name__ == "__main__":
     import sys, os
     sys.path.insert(0, os.getcwd())
 
-    from Segmentation.utils.transformations.tansformations_3d import Transformations3D 
+    from Segmentation.transformations.tansformations_3d import Transformations3D 
 
     add_pos = True
     # vol_gen = VolumeGenerator(3, (384,384,5), add_pos=add_pos, slice_index=3)
