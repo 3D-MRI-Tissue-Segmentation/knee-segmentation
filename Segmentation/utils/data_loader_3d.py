@@ -9,7 +9,7 @@ from math import ceil
 import sys, os
 sys.path.insert(0, os.getcwd())
 
-from Segmentation.transformations.tansformations_3d import Transformations3D 
+from Segmentation.transformations.transformations_3d import Transformations3D 
 
 class VolumeGenerator(Sequence):
     def __init__(self, batch_size, volume_shape, add_pos=False,
