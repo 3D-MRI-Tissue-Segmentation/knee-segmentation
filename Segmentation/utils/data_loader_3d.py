@@ -30,7 +30,6 @@ class VolumeGenerator(Sequence):
         self.on_epoch_end()
 
     def on_epoch_end(self):
-        print("reset")
         self.indexes = np.arange(len(self.data_paths))
         if self.random:
             np.random.shuffle(self.indexes)
@@ -61,7 +60,7 @@ class VolumeGenerator(Sequence):
                 else:
                     image, y, pos = VolumeGenerator.load_sample_slice(volume_x, volume_y, self.volume_shape,
                                                                       self.random, self.norm,
-                                                                      self.slice_index, self.trans)
+                                                                      self.slice_index)
                 if self.add_pos:
                     image_arr.append(image)
                     pos_arr.append(pos)
@@ -135,18 +134,18 @@ class VolumeGenerator(Sequence):
         #        volume_y = np.expand_dims(volume_y, axis=-1)
         volume_y = volume_y.astype(np.float32)
 
-        print(volume_x.shape)
-        print(volume_y.shape)
+        # print(volume_x.shape)
+        # print(volume_y.shape)
         if trans is not None:
             trans.random_transform([volume_x, volume_y])
             volume_x, volume_y = trans.getTransformedPair()[0]
-        print(volume_x.shape)
-        print(volume_y.shape)
+        # print(volume_x.shape)
+        # print(volume_y.shape)
 
         volume_x = np.expand_dims(volume_x, axis=-1)
         volume_y = np.expand_dims(volume_y, axis=-1)
 
-        print(volume_x.shape, volume_y.shape, pos)
+        # print(volume_x.shape, volume_y.shape, pos)
         return volume_x, volume_y, pos
 
     @staticmethod

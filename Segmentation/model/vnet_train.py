@@ -28,24 +28,24 @@ def setup_gpu():
 
 def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
           validate=True, merge_connect=True, norm=True, save_model=True,
-          slice_index=None, examples_per_load=1, max_angle=None):
+          slice_index=None, examples_per_load=1, max_angle=None, train_name="", **model_kwargs):
     add_pos = False
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
-        vnet = VNet_Tiny(1, n_classes, merge_connections=merge_connect)
+        vnet = VNet_Tiny(1, n_classes, merge_connections=merge_connect, **model_kwargs)
         assert slice_index is None, "Tiny requires slice index to be none"
     elif model == "small":
         from Segmentation.model.vnet_small import VNet_Small
-        vnet = VNet_Small(1, n_classes, merge_connections=merge_connect)
+        vnet = VNet_Small(1, n_classes, merge_connections=merge_connect, **model_kwargs)
         assert slice_index is None, "Small requires slice index to be none"
     elif model == "small_relative":
         from Segmentation.model.vnet_small_relative import VNet_Small_Relative
-        vnet = VNet_Small_Relative(1, n_classes, merge_connections=merge_connect)
+        vnet = VNet_Small_Relative(1, n_classes, merge_connections=merge_connect, **model_kwargs)
         assert slice_index is None, "Small relative requires slice index to be none"
         add_pos = True
     elif model == "slice":
         from Segmentation.model.vnet_slice import VNet_Slice
-        vnet = VNet_Slice(1, n_classes, merge_connections=merge_connect)
+        vnet = VNet_Slice(1, n_classes, merge_connections=merge_connect, **model_kwargs)
     else:
         raise NotImplementedError()
 
@@ -108,7 +108,7 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
         ax2.plot(history_1.history['val_categorical_crossentropy'], label="val catcross")
         ax2.plot(running_mean(history_1.history['val_categorical_crossentropy'], roll_period), label="val catcross roll")
     ax2.legend()
-    plt.show()
+    f.suptitle(f"{model}: {train_name}")
     plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_result_{now_time}")
 
 
@@ -119,15 +119,23 @@ if __name__ == "__main__":
     import sys, os
     sys.path.insert(0, os.getcwd())
 
-    e = 3
+    e = 200
 
-    train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, max_angle=2)
-    #train("small", epochs=e, examples_per_load=3)
-    #train("small", epochs=e, examples_per_load=3, max_angle=1)
-    #train("small", epochs=e, examples_per_load=3, max_angle=3)
-    #train("small", epochs=e, examples_per_load=3, max_angle=5)
-    # train("small_relative", epochs=e, examples_per_load=3)
-    # train("slice", epochs=e, shape=(384, 384, 3), slice_index=2, examples_per_load=10)
-    # train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10)
-    # train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10)
-    # train("slice", epochs=e, shape=(384, 384, 9), slice_index=5, examples_per_load=10)
+    train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate")
+    # train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, max_angle=2, train_name="(28,28,28) with rotate")
+
+    train("small", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate")
+    train("small", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate")
+    # train("small", shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
+
+    train("small_relative", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate (multiply)", action='multiply')
+    train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (multiply)", action='multiply')
+    train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (add)", action='add')
+    train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, norm=False, train_name="(128,128,128) without rotate (multiply, no norm)", action='multiply')
+    train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, merge_connect=False, train_name="(128,128,128) without rotate (multiply, no merge)", action='multiply')
+    # train("small_relative", shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
+
+    train("slice", epochs=e, shape=(384, 384, 3), slice_index=2, examples_per_load=10, train_name="slice (384,384,3)")
+    train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5)")
+    train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10, train_name="slice (384,384,7)")
+    train("slice", epochs=e, shape=(384, 384, 9), slice_index=5, examples_per_load=10, train_name="slice (384,384,9)")

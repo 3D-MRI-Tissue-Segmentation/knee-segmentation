@@ -14,7 +14,7 @@ class VNet_Small_Relative(tf.keras.Model):
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
-                 merge_connections=False,
+                 merge_connections=True,
                  num_compressors=3,
                  compressor_filters=3,
                  action='add',
