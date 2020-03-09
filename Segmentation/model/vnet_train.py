@@ -94,7 +94,7 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
     if reduce_lr:
         callbacks.append(
             tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,
-                                                 patience=10, min_lr=1e-6, verbose=1)
+                                                 patience=10, min_lr=1e-7, verbose=1)
         )
     
 
