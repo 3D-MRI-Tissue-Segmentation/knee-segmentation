@@ -28,7 +28,8 @@ def setup_gpu():
 
 def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
           validate=True, merge_connect=True, norm=True, save_model=True,
-          slice_index=None, examples_per_load=1, max_angle=None, train_name="", **model_kwargs):
+          slice_index=None, examples_per_load=1, max_angle=None, train_name="", 
+          reduce_lr=False, start_lr=5e-4, **model_kwargs):
     add_pos = False
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
@@ -78,7 +79,7 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
     else:
         loss_func = tversky_loss
 
-    vnet.compile(optimizer=Adam(lr=1e-5),
+    vnet.compile(optimizer=Adam(lr=start_lr),
                  loss=loss_func,
                  metrics=['categorical_crossentropy', precision, recall],
                  experimental_run_tf_function=True)
@@ -87,14 +88,22 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
         tf.keras.callbacks.ModelCheckpoint(
             filepath=f'checkpoints/train_session_{now_time}_{model}/chkp/model_' + '{epoch}',
             verbose=1),
+        
     ]
-    roll_period = 5
+
+    if reduce_lr:
+        callbacks.append(
+            tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,
+                                                 patience=10, min_lr=1e-6, verbose=1)
+        )
+    
 
     if validate:
         history_1 = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=epochs, verbose=1)
     else:
         history_1 = vnet.fit(x=train_gen, callbacks=callbacks, epochs=epochs, verbose=1)
-
+    
+    roll_period = 5
     f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
     ax1.plot(history_1.history['loss'], label="loss")
     ax1.plot(running_mean(history_1.history['loss'], roll_period), label="loss roll")
@@ -119,23 +128,27 @@ if __name__ == "__main__":
     import sys, os
     sys.path.insert(0, os.getcwd())
 
-    e = 200
+    e = 300
 
-    train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate")
+    # train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate")
     # train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, max_angle=2, train_name="(28,28,28) with rotate")
 
-    train("small", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate")
-    train("small", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate")
+    # train("small", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate")
+    # train("small", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate")
     # train("small", shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
 
-    train("small_relative", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate (multiply)", action='multiply')
-    train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (multiply)", action='multiply')
-    train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (add)", action='add')
-    train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, norm=False, train_name="(128,128,128) without rotate (multiply, no norm)", action='multiply')
-    train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, merge_connect=False, train_name="(128,128,128) without rotate (multiply, no merge)", action='multiply')
+    # train("small_relative", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate (multiply)", action='multiply')
+    # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (multiply)", action='multiply')
+    # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (add)", action='add')
+    # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, norm=False, train_name="(128,128,128) without rotate (multiply, no norm)", action='multiply')
+    # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, merge_connect=False, train_name="(128,128,128) without rotate (multiply, no merge)", action='multiply')
     # train("small_relative", shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
 
-    train("slice", epochs=e, shape=(384, 384, 3), slice_index=2, examples_per_load=10, train_name="slice (384,384,3)")
-    train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5)")
-    train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10, train_name="slice (384,384,7)")
-    train("slice", epochs=e, shape=(384, 384, 9), slice_index=5, examples_per_load=10, train_name="slice (384,384,9)")
+    # train("slice", epochs=e, shape=(384, 384, 9), slice_index=5, examples_per_load=2, train_name="slice (384,384,9) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    # train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=3, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    # train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=4, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    # train("slice", epochs=e, shape=(384, 384, 3), slice_index=2, examples_per_load=6, train_name="slice (384,384,3) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    
+    train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=reduce, k=(3,3,3)", kernel_size=(3,3,3), start_lr=1e-2, reduce_lr=True)
+    train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))

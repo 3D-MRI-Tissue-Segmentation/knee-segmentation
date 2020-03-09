@@ -72,7 +72,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                                            action=relative_action)
             elif model == "slice":
                 from Segmentation.model.vnet_slice import VNet_Slice
-                return VNet_Slice(colour_channels, n_classes, merge_connections=merge_connections)
+                return VNet_Slice(colour_channels, n_classes, merge_connections=merge_connections, kernel_size=(3,3,3))
             else:
                 raise NotImplementedError(f"no model named: {model}")
 
