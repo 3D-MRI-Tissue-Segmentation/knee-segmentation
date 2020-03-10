@@ -5,6 +5,7 @@ from datetime import datetime
 from tensorflow.keras.optimizers import Adam
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
 
 
 def running_mean(x, N):
@@ -28,8 +29,8 @@ def setup_gpu():
 
 def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
           validate=True, merge_connect=True, norm=True, save_model=True,
-          slice_index=None, examples_per_load=1, max_angle=None, train_name="", 
-          reduce_lr=False, start_lr=5e-4, **model_kwargs):
+          slice_index=None, examples_per_load=1, max_angle=None, train_name="",
+          reduce_lr=False, start_lr=5e-4, tf_dataset=True, **model_kwargs):
     add_pos = False
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
@@ -61,16 +62,37 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
 
     setup_gpu()
 
-    from Segmentation.utils.data_loader_3d import VolumeGenerator
-    train_gen = VolumeGenerator(batch_size, shape,
-                                norm=norm, add_pos=add_pos,
-                                slice_index=slice_index,
-                                examples_per_load=examples_per_load, max_angle=max_angle)
-    valid_gen = VolumeGenerator(batch_size, shape,
-                                file_path="./Data/valid/", data_type='valid',
-                                norm=norm, add_pos=add_pos,
-                                slice_index=slice_index,
-                                examples_per_load=examples_per_load)
+    steps = None
+    vsteps = None
+    if not tf_dataset:
+        from Segmentation.utils.data_loader_3d import VolumeGenerator
+        tdataset = VolumeGenerator(batch_size, shape,
+                                   norm=norm, add_pos=add_pos,
+                                   slice_index=slice_index,
+                                   examples_per_load=examples_per_load, max_angle=max_angle)
+        vdataset = VolumeGenerator(batch_size, shape,
+                                   file_path="./Data/valid/", data_type='valid',
+                                   norm=norm, add_pos=add_pos,
+                                   slice_index=slice_index,
+                                   examples_per_load=examples_per_load)
+    else:
+        get_slice = False
+        if model == "slice":
+            get_slice = True
+
+        from Segmentation.utils.data_loader_3d_tf import get_dataset
+        tdataset, steps = get_dataset(file_path="t",
+                                      sample_shape=shape,
+                                      transform_position="normal",
+                                      get_slice=get_slice,
+                                      get_position=add_pos)
+        vdataset, vsteps = get_dataset(file_path="v",
+                                       sample_shape=shape,
+                                       transform_position=False,
+                                       get_slice=get_slice,
+                                       get_position=add_pos)
+        tdataset = tdataset.repeat().batch(1).prefetch(tf.data.experimental.AUTOTUNE)
+        vdataset = vdataset.repeat().batch(1).prefetch(tf.data.experimental.AUTOTUNE)
 
     from Segmentation.utils.losses import dsc, dice_loss, tversky_loss, bce_dice_loss, focal_tversky, precision, recall, bce_precise_dice_loss
 
@@ -88,7 +110,6 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
         tf.keras.callbacks.ModelCheckpoint(
             filepath=f'checkpoints/train_session_{now_time}_{model}/chkp/model_' + '{epoch}',
             verbose=1),
-        
     ]
 
     if reduce_lr:
@@ -96,13 +117,13 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
             tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,
                                                  patience=10, min_lr=1e-7, verbose=1)
         )
-    
 
     if validate:
-        history_1 = vnet.fit(x=train_gen, validation_data=valid_gen, callbacks=callbacks, epochs=epochs, verbose=1)
+        history_1 = vnet.fit(x=tdataset, validation_data=vdataset, callbacks=callbacks, epochs=epochs, verbose=1,
+                             steps_per_epoch=steps, validation_steps=vsteps)
     else:
-        history_1 = vnet.fit(x=train_gen, callbacks=callbacks, epochs=epochs, verbose=1)
-    
+        history_1 = vnet.fit(x=tdataset, callbacks=callbacks, epochs=epochs, verbose=1)
+
     roll_period = 5
     f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
     ax1.plot(history_1.history['loss'], label="loss")
@@ -125,12 +146,13 @@ if __name__ == "__main__":
 
     print(tf.executing_eagerly())
 
-    import sys, os
+    import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 300
+    e = 3
 
     # train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate")
+    #train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate", tf_dataset=False)
     # train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, max_angle=2, train_name="(28,28,28) with rotate")
 
     # train("small", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate")
@@ -139,7 +161,8 @@ if __name__ == "__main__":
 
     # train("small_relative", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate (multiply)", action='multiply')
     # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (multiply)", action='multiply')
-    # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (add)", action='add')
+    #train("small_relative", shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (add)", action='add')
+    train("small_relative", shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(160,160,160) without rotate (add)", action='add', tf_dataset=False)
     # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, norm=False, train_name="(128,128,128) without rotate (multiply, no norm)", action='multiply')
     # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, merge_connect=False, train_name="(128,128,128) without rotate (multiply, no merge)", action='multiply')
     # train("small_relative", shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
@@ -148,7 +171,7 @@ if __name__ == "__main__":
     # train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=3, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
     # train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=4, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
     # train("slice", epochs=e, shape=(384, 384, 3), slice_index=2, examples_per_load=6, train_name="slice (384,384,3) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    
-    train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=reduce, k=(3,3,3)", kernel_size=(3,3,3), start_lr=1e-2, reduce_lr=True)
-    train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+
+    # train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=reduce, k=(3,3,3)", kernel_size=(3,3,3), start_lr=1e-2, reduce_lr=True)
+    # train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    # train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))

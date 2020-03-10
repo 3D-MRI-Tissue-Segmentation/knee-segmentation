@@ -43,7 +43,7 @@ def generator(data_paths, sample_shape,
             pos = np.empty(3)
             for i in range(3):
                 pos[i] = normalise_position(sample_pos[i], sample_pos_max[i])
-            yield (volume_x, pos), volume_y
+            yield [volume_x, pos], volume_y
         else:
             yield volume_x, volume_y
 
@@ -140,15 +140,15 @@ def get_dataset(file_path="t",
                 remove_outliers=True,
                 transform_angle=False,
                 transform_position=False,
-                get_slice=True,
+                get_slice=False,
                 get_position=False,
                 skip_empty=True):
     data_paths = get_paths(file_path)
-
+    steps = len(data_paths)
     output_shape = (*sample_shape, 1)
     if get_position:
-        output_types = [(tf.float32, tf.float32), tf.float32]
-        output_shapes = [(output_shape, (3,)), output_shape]
+        output_types = [[tf.float32, tf.float32], tf.float32]
+        output_shapes = [[output_shape, (3,)], output_shape]
     else:
         output_types = [tf.float32, tf.float32]
         output_shapes = [output_shape, output_shape]
@@ -156,6 +156,10 @@ def get_dataset(file_path="t",
         output_shapes[-1] = (sample_shape[0], sample_shape[1], 1)
     output_types = tuple(output_types)
     output_shapes = tuple(output_shapes)
+
+    print(output_shapes)
+    print(output_types)
+    print(output_shape)
 
     return tf.data.Dataset.from_generator(
         generator,
@@ -165,7 +169,7 @@ def get_dataset(file_path="t",
               normalise_input, remove_outliers,
               transform_angle, transform_position,
               get_slice, get_position, skip_empty)
-    )
+    ), steps
 
 if __name__ == "__main__":
 
@@ -189,10 +193,10 @@ if __name__ == "__main__":
     benchmark(get_dataset(file_path="t",
                           sample_shape=(40, 40, 20),
                           transform_position="normal",
-                          get_slice=False,
+                          get_slice=True,
                           normalise_input=False,
-                          get_position=False).prefetch(tf.data.experimental.AUTOTUNE))
-    
+                          get_position=True).prefetch(tf.data.experimental.AUTOTUNE))
+
     import sys
     from os import getcwd
     sys.path.insert(0, getcwd())
