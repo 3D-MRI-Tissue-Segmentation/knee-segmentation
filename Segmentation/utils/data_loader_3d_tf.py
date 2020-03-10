@@ -7,45 +7,51 @@ import h5py
 def generator(data_paths, sample_shape,
               normalise_input, remove_outliers,
               transform_angle, transform_position,
-              get_slice, get_position, skip_empty):
+              get_slice, get_position,
+              skip_empty, skip_fail):
     for paths in data_paths:
+        count = 1
+        skip_count = skip_fail
         x_path, y_path = paths
         volume_x = load_file(x_path)
         volume_y = load_file(y_path)
 
-        sample_pos, sample_pos_max = get_sample_pos(volume_x.shape, sample_shape, transform_position)
+        while count > 0:
+            sample_pos, sample_pos_max = get_sample_pos(volume_x.shape, sample_shape, transform_position)
 
-        if not np.array_equal(volume_x.shape, sample_shape):
-            volume_x = sample_from_volume(volume_x, sample_shape, sample_pos)
-            volume_y = sample_from_volume(volume_y, sample_shape, sample_pos)
-        volume_y = np.any(volume_y, axis=-1)
+            if not np.array_equal(volume_x.shape, sample_shape):
+                volume_x = sample_from_volume(volume_x, sample_shape, sample_pos)
+                volume_y = sample_from_volume(volume_y, sample_shape, sample_pos)
+            volume_y = np.any(volume_y, axis=-1)
 
-        if normalise_input or remove_outliers:
-            mean = tf.math.reduce_mean(volume_x)
-            if remove_outliers:
-                np.clip(volume_x, None, 0.01, volume_x)
-            if normalise_input:
-                volume_x = normalise(volume_x, mean)
+            if normalise_input or remove_outliers:
+                mean = tf.math.reduce_mean(volume_x)
+                if remove_outliers:
+                    np.clip(volume_x, None, 0.01, volume_x)
+                if normalise_input:
+                    volume_x = normalise(volume_x, mean)
 
-        volume_x = expand_dim_as_float(volume_x)
-        volume_y = expand_dim_as_float(volume_y)
+            volume_x = expand_dim_as_float(volume_x)
+            volume_y = expand_dim_as_float(volume_y)
 
-        if get_slice:
-            slice_idx = int((sample_shape[2] + 1) / 2) - 1
-            assert slice_idx >= 0
-            volume_y = volume_y[:, :, slice_idx]
+            if get_slice:
+                slice_idx = int((sample_shape[2] + 1) / 2) - 1
+                assert slice_idx >= 0
+                volume_y = volume_y[:, :, slice_idx]
 
-        if skip_empty:
-            if np.sum(volume_y) == 0:
-                continue
-
-        if get_position:
-            pos = np.empty(3)
-            for i in range(3):
-                pos[i] = normalise_position(sample_pos[i], sample_pos_max[i])
-            yield [volume_x, pos], volume_y
-        else:
-            yield volume_x, volume_y
+            if skip_empty:
+                if np.sum(volume_y) == 0:
+                    skip_count -= 1
+                    if skip_count > 0:
+                        continue
+            count -= 1
+            if get_position:
+                pos = np.empty(3)
+                for i in range(3):
+                    pos[i] = normalise_position(sample_pos[i], sample_pos_max[i])
+                yield (volume_x, pos), volume_y
+            else:
+                yield volume_x, volume_y
 
 def get_sample_pos(volume_shape, sample_shape, transform_position):
     """
@@ -142,13 +148,14 @@ def get_dataset(file_path="t",
                 transform_position=False,
                 get_slice=False,
                 get_position=False,
-                skip_empty=True):
+                skip_empty=True,
+                skip_fail=3):
     data_paths = get_paths(file_path)
     steps = len(data_paths)
     output_shape = (*sample_shape, 1)
     if get_position:
-        output_types = [[tf.float32, tf.float32], tf.float32]
-        output_shapes = [[output_shape, (3,)], output_shape]
+        output_types = [(tf.float32, tf.float32), tf.float32]
+        output_shapes = [(output_shape, (3,)), output_shape]
     else:
         output_types = [tf.float32, tf.float32]
         output_shapes = [output_shape, output_shape]
@@ -168,7 +175,8 @@ def get_dataset(file_path="t",
         args=(data_paths, output_shape,
               normalise_input, remove_outliers,
               transform_angle, transform_position,
-              get_slice, get_position, skip_empty)
+              get_slice, get_position,
+              skip_empty, skip_fail)
     ), steps
 
 if __name__ == "__main__":
@@ -200,5 +208,3 @@ if __name__ == "__main__":
     import sys
     from os import getcwd
     sys.path.insert(0, getcwd())
-
-    

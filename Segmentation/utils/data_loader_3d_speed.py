@@ -56,7 +56,7 @@ class VolumeGenerator(Sequence):
             volume_x_original = VolumeGenerator.load_file(x_path)
             volume_y_original = VolumeGenerator.load_file(y_path)
 
-            while count > 0 and skip_count > 0:
+            while count > 0:
                 sample_pos, sample_pos_max = VolumeGenerator.get_sample_pos(volume_x_original.shape, self.sample_shape,
                                                                             self.transform_position)
 
@@ -81,8 +81,9 @@ class VolumeGenerator(Sequence):
 
                 if self.skip_empty:
                     if np.sum(volume_y) == 0:
-                        count -= 1
-                        continue
+                        skip_count -= 1
+                        if skip_count > 0:
+                            continue
 
                 if self.get_position:
                     image_arr.append(volume_x)
