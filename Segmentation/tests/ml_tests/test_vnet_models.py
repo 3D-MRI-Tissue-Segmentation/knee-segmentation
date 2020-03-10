@@ -45,10 +45,10 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                                                     width, height, depth, colour_channels)
         print("=============================")
         print(one_hots.shape)
-        print(one_hots[:, :, :, 3].shape)
 
         if model == "slice":
             one_hots = one_hots[:, :, :, 3]
+            print(one_hots.shape)
         print("=============================")
 
         inputs = volumes
@@ -84,9 +84,9 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
 
         def vnet_feedforward(vnet, inputs, one_hots):
             output = vnet(inputs, training=False)
-            assert output.shape == one_hots.shape
+            assert output.shape == one_hots.shape, f"{output.shape} == {one_hots.shape}"
             output = vnet.predict(inputs)
-            assert output.shape == one_hots.shape
+            assert output.shape == one_hots.shape, f"{output.shape} == {one_hots.shape}"
 
         vnet_feedforward(vnet, inputs, one_hots)
 
@@ -131,7 +131,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
             else:
                 metrics = ['categorical_crossentropy']
                 if n_classes == 1:
-                    metrics.append(dice_coef_loss)
+                    metrics.append(dice_loss)
                 vnet.compile(optimizer=Adam(0.001),
                              loss=loss_func,
                              metrics=metrics,
@@ -163,6 +163,6 @@ if __name__ == '__main__':
 
     tv = Test_VNet()
     tv.run_vnet(model="slice", n_volumes=3,
-                height=96, width=96, depth=5, colour_channels=1,
+                height=96, width=96, depth=96, colour_channels=1,
                 merge_connections=False, relative=False, n_classes=1,
                 epochs=2, custom_fit=True)

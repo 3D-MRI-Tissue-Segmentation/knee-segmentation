@@ -123,7 +123,7 @@ class VolumeGenerator(Sequence):
         pos_z *= 2
         pos = np.array((pos_x, pos_y, pos_z), dtype=np.float32)
         volume_x = VolumeGenerator.sample_from_volume(volume_x, sample_shape, centre)
-        #volume_x = np.expand_dims(volume_x, axis=-1)
+        # volume_x = np.expand_dims(volume_x, axis=-1)
         volume_x = volume_x.astype(np.float32)
         if norm:
             mean = tf.math.reduce_mean(volume_x)
@@ -186,7 +186,8 @@ class VolumeGenerator(Sequence):
 
 
 if __name__ == "__main__":
-    import sys, os
+    import sys
+    import os
     sys.path.insert(0, os.getcwd())
 
     add_pos = True
