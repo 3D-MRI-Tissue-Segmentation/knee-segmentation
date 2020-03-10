@@ -47,9 +47,6 @@ def generator(data_paths, sample_shape,
         else:
             yield volume_x, volume_y
 
-def expand_dim_as_float(volume):
-    return np.expand_dims(volume, axis=-1).astype(np.float32)
-
 def get_sample_pos(volume_shape, sample_shape, transform_position):
     """
     - Get the position required to translate the volumes by. Ranges from 0 to volume_shape - sample_shape
@@ -118,6 +115,9 @@ def load_file(file):
     with h5py.File(file, 'r') as hf:
         volume = np.array(hf['data'])
     return volume
+
+def expand_dim_as_float(volume):
+    return np.expand_dims(volume, axis=-1).astype(np.float32)
 
 def get_paths(file_path):
     if file_path == "t":

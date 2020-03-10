@@ -30,7 +30,7 @@ def setup_gpu():
 def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
           validate=True, merge_connect=True, norm=True, save_model=True,
           slice_index=None, examples_per_load=1, max_angle=None, train_name="",
-          reduce_lr=False, start_lr=5e-4, tf_dataset=True, **model_kwargs):
+          reduce_lr=False, start_lr=5e-4, dataset_load_method=None, **model_kwargs):
     add_pos = False
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
@@ -64,7 +64,7 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
 
     steps = None
     vsteps = None
-    if not tf_dataset:
+    if dataset_load_method is None:
         from Segmentation.utils.data_loader_3d import VolumeGenerator
         tdataset = VolumeGenerator(batch_size, shape,
                                    norm=norm, add_pos=add_pos,
@@ -75,7 +75,7 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
                                    norm=norm, add_pos=add_pos,
                                    slice_index=slice_index,
                                    examples_per_load=examples_per_load)
-    else:
+    elif dataset_load_method == "tf"
         get_slice = False
         if model == "slice":
             get_slice = True
@@ -93,6 +93,18 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
                                        get_position=add_pos)
         tdataset = tdataset.repeat().batch(1).prefetch(tf.data.experimental.AUTOTUNE)
         vdataset = vdataset.repeat().batch(1).prefetch(tf.data.experimental.AUTOTUNE)
+    elif dataset_load_method == "speed"
+        get_slice = False
+        if model == "slice":
+            get_slice = True
+
+        from Segmentation.utils.data_loader_3d_speed import VolumeGenerator
+        tdataset = VolumeGenerator(1, shape, "t", normalise_input=norm,
+                                   transform_position="normal", get_slice=get_slice,
+                                   get_position=add_pos)
+        vdataset = VolumeGenerator(1, shape, "v", normalise_input=norm,
+                                   transform_position="normal", get_slice=get_slice,
+                                   get_position=add_pos)
 
     from Segmentation.utils.losses import dsc, dice_loss, tversky_loss, bce_dice_loss, focal_tversky, precision, recall, bce_precise_dice_loss
 
@@ -145,7 +157,7 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
 if __name__ == "__main__":
 
     print(tf.executing_eagerly())
-
+    import time
     import sys
     sys.path.insert(0, os.getcwd())
 
@@ -162,7 +174,20 @@ if __name__ == "__main__":
     # train("small_relative", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate (multiply)", action='multiply')
     # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (multiply)", action='multiply')
     #train("small_relative", shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (add)", action='add')
-    train("small_relative", shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(160,160,160) without rotate (add)", action='add', tf_dataset=False)
+    start_time = time.perf_counter()
+    train("small_relative", shape=(160,160,120), epochs=e, examples_per_load=3, train_name="(160,160,160) without rotate (add)", action='add', dataset_load_method=None)
+    normal_time = time.perf_counter() - start_time
+    start_time = time.perf_counter()
+    train("small_relative", shape=(160,160,120), epochs=e, examples_per_load=3, train_name="(160,160,160) without rotate (add)", action='add', dataset_load_method="tf")
+    tf_time = time.perf_counter() - start_time
+    
+    start_time = time.perf_counter()
+    train("small_relative", shape=(160,160,120), epochs=e, examples_per_load=3, train_name="(160,160,160) without rotate (add)", action='add', dataset_load_method="speed")
+    speed_time = time.perf_counter() - start_time
+    
+    tf.print("Normal Execution time:", normal_time)
+    tf.print("TF Execution time:", tf_time)
+    tf.print("Speed Execution time:", speed_time)
     # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, norm=False, train_name="(128,128,128) without rotate (multiply, no norm)", action='multiply')
     # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, merge_connect=False, train_name="(128,128,128) without rotate (multiply, no merge)", action='multiply')
     # train("small_relative", shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
