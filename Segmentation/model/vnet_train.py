@@ -171,9 +171,9 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
 if __name__ == "__main__":
 
-    print(tf.executing_eagerly())
+    print("running eagerly:", tf.executing_eagerly())
     gpus = tf.config.experimental.list_physical_devices('GPU')
-    print(gpus)
+    print("gpus:", gpus)
     import time
     import sys
     sys.path.insert(0, os.getcwd())
@@ -185,7 +185,6 @@ if __name__ == "__main__":
 
     if use_gpu == "1":
         print("running on gpu 1")
-
         with tf.device('/physical_device:GPU:0'):
             train("tiny", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
                   train_name="tiny (200,200,160)")
@@ -193,10 +192,10 @@ if __name__ == "__main__":
                   train_name="small (200,200,160)")
             train("small_relative", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
                   train_name="small_relative (200,200,128) (add)", action="add")
-    # else:
-    #     print("running on gpu 2")
-    #     with tf.device('/device:GPU:1'):
-    # train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
-    #       train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3))
-    # train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
-    #       train_name="slice (384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1))
+    else:
+        print("running on gpu 2")
+        with tf.device('/physical_device:GPU:1'):
+            train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+                  train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3))
+            train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+                  train_name="slice (384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1))
