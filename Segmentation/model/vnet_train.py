@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
     if use_gpu == "1":
         print("running on gpu 1")
-        with tf.device('/physical_device:GPU:0'):
+        with tf.device(gpus[0].name):
             train("tiny", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
                   train_name="tiny (200,200,160)")
             train("small", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
@@ -194,7 +194,7 @@ if __name__ == "__main__":
                   train_name="small_relative (200,200,128) (add)", action="add")
     else:
         print("running on gpu 2")
-        with tf.device('/physical_device:GPU:1'):
+        with tf.device(gpus[1].name):
             train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
                   train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3))
             train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
