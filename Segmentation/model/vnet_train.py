@@ -27,27 +27,30 @@ def setup_gpu():
             print(e)
 
 
-def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
-          validate=True, merge_connect=True, norm=True, save_model=True,
-          slice_index=None, examples_per_load=1, max_angle=None, train_name="",
-          reduce_lr=False, start_lr=5e-4, dataset_load_method=None, **model_kwargs):
-    add_pos = False
+def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs=10,
+          save_model=True, validate=True, train_name="",
+          reduce_lr=False, start_lr=5e-4, dataset_load_method=None, 
+          shuffle_order=True,
+          normalise_input=True, remove_outliers=True,
+          transform_angle=False, transform_position=False,
+          get_slice=False, get_position=False, skip_empty=True,
+          examples_per_load=1,
+          **model_kwargs):
+    get_position, get_slice = False, False
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
-        vnet = VNet_Tiny(1, n_classes, merge_connections=merge_connect, **model_kwargs)
-        assert slice_index is None, "Tiny requires slice index to be none"
+        vnet = VNet_Tiny(1, n_classes, **model_kwargs)
     elif model == "small":
         from Segmentation.model.vnet_small import VNet_Small
-        vnet = VNet_Small(1, n_classes, merge_connections=merge_connect, **model_kwargs)
-        assert slice_index is None, "Small requires slice index to be none"
+        vnet = VNet_Small(1, n_classes, **model_kwargs)
     elif model == "small_relative":
         from Segmentation.model.vnet_small_relative import VNet_Small_Relative
-        vnet = VNet_Small_Relative(1, n_classes, merge_connections=merge_connect, **model_kwargs)
-        assert slice_index is None, "Small relative requires slice index to be none"
-        add_pos = True
+        vnet = VNet_Small_Relative(1, n_classes, **model_kwargs)
+        get_position = True
     elif model == "slice":
         from Segmentation.model.vnet_slice import VNet_Slice
-        vnet = VNet_Slice(1, n_classes, merge_connections=merge_connect, **model_kwargs)
+        vnet = VNet_Slice(1, n_classes, **model_kwargs)
+        get_slice = True
     else:
         raise NotImplementedError()
 
@@ -64,47 +67,49 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
 
     steps = None
     vsteps = None
-    if dataset_load_method is None:
-        from Segmentation.utils.data_loader_3d import VolumeGenerator
-        tdataset = VolumeGenerator(batch_size, shape,
-                                   norm=norm, add_pos=add_pos,
-                                   slice_index=slice_index,
-                                   examples_per_load=examples_per_load, max_angle=max_angle)
-        vdataset = VolumeGenerator(batch_size, shape,
-                                   file_path="./Data/valid/", data_type='valid',
-                                   norm=norm, add_pos=add_pos,
-                                   slice_index=slice_index,
-                                   examples_per_load=examples_per_load)
-    elif dataset_load_method == "tf":
+    if dataset_load_method == "tf":
         get_slice = False
         if model == "slice":
             get_slice = True
 
         from Segmentation.utils.data_loader_3d_tf import get_dataset
         tdataset, steps = get_dataset(file_path="t",
-                                      sample_shape=shape,
-                                      transform_position="normal",
+                                      sample_shape=sample_shape,
+                                      remove_outliers=remove_outliers,
+                                      transform_position=transform_position,
                                       get_slice=get_slice,
-                                      get_position=add_pos)
+                                      get_position=get_position)
         vdataset, vsteps = get_dataset(file_path="v",
-                                       sample_shape=shape,
+                                       sample_shape=sample_shape,
                                        transform_position=False,
                                        get_slice=get_slice,
-                                       get_position=add_pos)
-        tdataset = tdataset.repeat().batch(1).prefetch(tf.data.experimental.AUTOTUNE)
-        vdataset = vdataset.repeat().batch(1).prefetch(tf.data.experimental.AUTOTUNE)
-    elif dataset_load_method == "speed":
+                                       get_position=get_position)
+        tdataset = tdataset.repeat().batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+        vdataset = vdataset.repeat().batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+    elif dataset_load_method is None:
         get_slice = False
         if model == "slice":
             get_slice = True
 
-        from Segmentation.utils.data_loader_3d_speed import VolumeGenerator
-        tdataset = VolumeGenerator(1, shape, "t", normalise_input=norm,
-                                   transform_position="normal", get_slice=get_slice,
-                                   get_position=add_pos)
-        vdataset = VolumeGenerator(1, shape, "v", normalise_input=norm,
-                                   transform_position="normal", get_slice=get_slice,
-                                   get_position=add_pos)
+        from Segmentation.utils.data_loader_3d import VolumeGenerator
+        tdataset = VolumeGenerator(batch_size, sample_shape, "t",
+                                   shuffle_order=shuffle_order,
+                                   normalise_input=normalise_input,
+                                   remove_outliers=remove_outliers,
+                                   transform_position=transform_position,
+                                   get_slice=get_slice,
+                                   get_position=get_position,
+                                   skip_empty=skip_empty,
+                                   examples_per_load=examples_per_load)
+        vdataset = VolumeGenerator(batch_size, sample_shape, "v",
+                                   shuffle_order=shuffle_order,
+                                   normalise_input=normalise_input,
+                                   remove_outliers=remove_outliers,
+                                   transform_position=False,
+                                   get_slice=get_slice,
+                                   get_position=get_position,
+                                   skip_empty=skip_empty,
+                                   examples_per_load=examples_per_load)
 
     from Segmentation.utils.losses import dsc, dice_loss, tversky_loss, bce_dice_loss, focal_tversky, precision, recall, bce_precise_dice_loss
 
@@ -131,7 +136,8 @@ def train(model, n_classes=1, batch_size=1, shape=(128, 128, 128), epochs=1000,
         )
 
     if validate:
-        history_1 = vnet.fit(x=tdataset, validation_data=vdataset, callbacks=callbacks, epochs=epochs, verbose=1,
+        history_1 = vnet.fit(x=tdataset, validation_data=vdataset,
+                             callbacks=callbacks, epochs=epochs, verbose=1,
                              steps_per_epoch=steps, validation_steps=vsteps)
     else:
         history_1 = vnet.fit(x=tdataset, callbacks=callbacks, epochs=epochs, verbose=1)
@@ -161,44 +167,29 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 4
+    e = 50
 
-    # train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate")
-    # train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate", tf_dataset=False)
-    # train("tiny", shape=(28,28,28), epochs=e, examples_per_load=3, max_angle=2, train_name="(28,28,28) with rotate")
+    train("tiny", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate")
+    train("tiny", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate")
 
-    # train("small", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate")
-    # train("small", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate")
-    # train("small", shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
+    train("small", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate")
+    train("small", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate")
+    
 
-    # train("small_relative", shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate (multiply)", action='multiply')
-    # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (multiply)", action='multiply')
-    # train("small_relative", shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (add)", action='add')
+    # train("small_relative", sample_shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate (multiply)", action='multiply')
+    # train("small_relative", sample_shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (multiply)", action='multiply')
+    # train("small_relative", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (add)", action='add')
 
-    start_time = time.perf_counter()
-    train("small_relative", shape=(160,160,120), epochs=e, examples_per_load=1, train_name="(160,160,160) without rotate (add)", action='add', dataset_load_method=None)
-    normal_time = time.perf_counter() - start_time
-    start_time = time.perf_counter()
-    train("small_relative", shape=(160,160,120), epochs=e, examples_per_load=1, train_name="(160,160,160) without rotate (add)", action='add', dataset_load_method="tf")
-    tf_time = time.perf_counter() - start_time
+    # train("small_relative", sample_shape=(160,160,160), epochs=e, examples_per_load=5, train_name="(160,160,160) without rotate (add)", action='add', dataset_load_method="speed")
+    # train("small_relative", sample_shape=(128,128,128), epochs=e, examples_per_load=3, norm=False, train_name="(128,128,128) without rotate (multiply, no norm)", action='multiply')
+    # train("small_relative", sample_shape=(128,128,128), epochs=e, examples_per_load=3, merge_connect=False, train_name="(128,128,128) without rotate (multiply, no merge)", action='multiply')
+    # train("small_relative", sample_shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
 
-    start_time = time.perf_counter()
-    train("small_relative", shape=(160,160,120), epochs=e, examples_per_load=1, train_name="(160,160,160) without rotate (add)", action='add', dataset_load_method="speed")
-    speed_time = time.perf_counter() - start_time
+    # train("slice", epochs=e, sample_shape=(384, 384, 9), slice_index=5, examples_per_load=2, train_name="slice (384,384,9) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    # train("slice", epochs=e, sample_shape=(384, 384, 7), slice_index=4, examples_per_load=3, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    # train("slice", epochs=e, sample_shape=(384, 384, 5), slice_index=3, examples_per_load=4, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    # train("slice", epochs=e, sample_shape=(384, 384, 3), slice_index=2, examples_per_load=6, train_name="slice (384,384,3) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
 
-    tf.print("Normal Execution time:", normal_time)
-    tf.print("TF Execution time:", tf_time)
-    tf.print("Speed Execution time:", speed_time)
-
-    # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, norm=False, train_name="(128,128,128) without rotate (multiply, no norm)", action='multiply')
-    # train("small_relative", shape=(128,128,128), epochs=e, examples_per_load=3, merge_connect=False, train_name="(128,128,128) without rotate (multiply, no merge)", action='multiply')
-    # train("small_relative", shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
-
-    # train("slice", epochs=e, shape=(384, 384, 9), slice_index=5, examples_per_load=2, train_name="slice (384,384,9) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    # train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=3, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    # train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=4, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    # train("slice", epochs=e, shape=(384, 384, 3), slice_index=2, examples_per_load=6, train_name="slice (384,384,3) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-
-    # train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=reduce, k=(3,3,3)", kernel_size=(3,3,3), start_lr=1e-2, reduce_lr=True)
-    # train("slice", epochs=e, shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    # train("slice", epochs=e, shape=(384, 384, 7), slice_index=4, examples_per_load=10, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    # train("slice", epochs=e, sample_shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=reduce, k=(3,3,3)", kernel_size=(3,3,3), start_lr=1e-2, reduce_lr=True)
+    # train("slice", epochs=e, sample_shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+    # train("slice", epochs=e, sample_shape=(384, 384, 7), slice_index=4, examples_per_load=10, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))

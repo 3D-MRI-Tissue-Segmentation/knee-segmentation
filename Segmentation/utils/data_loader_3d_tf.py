@@ -164,10 +164,6 @@ def get_dataset(file_path="t",
     output_types = tuple(output_types)
     output_shapes = tuple(output_shapes)
 
-    print(output_shapes)
-    print(output_types)
-    print(output_shape)
-
     return tf.data.Dataset.from_generator(
         generator,
         output_types=output_types,
