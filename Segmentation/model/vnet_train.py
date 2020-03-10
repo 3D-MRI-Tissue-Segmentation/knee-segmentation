@@ -122,11 +122,13 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     from Segmentation.utils.losses import bce_dice_loss, dice_loss
     from Segmentation.utils.losses import tversky_loss, precision, recall
 
+    loss_name = ""
     if n_classes == 1:
         loss_func = bce_dice_loss
+        loss_name = "crossentropy and dice loss"
     else:
         loss_func = tversky_loss
-
+        loss_name = "tversky loss"
     vnet.compile(optimizer=Adam(lr=start_lr),
                  loss=loss_func,
                  metrics=['categorical_crossentropy', dice_loss, precision, recall],
@@ -158,12 +160,16 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     if validate:
         ax1.plot(history_1.history['val_loss'], label="val loss")
         ax1.plot(running_mean(history_1.history['val_loss'], roll_period), label="val loss roll")
+    ax1.set_xlabel("epoch")
+    ax1.set_ylabel(loss_name)
     ax1.legend()
     ax2.plot(history_1.history['categorical_crossentropy'], label="catcross")
     ax2.plot(running_mean(history_1.history['categorical_crossentropy'], roll_period), label="catcross roll")
     if validate:
         ax2.plot(history_1.history['val_categorical_crossentropy'], label="val catcross")
         ax2.plot(running_mean(history_1.history['val_categorical_crossentropy'], roll_period), label="val catcross roll")
+    ax2.set_xlabel("epoch")
+    ax2.set_ylabel("crossentropy")
     ax2.legend()
     f.suptitle(f"{model}: {train_name}")
     plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_result_{now_time}")
@@ -177,8 +183,8 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 100
-    examples_per_load = 3
+    e = 1
+    examples_per_load = 1
 
     train("tiny", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
           train_name="tiny (200,200,160)")
