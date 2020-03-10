@@ -15,6 +15,7 @@ def running_mean(x, N):
 
 def setup_gpu():
     gpus = tf.config.experimental.list_physical_devices('GPU')
+    print(gpus)
     if gpus:
         try:
             # Currently, memory growth needs to be the same across GPUs
@@ -29,7 +30,7 @@ def setup_gpu():
 
 def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs=10,
           save_model=True, validate=True, train_name="",
-          reduce_lr=False, start_lr=5e-4, dataset_load_method=None, 
+          reduce_lr=False, start_lr=5e-4, dataset_load_method=None,
           shuffle_order=True,
           normalise_input=True, remove_outliers=True,
           transform_angle=False, transform_position=False,
@@ -76,14 +77,19 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
         tdataset, steps = get_dataset(file_path="t",
                                       sample_shape=sample_shape,
                                       remove_outliers=remove_outliers,
+                                      transform_angle=False,
                                       transform_position=transform_position,
                                       get_slice=get_slice,
-                                      get_position=get_position)
+                                      get_position=get_position,
+                                      skip_empty=skip_empty)
         vdataset, vsteps = get_dataset(file_path="v",
                                        sample_shape=sample_shape,
+                                       remove_outliers=remove_outliers,
+                                       transform_angle=False,
                                        transform_position=False,
                                        get_slice=get_slice,
-                                       get_position=get_position)
+                                       get_position=get_position,
+                                       skip_empty=skip_empty)
         tdataset = tdataset.repeat().batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
         vdataset = vdataset.repeat().batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
     elif dataset_load_method is None:
@@ -96,6 +102,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                                    shuffle_order=shuffle_order,
                                    normalise_input=normalise_input,
                                    remove_outliers=remove_outliers,
+                                   transform_angle=False,
                                    transform_position=transform_position,
                                    get_slice=get_slice,
                                    get_position=get_position,
@@ -105,13 +112,15 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                                    shuffle_order=shuffle_order,
                                    normalise_input=normalise_input,
                                    remove_outliers=remove_outliers,
+                                   transform_angle=False,
                                    transform_position=False,
                                    get_slice=get_slice,
                                    get_position=get_position,
                                    skip_empty=skip_empty,
                                    examples_per_load=examples_per_load)
 
-    from Segmentation.utils.losses import dsc, dice_loss, tversky_loss, bce_dice_loss, focal_tversky, precision, recall, bce_precise_dice_loss
+    from Segmentation.utils.losses import dsc, dice_loss, tversky_loss, bce_dice_loss
+    from Segmentation.utils.losses import focal_tversky, precision, recall, bce_precise_dice_loss
 
     if n_classes == 1:
         loss_func = dice_loss
@@ -163,33 +172,31 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 if __name__ == "__main__":
 
     print(tf.executing_eagerly())
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    print(gpus)
     import time
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 50
+    e = 100
+    examples_per_load = 3
 
-    train("tiny", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate")
-    train("tiny", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(28,28,28) without rotate")
+    use_gpu = sys.argv[1]
 
-    train("small", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate")
-    train("small", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate")
-    
+    if use_gpu == "1":
+        print("running on gpu 1")
 
-    # train("small_relative", sample_shape=(96,96,96), epochs=e, examples_per_load=3, train_name="(96,96,96) without rotate (multiply)", action='multiply')
-    # train("small_relative", sample_shape=(128,128,128), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (multiply)", action='multiply')
-    # train("small_relative", sample_shape=(160,160,160), epochs=e, examples_per_load=3, train_name="(128,128,128) without rotate (add)", action='add')
-
-    # train("small_relative", sample_shape=(160,160,160), epochs=e, examples_per_load=5, train_name="(160,160,160) without rotate (add)", action='add', dataset_load_method="speed")
-    # train("small_relative", sample_shape=(128,128,128), epochs=e, examples_per_load=3, norm=False, train_name="(128,128,128) without rotate (multiply, no norm)", action='multiply')
-    # train("small_relative", sample_shape=(128,128,128), epochs=e, examples_per_load=3, merge_connect=False, train_name="(128,128,128) without rotate (multiply, no merge)", action='multiply')
-    # train("small_relative", sample_shape=(96,96,96), epochs=e, max_angle=2, train_name="(96,96,96) without rotate")
-
-    # train("slice", epochs=e, sample_shape=(384, 384, 9), slice_index=5, examples_per_load=2, train_name="slice (384,384,9) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    # train("slice", epochs=e, sample_shape=(384, 384, 7), slice_index=4, examples_per_load=3, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    # train("slice", epochs=e, sample_shape=(384, 384, 5), slice_index=3, examples_per_load=4, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    # train("slice", epochs=e, sample_shape=(384, 384, 3), slice_index=2, examples_per_load=6, train_name="slice (384,384,3) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-
-    # train("slice", epochs=e, sample_shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=reduce, k=(3,3,3)", kernel_size=(3,3,3), start_lr=1e-2, reduce_lr=True)
-    # train("slice", epochs=e, sample_shape=(384, 384, 5), slice_index=3, examples_per_load=10, train_name="slice (384,384,5) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
-    # train("slice", epochs=e, sample_shape=(384, 384, 7), slice_index=4, examples_per_load=10, train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3,3,3))
+        with tf.device('/physical_device:GPU:0'):
+            train("tiny", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
+                  train_name="tiny (200,200,160)")
+            train("small", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
+                  train_name="small (200,200,160)")
+            train("small_relative", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
+                  train_name="small_relative (200,200,128) (add)", action="add")
+    # else:
+    #     print("running on gpu 2")
+    #     with tf.device('/device:GPU:1'):
+    # train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+    #       train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3))
+    # train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+    #       train_name="slice (384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1))
