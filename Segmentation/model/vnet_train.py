@@ -35,22 +35,26 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
           normalise_input=True, remove_outliers=True,
           transform_angle=False, transform_position=False,
           get_slice=False, get_position=False, skip_empty=True,
-          examples_per_load=1,
+          examples_per_load=1, strategy=None,
           **model_kwargs):
     get_position, get_slice = False, False
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
-        vnet = VNet_Tiny(1, n_classes, **model_kwargs)
+        with strategy.scope():
+            vnet = VNet_Tiny(1, n_classes, **model_kwargs)
     elif model == "small":
         from Segmentation.model.vnet_small import VNet_Small
-        vnet = VNet_Small(1, n_classes, **model_kwargs)
+        with strategy.scope():
+            vnet = VNet_Small(1, n_classes, **model_kwargs)
     elif model == "small_relative":
         from Segmentation.model.vnet_small_relative import VNet_Small_Relative
-        vnet = VNet_Small_Relative(1, n_classes, **model_kwargs)
+        with strategy.scope():
+            vnet = VNet_Small_Relative(1, n_classes, **model_kwargs)
         get_position = True
     elif model == "slice":
         from Segmentation.model.vnet_slice import VNet_Slice
-        vnet = VNet_Slice(1, n_classes, **model_kwargs)
+        with strategy.scope():
+            vnet = VNet_Slice(1, n_classes, **model_kwargs)
         get_slice = True
     else:
         raise NotImplementedError()
@@ -74,24 +78,26 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             get_slice = True
 
         from Segmentation.utils.data_loader_3d_tf import get_dataset
-        tdataset, steps = get_dataset(file_path="t",
-                                      sample_shape=sample_shape,
-                                      remove_outliers=remove_outliers,
-                                      transform_angle=False,
-                                      transform_position=transform_position,
-                                      get_slice=get_slice,
-                                      get_position=get_position,
-                                      skip_empty=skip_empty)
-        vdataset, vsteps = get_dataset(file_path="v",
-                                       sample_shape=sample_shape,
-                                       remove_outliers=remove_outliers,
-                                       transform_angle=False,
-                                       transform_position=False,
-                                       get_slice=get_slice,
-                                       get_position=get_position,
-                                       skip_empty=skip_empty)
-        tdataset = tdataset.repeat().batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
-        vdataset = vdataset.repeat().batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+        with strategy.scope():
+            tdataset, steps = get_dataset(file_path="t",
+                                          sample_shape=sample_shape,
+                                          remove_outliers=remove_outliers,
+                                          transform_angle=False,
+                                          transform_position=transform_position,
+                                          get_slice=get_slice,
+                                          get_position=get_position,
+                                          skip_empty=skip_empty)
+            tdataset = tdataset.repeat().batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+        with strategy.scope():
+            vdataset, vsteps = get_dataset(file_path="v",
+                                           sample_shape=sample_shape,
+                                           remove_outliers=remove_outliers,
+                                           transform_angle=False,
+                                           transform_position=False,
+                                           get_slice=get_slice,
+                                           get_position=get_position,
+                                           skip_empty=skip_empty)
+            vdataset = vdataset.repeat().batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
     elif dataset_load_method is None:
         get_slice = False
         if model == "slice":
@@ -126,11 +132,11 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
         loss_func = dice_loss
     else:
         loss_func = tversky_loss
-
-    vnet.compile(optimizer=Adam(lr=start_lr),
-                 loss=loss_func,
-                 metrics=['categorical_crossentropy', precision, recall],
-                 experimental_run_tf_function=True)
+    with strategy.scope():
+        vnet.compile(optimizer=Adam(lr=start_lr),
+                     loss=loss_func,
+                     metrics=['categorical_crossentropy', precision, recall],
+                     experimental_run_tf_function=True)
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(
@@ -145,9 +151,10 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
         )
 
     if validate:
-        history_1 = vnet.fit(x=tdataset, validation_data=vdataset,
-                             callbacks=callbacks, epochs=epochs, verbose=1,
-                             steps_per_epoch=steps, validation_steps=vsteps)
+        with strategy.scope():
+            history_1 = vnet.fit(x=tdataset, validation_data=vdataset,
+                                 callbacks=callbacks, epochs=epochs, verbose=1,
+                                 steps_per_epoch=steps, validation_steps=vsteps)
     else:
         history_1 = vnet.fit(x=tdataset, callbacks=callbacks, epochs=epochs, verbose=1)
 
@@ -180,17 +187,19 @@ if __name__ == "__main__":
     e = 100
     examples_per_load = 3
 
-    if sys.argv == "multi":
-        strategy = tf.distribute.MirroredStrategy()
-        print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+    tf.debugging.set_log_device_placement(True)
+
+    strategy = tf.distribute.MirroredStrategy()
+
+    print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
     train("tiny", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
-          train_name="tiny (200,200,160)")
-    train("small", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
-          train_name="small (200,200,160)")
-    train("small_relative", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
-          train_name="small_relative (200,200,128) (add)", action="add")
-    train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
-          train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3))
-    train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
-          train_name="slice (384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1))
+          train_name="tiny (200,200,160)", strategy=strategy, dataset_load_method="tf")
+    # train("small", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
+    #       train_name="small (200,200,160)")
+    # train("small_relative", sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
+    #       train_name="small_relative (200,200,128) (add)", action="add")
+    # train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+    #       train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3))
+    # train("slice", sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+    #       train_name="slice (384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1))
