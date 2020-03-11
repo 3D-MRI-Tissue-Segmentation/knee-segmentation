@@ -125,13 +125,15 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     loss_name = ""
     if n_classes == 1:
         loss_func = bce_dice_loss
-        loss_name = "bce + dice loss"
+        loss_name = 'bce + dice loss'
+        met_loss = 'binary_crossentropy'
     else:
         loss_func = tversky_loss
         loss_name = "tversky loss"
+        met_loss = 'categorical_crossentropy'
     vnet.compile(optimizer=Adam(lr=start_lr),
                  loss=loss_func,
-                 metrics=['binary_crossentropy', dice_loss, precision, recall],
+                 metrics=[met_loss, dice_loss, precision, recall],
                  experimental_run_tf_function=True)
 
     callbacks = [
@@ -164,13 +166,13 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax1.set_xlabel("epoch")
     ax1.set_ylabel(loss_name)
     ax1.legend()
-    ax2.plot(history_1.history['binary_crossentropy'], label="catcross")
-    ax2.plot(running_mean(history_1.history['binary_crossentropy'], roll_period), label="catcross roll")
+    ax2.plot(history_1.history[met_loss], label=met_loss)
+    ax2.plot(running_mean(history_1.history[met_loss], roll_period), label=f"{met_loss} roll")
     if validate:
-        ax2.plot(history_1.history['val_binary_crossentropy'], label="val catcross")
-        ax2.plot(running_mean(history_1.history['val_binary_crossentropy'], roll_period), label="val bce roll")
+        ax2.plot(history_1.history[f'val_{met_loss}'], label=f"val {met_loss}")
+        ax2.plot(running_mean(history_1.history[f'val_{met_loss}'], roll_period), label=f"val {met_loss} roll")
     ax2.set_xlabel("epoch")
-    ax2.set_ylabel("bce")
+    ax2.set_ylabel("cross entropy")
     ax2.legend()
     ax3.plot(history_1.history['dice_loss'], label="dice loss")
     ax3.plot(running_mean(history_1.history['dice_loss'], roll_period), label="dice loss roll")
