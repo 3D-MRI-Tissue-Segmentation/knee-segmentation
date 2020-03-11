@@ -172,7 +172,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax2.set_xlabel("epoch")
     ax2.set_ylabel("crossentropy")
     ax2.legend()
-    f.suptitle(f"{model}: {train_name}, {time_taken}")
+    f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
     plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_result_{now_time}")
     return time_taken
 
@@ -184,21 +184,27 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 2
+    e = 40
     examples_per_load = 2
-    batch_size = 6
+    batch_size = 4
 
     t0 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
-               train_name="tiny (200,200,160)")
+               train_name="(200,200,160)")
 
     t1 = train("small", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
-               train_name="small (200,200,160)")
+               train_name="(200,200,160) 2 layers")
 
-    t2 = train("small_relative", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
-               train_name="small_relative (200,200,128) (add)", action="add")
+    t2 = train("small", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
+               train_name="(200,200,160) 3 layers", num_conv_layers=3)
 
-    t3 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
-               train_name="slice (384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3))
+    t3 = train("small", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
+               train_name="(200,200,160) 4 layers", num_conv_layers=4)
 
-    t4 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
-               train_name="slice (384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1))
+    t4 = train("small_relative", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e, examples_per_load=examples_per_load,
+               train_name="(200,200,128) (add)", action="add")
+
+    t5 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+               train_name="(384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3))
+
+    t6 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+               train_name="(384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1))
