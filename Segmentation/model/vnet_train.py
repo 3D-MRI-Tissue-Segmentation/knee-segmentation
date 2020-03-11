@@ -125,13 +125,13 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     loss_name = ""
     if n_classes == 1:
         loss_func = bce_dice_loss
-        loss_name = "crossentropy + \n dice loss"
+        loss_name = "bce + dice loss"
     else:
         loss_func = tversky_loss
         loss_name = "tversky loss"
     vnet.compile(optimizer=Adam(lr=start_lr),
                  loss=loss_func,
-                 metrics=['categorical_crossentropy', dice_loss, precision, recall],
+                 metrics=['binary_crossentropy', dice_loss, precision, recall],
                  experimental_run_tf_function=True)
 
     callbacks = [
@@ -164,13 +164,13 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax1.set_xlabel("epoch")
     ax1.set_ylabel(loss_name)
     ax1.legend()
-    ax2.plot(history_1.history['categorical_crossentropy'], label="catcross")
-    ax2.plot(running_mean(history_1.history['categorical_crossentropy'], roll_period), label="catcross roll")
+    ax2.plot(history_1.history['binary_crossentropy'], label="catcross")
+    ax2.plot(running_mean(history_1.history['binary_crossentropy'], roll_period), label="catcross roll")
     if validate:
-        ax2.plot(history_1.history['val_categorical_crossentropy'], label="val catcross")
-        ax2.plot(running_mean(history_1.history['val_categorical_crossentropy'], roll_period), label="val catcross roll")
+        ax2.plot(history_1.history['val_binary_crossentropy'], label="val catcross")
+        ax2.plot(running_mean(history_1.history['val_binary_crossentropy'], roll_period), label="val bce roll")
     ax2.set_xlabel("epoch")
-    ax2.set_ylabel("crossentropy")
+    ax2.set_ylabel("bce")
     ax2.legend()
     ax3.plot(history_1.history['dice_loss'], label="dice loss")
     ax3.plot(running_mean(history_1.history['dice_loss'], roll_period), label="dice loss roll")
@@ -191,12 +191,12 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 30
+    e = 25
     examples_per_load = 1
     batch_size = 1
 
-    # t0 = train("tiny", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e, examples_per_load=examples_per_load,
-    #            train_name="(288,288,160)")
+    # t0 = train("tiny", batch_size=batch_size, sample_shape=(28, 28, 16), epochs=e, examples_per_load=examples_per_load,
+    #            train_name="(28,28,16)")
 
     t1 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e, examples_per_load=examples_per_load,
                train_name="(288,288,160) 2 layers")
