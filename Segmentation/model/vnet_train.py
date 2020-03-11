@@ -125,7 +125,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     loss_name = ""
     if n_classes == 1:
         loss_func = bce_dice_loss
-        loss_name = "crossentropy and dice loss"
+        loss_name = "crossentropy + \n dice loss"
     else:
         loss_func = tversky_loss
         loss_name = "tversky loss"
@@ -155,7 +155,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
     time_taken = time.perf_counter() - start_time
     roll_period = 5
-    f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
     ax1.plot(history_1.history['loss'], label="loss")
     ax1.plot(running_mean(history_1.history['loss'], roll_period), label="loss roll")
     if validate:
@@ -172,6 +172,14 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax2.set_xlabel("epoch")
     ax2.set_ylabel("crossentropy")
     ax2.legend()
+    ax3.plot(history_1.history['dice_loss'], label="dice loss")
+    ax3.plot(running_mean(history_1.history['dice_loss'], roll_period), label="dice loss roll")
+    if validate:
+        ax3.plot(history_1.history['val_dice_loss'], label="val dice loss")
+        ax3.plot(running_mean(history_1.history['val_dice_loss'], roll_period), label="val dice loss")
+    ax3.set_xlabel("epoch")
+    ax3.set_ylabel("dice loss")
+    ax3.legend()
     f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
     plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_result_{now_time}")
     return time_taken
@@ -180,16 +188,15 @@ if __name__ == "__main__":
 
     print("running eagerly:", tf.executing_eagerly())
 
-    import time
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 250
+    e = 30
     examples_per_load = 1
-    batch_size = 3
+    batch_size = 1
 
-    t0 = train("tiny", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e, examples_per_load=examples_per_load,
-               train_name="(288,288,160)")
+    # t0 = train("tiny", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e, examples_per_load=examples_per_load,
+    #            train_name="(288,288,160)")
 
     t1 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e, examples_per_load=examples_per_load,
                train_name="(288,288,160) 2 layers")
