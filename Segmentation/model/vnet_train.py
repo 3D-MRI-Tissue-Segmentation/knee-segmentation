@@ -200,23 +200,30 @@ if __name__ == "__main__":
     # t0 = train("tiny", batch_size=batch_size, sample_shape=(28, 28, 16), epochs=e, examples_per_load=examples_per_load,
     #            train_name="(28,28,16)")
 
-    t1 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e, examples_per_load=examples_per_load,
+    t1 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
+               examples_per_load=examples_per_load,
                train_name="(288,288,160) 2 layers")
 
-    t2 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e, examples_per_load=examples_per_load,
+    t2 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
+               examples_per_load=examples_per_load,
                train_name="(240,240,160) 3 layers", num_conv_layers=3)
 
-    t3 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e, examples_per_load=examples_per_load,
+    t3 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
+               examples_per_load=examples_per_load,
                train_name="(240,240,160) 4 layers", num_conv_layers=4)
 
-    t4 = train("small_relative", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e, examples_per_load=examples_per_load,
+    t4 = train("small_relative", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
+               examples_per_load=examples_per_load,
                train_name="(240,240,160) (add)", action="add")
 
-    t5 = train("small_relative", batch_size=3, sample_shape=(288, 288, 160), epochs=e, examples_per_load=1,
+    t5 = train("small_relative", batch_size=3, sample_shape=(288, 288, 160), epochs=e,
+               examples_per_load=1,
                train_name="(288,288,160) (add)", action="add")
 
-    t6 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+    t6 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+               examples_per_load=examples_per_load,
                train_name="(384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3))
 
-    t7 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e, examples_per_load=examples_per_load,
+    t7 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+               examples_per_load=examples_per_load,
                train_name="(384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1))
