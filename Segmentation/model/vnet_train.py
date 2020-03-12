@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import time
+from glob import glob
+import imageio
 
 
 def running_mean(x, N):
@@ -37,6 +39,9 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
           skip_empty=True, examples_per_load=1,
           **model_kwargs):
     start_time = time.perf_counter()
+    debug = ""
+    if train_debug:
+        debug = "debug_"
     get_position, get_slice = False, False
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
@@ -61,8 +66,12 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     now = datetime.now()
     now_time = now.strftime('%Y_%m_%d-%H_%M_%S')
 
-    if not os.path.exists(f'checkpoints/train_session_{now_time}_{model}'):
-        os.makedirs(f'checkpoints/train_session_{now_time}_{model}')
+    if not os.path.exists(f'checkpoints/{debug}train_session_{now_time}_{model}'):
+        os.makedirs(f'checkpoints/{debug}train_session_{now_time}_{model}')
+
+    if custom_train_loop:
+        if not os.path.exists(f'checkpoints/{debug}train_session_{now_time}_{model}/progress'):
+            os.makedirs(f'checkpoints/{debug}train_session_{now_time}_{model}/progress')
 
     setup_gpu()
 
@@ -150,7 +159,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
         metric_val_hist[i] = []
 
     save_models_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=f'checkpoints/train_session_{now_time}_{model}/chkp/model_' + '{epoch}',
+        filepath=f'checkpoints/{debug}train_session_{now_time}_{model}/chkp/model_' + '{epoch}',
         verbose=1)
 
     if custom_train_loop:
@@ -244,11 +253,10 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
             f.tight_layout(rect=[0, 0.01, 1, 0.95])
             f.suptitle(f"{model}: {train_name}, epoch: {epoch}")
-            plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_{epoch}_{now_time}")
+            plt.savefig(f"checkpoints/{debug}train_session_{now_time}_{model}/progress/train_{epoch:04d}_{now_time}")
             plt.close('all')
-            print(f"plot saved: {time.perf_counter() - epoch_time:.0f}")
-
-            vnet.save_weights(f"checkpoints/train_session_{now_time}_{model}/chkp/ckpt_{epoch}_{now_time}.cktp")
+            # print(f"plot saved: {time.perf_counter() - epoch_time:.0f}") plots are very fast to save, take ~1 second
+            vnet.save_weights(f"checkpoints/{debug}train_session_{now_time}_{model}/chkp/ckpt_{epoch:04d}_{now_time}.cktp")
     else:
 
         vnet.compile(optimizer=Adam(lr=start_lr),
@@ -299,8 +307,15 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax2.legend()
     f.tight_layout(rect=[0, 0.01, 1, 0.95])
     f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
+    plt.savefig(f"checkpoints/{debug}train_session_{now_time}_{model}/train_result_{now_time}")
 
-    plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_result_{now_time}")
+    if custom_train_loop:
+        filenames = glob(f"checkpoints/{debug}train_session_{now_time}_{model}/progress/*")
+        filenames.sort()
+        images = []
+        for filename in filenames:
+            images.append(imageio.imread(filename))
+        imageio.mimsave(f'checkpoints/{debug}train_session_{now_time}_{model}/progress.gif', images)
     return time_taken
 
 
@@ -313,7 +328,7 @@ if __name__ == "__main__":
 
     e = 75
     examples_per_load = 1
-    batch_size = 4
+    batch_size = 3
 
     toy = train("tiny", batch_size=2, sample_shape=(4, 4, 4), epochs=e,
                 examples_per_load=examples_per_load,
