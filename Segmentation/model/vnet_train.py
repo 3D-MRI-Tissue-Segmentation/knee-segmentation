@@ -201,7 +201,6 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             axes[1, 0].set_title("val y")
             axes[1, 1].imshow(store_y_pred_val)
             axes[1, 1].set_title("val y pred")
-            plt.tight_layout()
             f.suptitle(f"{model}: {train_name}, epoch: {epoch}")
             plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_{epoch}_{now_time}")
             print(f"plot saved: {time.perf_counter() - epoch_time:.0f}")
@@ -266,7 +265,6 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
         ax3.set_xlabel("epoch")
         ax3.set_ylabel("dice loss")
         ax3.legend()
-        plt.tight_layout()
         f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
 
         plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_result_{now_time}")
