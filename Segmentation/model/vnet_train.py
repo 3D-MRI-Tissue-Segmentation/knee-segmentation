@@ -154,6 +154,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     if custom_train_loop:
         optimizer = Adam(lr=start_lr)
         for epoch in range(epochs):
+            epoch_time = time.perf_counter()
             epoch_loss_avg = tf.keras.metrics.Mean()
             epoch_val_loss_avg = tf.keras.metrics.Mean()
             epoch_met_loss_avg = tf.keras.metrics.Mean()
@@ -188,11 +189,10 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             store_y_val = y[0, :, :, slice_idx, 0]
             store_y_pred_val = y_[0, :, :, slice_idx, 0]
 
-            print(f"epoch: {epoch}, loss: {epoch_loss_avg.result(): .3f}, loss val: {epoch_val_loss_avg.result(): .3f}, bce: {epoch_met_loss_avg.result(): .3f}, bce val: {epoch_val_met_loss_avg.result(): .3f}")
+            print(f"{time.perf_counter() - epoch_time:.0f}s epoch: {epoch}, loss: {epoch_loss_avg.result(): .3f}, loss val: {epoch_val_loss_avg.result(): .3f}, bce: {epoch_met_loss_avg.result(): .3f}, bce val: {epoch_val_met_loss_avg.result(): .3f}")
 
             f, axes = plt.subplots(2, 2)
 
-            
             axes[0, 0].imshow(store_y)
             axes[0, 0].set_title("train y")
             axes[0, 1].imshow(store_y_pred)
@@ -204,6 +204,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             plt.tight_layout()
             f.suptitle(f"{model}: {train_name}, epoch: {epoch}")
             plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_{epoch}_{now_time}")
+            print(f"plot saved: {time.perf_counter() - epoch_time:.0f}")
 
             vnet.save_weights(f"checkpoints/train_session_{now_time}_{model}/chkp/ckpt_{epoch}_{now_time}.cktp")
     else:
@@ -292,15 +293,15 @@ if __name__ == "__main__":
 
     e = 10
     examples_per_load = 1
-    batch_size = 1
+    batch_size = 4
 
-    t0 = train("tiny", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
+    t0 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(288,288,160)", custom_train_loop=True)
+               train_name="(200,200,160)", custom_train_loop=True)
 
-    t1 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
+    t1 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(288,288,160) 2 layers", custom_train_loop=True)
+               train_name="(240,240,160) 2 layers", custom_train_loop=True)
 
     # t2 = train("small", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
     #            examples_per_load=examples_per_load,
