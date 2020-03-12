@@ -175,6 +175,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
             slice_idx = int(y.shape[3] / 2)
 
+            store_x = x[0, :, :, slice_idx, 0]
             store_y = y[0, :, :, slice_idx, 0]
             store_y_pred = y_[0, :, :, slice_idx, 0]
 
@@ -186,6 +187,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                 val_met_loss_value = met_loss(y_true=y, y_pred=y_)
                 epoch_val_met_loss_avg(val_met_loss_value)
 
+            store_x_val = x[0, :, :, slice_idx, 0]
             store_y_val = y[0, :, :, slice_idx, 0]
             store_y_pred_val = y_[0, :, :, slice_idx, 0]
 
@@ -193,12 +195,16 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
             f, axes = plt.subplots(2, 2)
 
+            axes[0, 0].imshow(store_x, alpha=0.5)
             axes[0, 0].imshow(store_y)
             axes[0, 0].set_title("train y")
+            axes[0, 1].imshow(store_x, alpha=0.5)
             axes[0, 1].imshow(store_y_pred)
             axes[0, 1].set_title("train y pred")
+            axes[1, 0].imshow(store_x_val, alpha=0.5)
             axes[1, 0].imshow(store_y_val)
             axes[1, 0].set_title("val y")
+            axes[1, 1].imshow(store_x_val, alpha=0.5)
             axes[1, 1].imshow(store_y_pred_val)
             axes[1, 1].set_title("val y pred")
             f.suptitle(f"{model}: {train_name}, epoch: {epoch}")
