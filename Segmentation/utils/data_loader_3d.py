@@ -13,7 +13,7 @@ class VolumeGenerator(Sequence):
                  normalise_input=True, remove_outliers=True,
                  transform_angle=False, transform_position=False,
                  get_slice=False, get_position=False, skip_empty=True,
-                 examples_per_load=1):
+                 examples_per_load=1, train_debug=False):
         self.batch_size = batch_size
         self.sample_shape = sample_shape
         self.data_paths = VolumeGenerator.get_paths(file_path)
@@ -26,8 +26,13 @@ class VolumeGenerator(Sequence):
         self.get_position = get_position
         self.skip_empty = skip_empty
         self.examples_per_load = examples_per_load
+        self.train_debug = train_debug
 
-        assert self.batch_size <= len(self.data_paths), "Batch size must be less than or equal to number of training examples"
+        if self.train_debug:
+            cut = int(len(self.data_paths) / 10)
+            self.data_paths = self.data_paths[:cut]
+
+        assert self.batch_size <= len(self.data_paths), f"Batch size {self.batch_size} must be less than or equal to number of training examples {len(self.data_paths)}"
         self.on_epoch_end()
 
     def on_epoch_end(self):

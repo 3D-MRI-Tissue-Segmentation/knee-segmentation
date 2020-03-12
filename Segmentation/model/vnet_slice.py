@@ -54,23 +54,23 @@ class VNet_Slice(tf.keras.Model):
             self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size=(1, 1, 1), activation='softmax',
                                                    padding='same', data_format=data_format)
 
-    def call(self, inputs):
+    def call(self, inputs, training):
 
         # tf.print("in:", inputs.get_shape())
         # 1->64
-        x1 = self.conv_1(inputs)
+        x1 = self.conv_1(inputs, training)
         # tf.print("x1:", x1.get_shape())
 
         # 64->128
         x2 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 1))(x1)
         # tf.print("x2:", x2.get_shape())
-        x2 = self.conv_2(x2)
+        x2 = self.conv_2(x2, training)
         # tf.print("x2:", x2.get_shape())
 
         # 128->256
         x3 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 1))(x2)
         # tf.print("x3:", x3.get_shape())
-        x3 = self.conv_3(x3)
+        x3 = self.conv_3(x3, training)
         # tf.print("x3:", x3.get_shape())
 
         # 256->128

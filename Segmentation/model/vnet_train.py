@@ -30,7 +30,7 @@ def setup_gpu():
 
 
 def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs=10,
-          save_model=True, validate=True, train_name="", custom_train_loop=False,
+          save_model=True, validate=True, train_name="", custom_train_loop=False, train_debug=False,
           reduce_lr=False, start_lr=5e-4, dataset_load_method=None,
           shuffle_order=True, normalise_input=True, remove_outliers=True,
           transform_angle=False, transform_position="normal",
@@ -107,7 +107,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                                    get_slice=get_slice,
                                    get_position=get_position,
                                    skip_empty=skip_empty,
-                                   examples_per_load=examples_per_load)
+                                   examples_per_load=examples_per_load,
+                                   train_debug=train_debug)
         vdataset = VolumeGenerator(batch_size, sample_shape, "v",
                                    shuffle_order=shuffle_order,
                                    normalise_input=normalise_input,
@@ -117,7 +118,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                                    get_slice=get_slice,
                                    get_position=get_position,
                                    skip_empty=skip_empty,
-                                   examples_per_load=examples_per_load)
+                                   examples_per_load=examples_per_load,
+                                   train_debug=train_debug)
 
     from Segmentation.utils.losses import bce_dice_loss, dice_loss
     from Segmentation.utils.losses import tversky_loss, precision, recall
@@ -139,11 +141,11 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     loss_hist = []
     loss_val_hist = []
 
-    metrics = [met_loss, dice_loss, precision, recall]
+    metrics = [met_loss, precision, recall]
 
     metric_hist = [None] * len(metrics)
     metric_val_hist = [None] * len(metrics)
-    for i in range(2):  # we only care about 2 metrics
+    for i in range(1):  # we only care about 1 metrics
         metric_hist[i] = []
         metric_val_hist[i] = []
 
@@ -191,7 +193,13 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             store_y_val = y[0, :, :, slice_idx, 0]
             store_y_pred_val = y_[0, :, :, slice_idx, 0]
 
-            print(f"{time.perf_counter() - epoch_time:.0f}s epoch: {epoch}, loss: {epoch_loss_avg.result(): .4f}, loss val: {epoch_val_loss_avg.result(): .4f}, bce: {epoch_met_loss_avg.result(): .4f}, bce val: {epoch_val_met_loss_avg.result(): .4f}")
+            print(f"{time.perf_counter() - epoch_time:.0f} s epoch: {epoch}, loss: {epoch_loss_avg.result(): .4f}, loss val: {epoch_val_loss_avg.result(): .4f}, bce: {epoch_met_loss_avg.result(): .4f}, bce val: {epoch_val_met_loss_avg.result(): .4f}")
+
+            loss_hist.append(epoch_loss_avg.result())
+            loss_val_hist.append(epoch_val_loss_avg.result())
+
+            metric_hist[0].append(epoch_met_loss_avg.result())
+            metric_val_hist[0].append(epoch_val_met_loss_avg.result())
 
             f, axes = plt.subplots(2, 3)
 
@@ -207,7 +215,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             axes[1, 1].set_title("val y")
             axes[1, 2].imshow(store_y_pred_val)
             axes[1, 2].set_title("val y pred")
-            f.tight_layout(rect=[0, 0.03, 1, 0.95])
+            f.tight_layout(rect=[0, 0.05, 1, 0.95])
             f.suptitle(f"{model}: {train_name}, epoch: {epoch}")
             plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_{epoch}_{now_time}")
             print(f"plot saved: {time.perf_counter() - epoch_time:.0f}")
@@ -236,58 +244,36 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                          steps_per_epoch=steps, validation_steps=vsteps)
             loss_val_hist = h.history['val_loss']
             metric_val_hist[0] = h.history[f'val_{met_loss_name}']
-            metric_val_hist[1] = h.history[f'val_dice_loss']
         else:
             h = vnet.fit(x=tdataset, callbacks=callbacks, epochs=epochs, verbose=1)
 
         loss_hist = h.history['loss']
         metric_hist[0] = h.history[f'{met_loss_name}']
-        metric_hist[1] = h.history[f'dice_loss']
 
     time_taken = time.perf_counter() - start_time
-    if not custom_train_loop:
-        roll_period = 5
-        f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
-        ax1.plot(loss_hist, label="loss")
-        ax1.plot(running_mean(loss_hist, roll_period), label="loss roll")
-        if validate:
-            ax1.plot(loss_val_hist, label="val loss")
-            ax1.plot(running_mean(loss_val_hist, roll_period), label="val loss roll")
-        ax1.set_xlabel("epoch")
-        ax1.set_ylabel(loss_name)
-        ax1.legend()
-        ax2.plot(metric_hist[0], label=met_loss_name)
-        ax2.plot(running_mean(metric_hist[0], roll_period), label=f"{met_loss_name} roll")
-        if validate:
-            ax2.plot(metric_val_hist[0], label=f"val {met_loss_name}")
-            ax2.plot(running_mean(metric_val_hist[0], roll_period), label=f"val {met_loss_name} roll")
-        ax2.set_xlabel("epoch")
-        ax2.set_ylabel("cross entropy")
-        ax2.legend()
-        ax3.plot(metric_hist[1], label="dice loss")
-        ax3.plot(running_mean(metric_hist[1], roll_period), label="dice loss roll")
-        if validate:
-            ax3.plot(metric_val_hist[1], label="val dice loss")
-            ax3.plot(running_mean(metric_val_hist[1], roll_period), label="val dice loss")
-        ax3.set_xlabel("epoch")
-        ax3.set_ylabel("dice loss")
-        ax3.legend()
-        f.tight_layout(rect=[0, 0.03, 1, 0.95])
-        f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
+    roll_period = 5
+    f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    ax1.plot(loss_hist, label="loss")
+    ax1.plot(running_mean(loss_hist, roll_period), label="loss roll")
+    if validate:
+        ax1.plot(loss_val_hist, label="val loss")
+        ax1.plot(running_mean(loss_val_hist, roll_period), label="val loss roll")
+    ax1.set_xlabel("epoch")
+    ax1.set_ylabel(loss_name)
+    ax1.legend()
+    ax2.plot(metric_hist[0], label=met_loss_name)
+    ax2.plot(running_mean(metric_hist[0], roll_period), label=f"{met_loss_name} roll")
+    if validate:
+        ax2.plot(metric_val_hist[0], label=f"val {met_loss_name}")
+        ax2.plot(running_mean(metric_val_hist[0], roll_period), label=f"val {met_loss_name} roll")
+    ax2.set_xlabel("epoch")
+    ax2.set_ylabel("cross entropy")
+    ax2.legend()
+    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+    f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
 
-        plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_result_{now_time}")
+    plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_result_{now_time}")
     return time_taken
-
-
-def loss(model, x, y, training, loss_object):
-    y_ = model(x, training=training)
-    return loss_object(y_true=y, y_pred=y_)
-
-
-def grad(model, inputs, targets, loss_object):
-    with tf.GradientTape() as tape:
-        loss_value = loss(model, inputs, targets, training=True, loss_object=loss_object)
-    return loss_value, tape.gradient(loss_value, model.trainable_variables)
 
 
 if __name__ == "__main__":
@@ -299,8 +285,13 @@ if __name__ == "__main__":
 
     e = 10
     examples_per_load = 1
-    batch_size = 4
+    batch_size = 2
 
+    toy = train("tiny", batch_size=batch_size, sample_shape=(4, 4, 4), epochs=e,
+                examples_per_load=examples_per_load,
+                train_name="toy (4,4,4)", custom_train_loop=True, train_debug=True)
+
+"""
     t0 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
                examples_per_load=examples_per_load,
                train_name="(200,200,160)", custom_train_loop=True)
@@ -332,3 +323,4 @@ if __name__ == "__main__":
     t7 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
                examples_per_load=examples_per_load,
                train_name="(384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1), custom_train_loop=True)
+"""

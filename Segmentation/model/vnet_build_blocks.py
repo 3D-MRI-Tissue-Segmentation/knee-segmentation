@@ -74,7 +74,7 @@ class Up_Conv3D(tf.keras.layers.Layer):
         self.conv_transpose = tf.keras.layers.Conv3DTranspose(num_channels, kernel_size, padding='same',
                                                               strides=strides, data_format=data_format)
 
-    def call(self, inputs):
+    def call(self, inputs, training):
 
         x = inputs
         if self.use_transpose:
