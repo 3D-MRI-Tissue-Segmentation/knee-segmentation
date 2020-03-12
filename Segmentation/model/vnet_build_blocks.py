@@ -35,16 +35,16 @@ class Conv3D_Block(tf.keras.layers.Layer):
             self.conv.append(tf.keras.layers.Conv3D(num_channels, kernel_size,
                                                     padding='same', data_format=data_format))
 
-    def call(self, inputs):
+    def call(self, inputs, training):
         x = inputs
         for i in range(self.num_conv_layers):
             x = self.conv[i](x)
             if self.use_batchnorm:
                 x = self.batchnorm(x)
             x = self.activation(x)
-
-        if self.use_dropout:
-            x = self.dropout(x)
+        if training:
+            if self.use_dropout:
+                x = self.dropout(x)
         outputs = x
         return outputs
 
