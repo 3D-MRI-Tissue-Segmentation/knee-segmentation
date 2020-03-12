@@ -181,6 +181,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             store_y = y[0, :, :, slice_idx, 0]
             store_y_pred = y_[0, :, :, slice_idx, 0]
 
+            vidx = 0
             for x, y in vdataset:
                 y_ = vnet(x, training=False)
                 val_loss_value = loss_func(y_true=y, y_pred=y_)
@@ -188,6 +189,12 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
                 val_met_loss_value = met_loss(y_true=y, y_pred=y_)
                 epoch_val_met_loss_avg(val_met_loss_value)
+
+                if vidx == 0:
+                    store_x_val_0 = x[0, :, :, slice_idx, 0]
+                    store_y_val_0 = y[0, :, :, slice_idx, 0]
+                    store_y_pred_val_0 = y_[0, :, :, slice_idx, 0]
+                    vidx += 1
 
             store_x_val = x[0, :, :, slice_idx, 0]
             store_y_val = y[0, :, :, slice_idx, 0]
@@ -201,23 +208,44 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             metric_hist[0].append(epoch_met_loss_avg.result())
             metric_val_hist[0].append(epoch_val_met_loss_avg.result())
 
-            f, axes = plt.subplots(2, 3)
+            f, axes = plt.subplots(3, 3)
 
             axes[0, 0].imshow(store_x)
             axes[0, 0].set_title("train raw image")
+
             axes[0, 1].imshow(store_y)
             axes[0, 1].set_title("train y")
+
             axes[0, 2].imshow(store_y_pred)
             axes[0, 2].set_title("train y pred")
+
             axes[1, 0].imshow(store_x_val)
             axes[1, 0].set_title("val raw image")
+
             axes[1, 1].imshow(store_y_val)
             axes[1, 1].set_title("val y")
+
             axes[1, 2].imshow(store_y_pred_val)
             axes[1, 2].set_title("val y pred")
+
+            axes[2, 0].imshow(store_x_val_0)
+            axes[2, 0].set_title("val raw image")
+
+            axes[2, 1].imshow(store_y_val_0)
+            axes[2, 1].set_title("val y")
+
+            axes[2, 2].imshow(store_y_pred_val_0)
+            axes[2, 2].set_title("val y pred")
+
+            for a in axes:
+                for ax in a:
+                    ax.xaxis.set_visible(False)
+                    ax.yaxis.set_visible(False)
+
             f.tight_layout(rect=[0, 0.01, 1, 0.95])
             f.suptitle(f"{model}: {train_name}, epoch: {epoch}")
             plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_{epoch}_{now_time}")
+            plt.close('all')
             print(f"plot saved: {time.perf_counter() - epoch_time:.0f}")
 
             vnet.save_weights(f"checkpoints/train_session_{now_time}_{model}/chkp/ckpt_{epoch}_{now_time}.cktp")
