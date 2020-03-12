@@ -31,7 +31,7 @@ def setup_gpu():
 
 def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs=10,
           save_model=True, validate=True, train_name="", custom_train_loop=False, train_debug=False,
-          reduce_lr=False, start_lr=5e-4, dataset_load_method=None,
+          reduce_lr=False, start_lr=5e-5, dataset_load_method=None,
           shuffle_order=True, normalise_input=True, remove_outliers=True,
           transform_angle=False, transform_position="normal",
           skip_empty=True, examples_per_load=1,
@@ -215,7 +215,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             axes[1, 1].set_title("val y")
             axes[1, 2].imshow(store_y_pred_val)
             axes[1, 2].set_title("val y pred")
-            f.tight_layout(rect=[0, 0.05, 1, 0.95])
+            f.tight_layout(rect=[0, 0.01, 1, 0.95])
             f.suptitle(f"{model}: {train_name}, epoch: {epoch}")
             plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_{epoch}_{now_time}")
             print(f"plot saved: {time.perf_counter() - epoch_time:.0f}")
@@ -269,7 +269,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax2.set_xlabel("epoch")
     ax2.set_ylabel("cross entropy")
     ax2.legend()
-    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+    f.tight_layout(rect=[0, 0.01, 1, 0.95])
     f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
 
     plt.savefig(f"checkpoints/train_session_{now_time}_{model}/train_result_{now_time}")
@@ -283,44 +283,42 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 10
+    e = 75
     examples_per_load = 1
-    batch_size = 2
+    batch_size = 4
 
-    toy = train("tiny", batch_size=batch_size, sample_shape=(4, 4, 4), epochs=e,
+    toy = train("tiny", batch_size=2, sample_shape=(4, 4, 4), epochs=e,
                 examples_per_load=examples_per_load,
-                train_name="toy (4,4,4)", custom_train_loop=True, train_debug=True)
+                train_name="toy (4,4,4) lr=5e-5", custom_train_loop=True, train_debug=True)
 
-"""
     t0 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(200,200,160)", custom_train_loop=True)
+               train_name="(200,200,160) lr=5e-5", custom_train_loop=True)
 
     t1 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(240,240,160) 2 layers", custom_train_loop=True)
+               train_name="(240,240,160) lr=5e-5", custom_train_loop=True)
 
-    # t2 = train("small", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
-    #            examples_per_load=examples_per_load,
-    #            train_name="(200,200,160)", custom_train_loop=True)
-
-    # t3 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
-    #            examples_per_load=examples_per_load,
-    #            train_name="(240,240,160) 4 layers", num_conv_layers=4)
-
-    # t4 = train("small_relative", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
-    #            examples_per_load=examples_per_load,
-    #            train_name="(240,240,160) (add)", action="add")
-
-    t5 = train("small_relative", batch_size=3, sample_shape=(288, 288, 160), epochs=e,
-               examples_per_load=1,
-               train_name="(288,288,160) (add)", action="add", custom_train_loop=True)
-
-    t6 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+    t2 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(384,384,7) lr=5e-4, k=(3,3,3)", kernel_size=(3, 3, 3), custom_train_loop=True)
+               train_name="(288,288,160) lr=5e-5", custom_train_loop=True)
 
-    t7 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+    t3 = train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(384,384,7) lr=5e-4, k=(3,3,1)", kernel_size=(3, 3, 1), custom_train_loop=True)
-"""
+               train_name="(288,288,160) lr=5e-5, add", action="add", custom_train_loop=True)
+
+    t4 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+               examples_per_load=examples_per_load,
+               train_name="(384,384,7) lr=5e-5, k=(3,3,3)", kernel_size=(3, 3, 3), custom_train_loop=True)
+
+    t5 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+               examples_per_load=examples_per_load,
+               train_name="(384,384,7) lr=5e-5, k=(3,3,1)", kernel_size=(3, 3, 1), custom_train_loop=True)
+
+    print("toy", toy)
+    print("t0", t0)
+    print("t1", t1)
+    print("t2", t2)
+    print("t3", t3)
+    print("t4", t4)
+    print("t5", t5)
