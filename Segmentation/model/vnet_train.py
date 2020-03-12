@@ -191,7 +191,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             store_y_val = y[0, :, :, slice_idx, 0]
             store_y_pred_val = y_[0, :, :, slice_idx, 0]
 
-            print(f"{time.perf_counter() - epoch_time:.0f}s epoch: {epoch}, loss: {epoch_loss_avg.result(): .3f}, loss val: {epoch_val_loss_avg.result(): .3f}, bce: {epoch_met_loss_avg.result(): .3f}, bce val: {epoch_val_met_loss_avg.result(): .3f}")
+            print(f"{time.perf_counter() - epoch_time:.0f}s epoch: {epoch}, loss: {epoch_loss_avg.result(): .4f}, loss val: {epoch_val_loss_avg.result(): .4f}, bce: {epoch_met_loss_avg.result(): .4f}, bce val: {epoch_val_met_loss_avg.result(): .4f}")
 
             f, axes = plt.subplots(2, 2)
 
