@@ -4,6 +4,7 @@ env/
 **/web_env/
 */checkpoints/
 checkpoints/
+checkpoints_old/
 */web_env/
 web_env/
 **/ui_env/

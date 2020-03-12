@@ -201,7 +201,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             axes[0, 1].set_title("train y")
             axes[0, 2].imshow(store_y_pred)
             axes[0, 2].set_title("train y pred")
-            axes[1, 0].imshow(store_x_val, alpha=0.5)
+            axes[1, 0].imshow(store_x_val)
             axes[1, 0].set_title("val raw image")
             axes[1, 1].imshow(store_y_val)
             axes[1, 1].set_title("val y")
