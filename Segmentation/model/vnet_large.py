@@ -7,7 +7,7 @@ class VNet_Large(tf.keras.Model):
     def __init__(self,
                  num_channels,
                  num_classes,
-                 num_conv_layers=3,
+                 num_conv_layers=2,
                  start_kernel_size=(5, 5, 5),
                  kernel_size=(3, 3, 3),
                  nonlinearity='relu',
@@ -35,7 +35,7 @@ class VNet_Large(tf.keras.Model):
         self.conv_4 = Conv3D_Block(num_channels * 8, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format, name="c4")
-        self.conv_5 = Conv3D_Block(num_channels * 16, num_conv_layers, kernel_size,
+        self.conv_5 = Conv3D_Block(num_channels * 16, num_conv_layers, (2, 2, 2),
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format, name="c5")
         self.up_5 = Up_Conv3D(num_channels * 8, (2, 2, 2), nonlinearity,
@@ -70,7 +70,6 @@ class VNet_Large(tf.keras.Model):
                                                    padding='same', data_format=data_format)
 
     def call(self, inputs):
-
         # 1->64
         x1 = self.conv_1(inputs)
         # 64->128
@@ -84,8 +83,8 @@ class VNet_Large(tf.keras.Model):
         x4 = self.conv_4(x4)
         # 512->1024
         x5 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x4)
-        x5 = self.conv_3(x5)
-
+        x5 = self.conv_5(x5)
+        
         # 1024->512
         u5 = self.up_5(x5)
         if self.merge_connections:

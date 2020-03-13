@@ -79,12 +79,12 @@ class VNet_Large_Relative(tf.keras.Model):
     def call(self, inputs, training=True):
         image_inputs, pos_inputs = inputs
 
-        pos_1 = self.pos_dense_1(pos_inputs)
-        pos_2 = self.pos_dense_2(pos_1)
-        pos_3 = self.pos_dense_3(pos_2)
+        pos_x = self.pos_dense_1(pos_inputs)
+        pos_x = self.pos_dense_2(pos_x)
+        pos_x = self.pos_dense_3(pos_x)
 
         # 1->64
-        x1 = self.conv_1(inputs)
+        x1 = self.conv_1(image_inputs)
         # 64->128
         x2 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x1)
         x2 = self.conv_2(x2)
@@ -96,14 +96,14 @@ class VNet_Large_Relative(tf.keras.Model):
         x4 = self.conv_4(x4)
         # 512->1024
         x5 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x4)
-        x5 = self.conv_3(x5)
+        x5 = self.conv_5(x5)
 
         # 1024->512
         u5 = self.up_5(x5)
         if self.action == 'add':
-            u5 = tf.keras.layers.add([u5, pos_3])
+            u5 = tf.keras.layers.add([u5, pos_x])
         elif self.action == 'multiply':
-            u5 = tf.keras.layers.multiply([u5, pos_3])
+            u5 = tf.keras.layers.multiply([u5, pos_x])
         if self.merge_connections:
             u5 = tf.keras.layers.concatenate([x4, u5], axis=4)
         u5 = self.up_conv4(u5)

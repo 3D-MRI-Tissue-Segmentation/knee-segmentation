@@ -376,19 +376,19 @@ if __name__ == "__main__":
 
     e = 200
     examples_per_load = 1
-    batch_size = 3
+    batch_size = 2
 
-    toy = train("tiny", batch_size=2, sample_shape=(28, 28, 28), epochs=e,
-                examples_per_load=examples_per_load,
-                train_name="toy (28,28,28) lr=1e-4, bce+dice", custom_train_loop=True, train_debug=True)
+    # toy = train("tiny", batch_size=2, sample_shape=(28, 28, 28), epochs=e,
+    #             examples_per_load=examples_per_load,
+    #             train_name="toy (28,28,28) lr=1e-4, bce+dice", custom_train_loop=True, train_debug=True)
 
-    t0 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
-               examples_per_load=10,
-               train_name="(384,384,7) lr=1e-4, k=(3,3,3), bce+dice", kernel_size=(3, 3, 3), custom_train_loop=True)
+    # t0 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+    #            examples_per_load=10,
+    #            train_name="(384,384,7) lr=1e-4, k=(3,3,3), bce+dice", kernel_size=(3, 3, 3), custom_train_loop=True)
 
-    t1 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
-               examples_per_load=10,
-               train_name="(384,384,7) lr=1e-4, k=(3,3,1), bce+dice", kernel_size=(3, 3, 1), custom_train_loop=True)
+    # t1 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+    #            examples_per_load=10,
+    #            train_name="(384,384,7) lr=1e-4, k=(3,3,1), bce+dice", kernel_size=(3, 3, 1), custom_train_loop=True)
 
     # t2 = train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
     #            examples_per_load=examples_per_load,
@@ -410,6 +410,6 @@ if __name__ == "__main__":
     #            examples_per_load=examples_per_load,
     #            train_name="(288,288,160) lr=1e-4, bce+dice", custom_train_loop=True)
 
-    t7 = train("large", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
-               examples_per_load=examples_per_load,
-               train_name="(288,288,160) lr=1e-4, bce+dice", custom_train_loop=True)
+    t7 = train("large", batch_size=2, sample_shape=(240, 240, 160), epochs=e,
+               examples_per_load=1,
+               train_name="(240,240,160) lr=1e-4, bce+dice", custom_train_loop=True)

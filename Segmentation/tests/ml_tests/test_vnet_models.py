@@ -26,21 +26,21 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
         {"testcase_name": "small_48-48-16-1_merge", "model": "small", "shape": (48, 48, 16, 1), "merge_connections": True},
         {"testcase_name": "small_16-16-16-1_merge", "model": "small", "shape": (16, 16, 16, 1), "merge_connections": True},
 
-        {"testcase_name": "small_relative_96-96-96-1_merge_multi", "model": "small_relative", "shape": (96, 96, 96, 1), "merge_connections": True, "relative": True, 'relative_action': "multiply"},
-        {"testcase_name": "small_relative_96-96-96-1_merge_add", "model": "small_relative", "shape": (96, 96, 96, 1), "merge_connections": True, "relative": True, 'relative_action': "add"},
-        {"testcase_name": "small_relative_128-128-128-1_merge_multi", "model": "small_relative", "shape": (128, 128, 128, 1), "merge_connections": True, "relative": True, 'relative_action': "multiply"},
-        {"testcase_name": "small_relative_128-128-128-1_no-merge_multi", "model": "small_relative", "shape": (128, 128, 128, 1), "merge_connections": False, "relative": True, 'relative_action': "multiply"},
+        {"testcase_name": "small_relative_96-96-96-1_merge_multi", "model": "small_relative", "shape": (96, 96, 96, 1), "merge_connections": True, 'relative_action': "multiply"},
+        {"testcase_name": "small_relative_96-96-96-1_merge_add", "model": "small_relative", "shape": (96, 96, 96, 1), "merge_connections": True, 'relative_action': "add"},
+        {"testcase_name": "small_relative_128-128-128-1_merge_multi", "model": "small_relative", "shape": (128, 128, 128, 1), "merge_connections": True, 'relative_action': "multiply"},
+        {"testcase_name": "small_relative_128-128-128-1_no-merge_multi", "model": "small_relative", "shape": (128, 128, 128, 1), "merge_connections": False, 'relative_action': "multiply"},
     )
     def test_run(self, model, shape, merge_connections,
-                 epochs=2, n_volumes=1, n_reps=2, n_classes=2, relative=False, relative_action=None, custom_fit=False):
+                 epochs=2, n_volumes=1, n_reps=2, n_classes=2, relative_action=None, custom_fit=False):
         height, width, depth, colour_channels = shape
         self.run_vnet(model, height, width, depth,
                       colour_channels, merge_connections,
                       epochs, n_volumes, n_reps, n_classes,
-                      relative, relative_action)
+                      relative_action)
 
     def run_vnet(self, model, height, width, depth, colour_channels, merge_connections,
-                 epochs=2, n_volumes=5, n_reps=2, n_classes=1, relative=False, relative_action=None, custom_fit=False):
+                 epochs=2, n_volumes=5, n_reps=2, n_classes=1, relative_action=None, custom_fit=False):
         volumes, one_hots = self.create_test_volume(n_volumes, n_reps, n_classes,
                                                     width, height, depth, colour_channels)
         print("=============================")
@@ -52,7 +52,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
         print("=============================")
 
         inputs = volumes
-        if relative:
+        if (model == "large_relative") or (model == "small_relative"):
             pos = np.array([[1.0, 0.0, -0.5]], dtype=np.float32)
 
             pos = np.repeat(pos, volumes.shape[0], axis=0)
@@ -73,6 +73,15 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
             elif model == "slice":
                 from Segmentation.model.vnet_slice import VNet_Slice
                 return VNet_Slice(colour_channels, n_classes, merge_connections=merge_connections, kernel_size=(3,3,3))
+            elif model == "large":
+                from Segmentation.model.vnet_large import VNet_Large
+                return VNet_Large(colour_channels, n_classes,
+                                  merge_connections=merge_connections, kernel_size=(3,3,3))
+            elif model == "large_relative":
+                from Segmentation.model.vnet_large_relative import VNet_Large_Relative
+                return VNet_Large_Relative(colour_channels, n_classes,
+                                           merge_connections=merge_connections, kernel_size=(3,3,3),
+                                           action=relative_action)
             else:
                 raise NotImplementedError(f"no model named: {model}")
 
@@ -162,7 +171,7 @@ if __name__ == '__main__':
     # tf.test.main()
 
     tv = Test_VNet()
-    tv.run_vnet(model="slice", n_volumes=3,
-                height=96, width=96, depth=96, colour_channels=1,
-                merge_connections=False, relative=False, n_classes=1,
-                epochs=2, custom_fit=True)
+    tv.run_vnet(model="large_relative", n_volumes=1,
+                height=160, width=160, depth=160, colour_channels=1,
+                merge_connections=False, n_classes=1,
+                epochs=2, custom_fit=True, relative_action="add")
