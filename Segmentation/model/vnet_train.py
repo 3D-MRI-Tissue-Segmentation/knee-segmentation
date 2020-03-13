@@ -381,44 +381,44 @@ if __name__ == "__main__":
 
     toy = train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e,
                 examples_per_load=examples_per_load*2,
-                train_name="toy (64,64,64) Adadelta bce+dice", custom_train_loop=True, train_debug=True)
+                train_name="toy (64,64,64), Adadelta, bce+dice", custom_train_loop=True, train_debug=True)
 
     t0 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
                examples_per_load=10,
-               train_name="(384,384,5) Adadelta k=(3,3,3), bce+dice", kernel_size=(3, 3, 3), custom_train_loop=True)
+               train_name="(384,384,5), Adadelta, k=(3,3,3), bce+dice", kernel_size=(3, 3, 3), custom_train_loop=True)
 
     t1 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
                examples_per_load=10,
-               train_name="(384,384,5) lAdadelta k=(3,3,1), bce+dice", kernel_size=(3, 3, 1), custom_train_loop=True)
+               train_name="(384,384,5), Adadelta, k=(3,3,1), bce+dice", kernel_size=(3, 3, 1), custom_train_loop=True)
 
     t2 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
                examples_per_load=10,
-               train_name="(384,384,7) Adadelta k=(3,3,3), bce+dice", kernel_size=(3, 3, 3), custom_train_loop=True)
+               train_name="(384,384,7), Adadelta, k=(3,3,3), bce+dice", kernel_size=(3, 3, 3), custom_train_loop=True)
 
     t3 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
                examples_per_load=10,
-               train_name="(384,384,7) Adadelta k=(3,3,1), bce+dice", kernel_size=(3, 3, 1), custom_train_loop=True)
+               train_name="(384,384,7), Adadelta, k=(3,3,1), bce+dice", kernel_size=(3, 3, 1), custom_train_loop=True)
 
     t4 = train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(288,288,160) Adadelta add, bce+dice", action="add", custom_train_loop=True)
+               train_name="(288,288,160), Adadelta, add, bce+dice", action="add", custom_train_loop=True)
 
     t5 = train("large_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(288,288,160) Adadelta add, bce+dice", action="add", custom_train_loop=True)
+               train_name="(288,288,160), Adadelta, add, bce+dice", action="add", custom_train_loop=True)
 
     t6 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(200,200,160) Adadelta bce+dice", custom_train_loop=True)
+               train_name="(200,200,160), Adadelta, bce+dice", custom_train_loop=True)
 
     t7 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(240,240,160) Adadelta bce+dice", custom_train_loop=True)
+               train_name="(240,240,160), Adadelta, bce+dice", custom_train_loop=True)
 
     t8 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(288,288,160) Adadelta bce+dice", custom_train_loop=True)
+               train_name="(288,288,160), Adadelta, bce+dice", custom_train_loop=True)
 
     t9 = train("large", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(240,240,160) Adadelta bce+dice", custom_train_loop=True)
+               train_name="(240,240,160), Adadelta, bce+dice", custom_train_loop=True)
