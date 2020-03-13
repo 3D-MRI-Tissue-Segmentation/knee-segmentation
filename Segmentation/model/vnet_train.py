@@ -57,6 +57,13 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
         from Segmentation.model.vnet_slice import VNet_Slice
         vnet = VNet_Slice(1, n_classes, **model_kwargs)
         get_slice = True
+    elif model == "large":
+        from Segmentation.model.vnet_large import VNet_Large
+        vnet = VNet_Large(1, n_classes, **model_kwargs)
+    elif model == "large_relative":
+        from Segmentation.model.vnet_large_relative import VNet_Large_Relative
+        vnet = VNet_Large_Relative(1, n_classes, **model_kwargs)
+        get_position = True
     else:
         raise NotImplementedError()
 
@@ -351,38 +358,39 @@ if __name__ == "__main__":
     examples_per_load = 1
     batch_size = 3
 
-    toy = train("tiny", batch_size=2, sample_shape=(28, 28, 28), epochs=e,
-                examples_per_load=examples_per_load,
-                train_name="toy (28,28,28) lr=1e-4", custom_train_loop=True, train_debug=True)
+    # toy = train("tiny", batch_size=2, sample_shape=(28, 28, 28), epochs=e,
+    #             examples_per_load=examples_per_load,
+    #             train_name="toy (28,28,28) lr=1e-4", custom_train_loop=True, train_debug=True)
 
-    t0 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
-               examples_per_load=examples_per_load,
-               train_name="(384,384,7) lr=1e-4, k=(3,3,3)", kernel_size=(3, 3, 3), custom_train_loop=True)
+    # t0 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+    #            examples_per_load=examples_per_load,
+    #            train_name="(384,384,7) lr=1e-4, k=(3,3,3)", kernel_size=(3, 3, 3), custom_train_loop=True)
 
-    t1 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
-               examples_per_load=examples_per_load,
-               train_name="(384,384,7) lr=1e-4, k=(3,3,1)", kernel_size=(3, 3, 1), custom_train_loop=True)
+    # t1 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+    #            examples_per_load=examples_per_load,
+    #            train_name="(384,384,7) lr=1e-4, k=(3,3,1)", kernel_size=(3, 3, 1), custom_train_loop=True)
 
-    t2 = train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
+    # t2 = train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
+    #            examples_per_load=examples_per_load,
+    #            train_name="(288,288,160) lr=1e-4, add", action="add", custom_train_loop=True)
+
+    t3 = train("large_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
                train_name="(288,288,160) lr=1e-4, add", action="add", custom_train_loop=True)
 
-    t3 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
-               examples_per_load=examples_per_load,
-               train_name="(200,200,160) lr=1e-4", custom_train_loop=True)
+    # t4 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
+    #            examples_per_load=examples_per_load,
+    #            train_name="(200,200,160) lr=1e-4", custom_train_loop=True)
 
-    t4 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
-               examples_per_load=examples_per_load,
-               train_name="(240,240,160) lr=1e-4", custom_train_loop=True)
+    # t5 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
+    #            examples_per_load=examples_per_load,
+    #            train_name="(240,240,160) lr=1e-4", custom_train_loop=True)
 
-    t5 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
+    # t6 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
+    #            examples_per_load=examples_per_load,
+    #            train_name="(288,288,160) lr=1e-4", custom_train_loop=True)
+
+    t7 = train("large", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
                train_name="(288,288,160) lr=1e-4", custom_train_loop=True)
 
-    print("toy", toy)
-    print("t0", t0)
-    print("t1", t1)
-    print("t2", t2)
-    print("t3", t3)
-    print("t4", t4)
-    print("t5", t5)
