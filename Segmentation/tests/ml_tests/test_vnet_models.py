@@ -93,6 +93,7 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
 
         def vnet_feedforward(vnet, inputs, one_hots):
             output = vnet(inputs, training=False)
+            print(inputs.shape)
             assert output.shape == one_hots.shape, f"{output.shape} == {one_hots.shape}"
             output = vnet.predict(inputs)
             assert output.shape == one_hots.shape, f"{output.shape} == {one_hots.shape}"
@@ -114,9 +115,6 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                 def loss(model, x, y, training, loss_func):
                     y_ = model(x, training=training)
                     return loss_func(y_true=y, y_pred=y_)
-
-                print(inputs.shape)
-                print(one_hots.shape)
 
                 current_l = loss(vnet, inputs, one_hots, False, loss_func)
                 print(f"Loss test: {current_l.shape}, {current_l}")
@@ -171,7 +169,7 @@ if __name__ == '__main__':
     # tf.test.main()
 
     tv = Test_VNet()
-    tv.run_vnet(model="large_relative", n_volumes=1,
-                height=160, width=160, depth=160, colour_channels=1,
+    tv.run_vnet(model="tiny", n_volumes=1,
+                height=8, width=8, depth=8, colour_channels=1,
                 merge_connections=False, n_classes=1,
-                epochs=2, custom_fit=True, relative_action="add")
+                epochs=2, custom_fit=True)

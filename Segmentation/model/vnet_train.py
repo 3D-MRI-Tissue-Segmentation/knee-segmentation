@@ -185,7 +185,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
                 with tf.GradientTape() as tape:
                     y_ = vnet(x, training=True)
-                    loss_value = loss_func(y_true=y, y_pred=y_)
+                    loss_value = tf.reduce_mean(loss_func(y_true=y, y_pred=y_))
+                    # loss_value = loss_func(y_true=y, y_pred=y_)
                 grads = tape.gradient(loss_value, vnet.trainable_variables)
 
                 optimizer.apply_gradients(zip(grads, vnet.trainable_variables))
@@ -257,31 +258,31 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
             f, axes = plt.subplots(3, 3)
 
-            axes[0, 0].imshow(store_x)
+            axes[0, 0].imshow(store_x, cmap="gray")
             axes[0, 0].set_title("train raw image")
 
-            axes[0, 1].imshow(store_y)
+            axes[0, 1].imshow(store_y, cmap="gray")
             axes[0, 1].set_title("train y")
 
-            axes[0, 2].imshow(store_y_pred)
+            axes[0, 2].imshow(store_y_pred, cmap="gray")
             axes[0, 2].set_title("train y pred")
 
-            axes[1, 0].imshow(store_x_val)
+            axes[1, 0].imshow(store_x_val, cmap="gray")
             axes[1, 0].set_title("val raw image")
 
-            axes[1, 1].imshow(store_y_val)
+            axes[1, 1].imshow(store_y_val, cmap="gray")
             axes[1, 1].set_title("val y")
 
-            axes[1, 2].imshow(store_y_pred_val)
+            axes[1, 2].imshow(store_y_pred_val, cmap="gray")
             axes[1, 2].set_title("val y pred")
 
-            axes[2, 0].imshow(store_x_val_0)
+            axes[2, 0].imshow(store_x_val_0, cmap="gray")
             axes[2, 0].set_title("val raw image")
 
-            axes[2, 1].imshow(store_y_val_0)
+            axes[2, 1].imshow(store_y_val_0, cmap="gray")
             axes[2, 1].set_title("val y")
 
-            axes[2, 2].imshow(store_y_pred_val_0)
+            axes[2, 2].imshow(store_y_pred_val_0, cmap="gray")
             axes[2, 2].set_title("val y pred")
 
             for a in axes:
@@ -375,11 +376,11 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 50
+    e = 300
     examples_per_load = 1
     batch_size = 2
 
-    debug = False
+    debug = True
 
     if not debug:
         toy = train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e,
@@ -426,7 +427,7 @@ if __name__ == "__main__":
                    examples_per_load=examples_per_load,
                    train_name="(240,240,160), Adadelta, bce+dice", custom_train_loop=True)
     else:
-        e = 3
+        e = 45
         train("tiny", batch_size=1, sample_shape=(160, 160, 160), epochs=e,
               examples_per_load=1,
               train_name="debug (160,160,160), Adadelta, bce+dice", custom_train_loop=True, train_debug=True)
@@ -442,6 +443,6 @@ if __name__ == "__main__":
         train("large_relative", batch_size=1, sample_shape=(160, 160, 160), epochs=e,
               examples_per_load=1,
               train_name="debug (160,160,160), Adadelta, bce+dice", custom_train_loop=True, train_debug=True)
-        train("slice", batch_size=1, sample_shape=(64, 64, 64), epochs=e,
-              examples_per_load=1,
+        train("slice", batch_size=1, sample_shape=(220, 220, 5), epochs=e,
+              examples_per_load=20,
               train_name="debug (160,160,160), Adadelta, bce+dice", custom_train_loop=True, train_debug=True)
