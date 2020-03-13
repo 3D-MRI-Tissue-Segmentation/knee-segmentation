@@ -335,9 +335,9 @@ if __name__ == "__main__":
     examples_per_load = 1
     batch_size = 3
 
-    toy = train("tiny", batch_size=2, sample_shape=(4, 4, 4), epochs=e,
+    toy = train("tiny", batch_size=2, sample_shape=(28, 28, 28), epochs=e,
                 examples_per_load=examples_per_load,
-                train_name="toy (4,4,4) lr=1e-4", custom_train_loop=True, train_debug=True)
+                train_name="toy (28,28,28) lr=1e-4", custom_train_loop=True, train_debug=True)
 
     # t0 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
     #            examples_per_load=examples_per_load,
