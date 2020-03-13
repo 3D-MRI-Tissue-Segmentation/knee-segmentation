@@ -33,7 +33,7 @@ def setup_gpu():
 
 def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs=10,
           save_model=True, validate=True, train_name="", custom_train_loop=False, train_debug=False,
-          reduce_lr=False, start_lr=5e-5, dataset_load_method=None,
+          reduce_lr=False, start_lr=1e-4, dataset_load_method=None,
           shuffle_order=True, normalise_input=True, remove_outliers=True,
           transform_angle=False, transform_position="normal",
           skip_empty=True, examples_per_load=1,
@@ -184,8 +184,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                 met_loss_value = met_loss(y_true=y, y_pred=y_)
                 epoch_met_loss_avg(met_loss_value)
 
+            y_ = vnet(x, training=False)
             slice_idx = int(y.shape[3] / 2)
-
             store_x = x[0, :, :, slice_idx, 0]
             store_y = y[0, :, :, slice_idx, 0]
             store_y_pred = y_[0, :, :, slice_idx, 0]
@@ -209,7 +209,12 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             store_y_val = y[0, :, :, slice_idx, 0]
             store_y_pred_val = y_[0, :, :, slice_idx, 0]
 
-            print(f"{time.perf_counter() - epoch_time:.0f} s epoch: {epoch}, loss: {epoch_loss_avg.result(): .4f}, loss val: {epoch_val_loss_avg.result(): .4f}, bce: {epoch_met_loss_avg.result(): .4f}, bce val: {epoch_val_met_loss_avg.result(): .4f}")
+            eloss_str = f" epoch: {epoch:3d}, loss: {epoch_loss_avg.result(): .5f},"
+            evalloss_str = f" loss val: {epoch_val_loss_avg.result(): .5f},"
+            emetloss_str = f" bce: {epoch_met_loss_avg.result(): .5f},"
+            evalmetloss_str = f" bce val: {epoch_val_met_loss_avg.result(): .5f}"
+
+            print(f"{time.perf_counter() - epoch_time:03.0f} s" + eloss_str + evalloss_str + emetloss_str + evalmetloss_str)
 
             loss_hist.append(epoch_loss_avg.result())
             loss_val_hist.append(epoch_val_loss_avg.result())
@@ -332,31 +337,31 @@ if __name__ == "__main__":
 
     toy = train("tiny", batch_size=2, sample_shape=(4, 4, 4), epochs=e,
                 examples_per_load=examples_per_load,
-                train_name="toy (4,4,4) lr=5e-5", custom_train_loop=True, train_debug=True)
+                train_name="toy (4,4,4) lr=1e-4", custom_train_loop=True, train_debug=True)
 
-    t0 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
-               examples_per_load=examples_per_load,
-               train_name="(200,200,160) lr=5e-5", custom_train_loop=True)
+    # t0 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
+    #            examples_per_load=examples_per_load,
+    #            train_name="(200,200,160) lr=1e-4", custom_train_loop=True)
 
     t1 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(240,240,160) lr=5e-5", custom_train_loop=True)
+               train_name="(240,240,160) lr=1e-4", custom_train_loop=True)
 
     t2 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(288,288,160) lr=5e-5", custom_train_loop=True)
+               train_name="(288,288,160) lr=1e-4", custom_train_loop=True)
 
     t3 = train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(288,288,160) lr=5e-5, add", action="add", custom_train_loop=True)
+               train_name="(288,288,160) lr=1e-4, add", action="add", custom_train_loop=True)
 
     t4 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(384,384,7) lr=5e-5, k=(3,3,3)", kernel_size=(3, 3, 3), custom_train_loop=True)
+               train_name="(384,384,7) lr=1e-4, k=(3,3,3)", kernel_size=(3, 3, 3), custom_train_loop=True)
 
     t5 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(384,384,7) lr=5e-5, k=(3,3,1)", kernel_size=(3, 3, 1), custom_train_loop=True)
+               train_name="(384,384,7) lr=1e-4, k=(3,3,1)", kernel_size=(3, 3, 1), custom_train_loop=True)
 
     print("toy", toy)
     print("t0", t0)
