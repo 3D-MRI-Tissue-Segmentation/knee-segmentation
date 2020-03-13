@@ -214,7 +214,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             emetloss_str = f" bce: {epoch_met_loss_avg.result(): .5f},"
             evalmetloss_str = f" bce val: {epoch_val_met_loss_avg.result(): .5f}"
 
-            print(f"{time.perf_counter() - epoch_time:03.0f} s" + eloss_str + evalloss_str + emetloss_str + evalmetloss_str)
+            print(f"{time.perf_counter() - epoch_time:3.0f} s" + eloss_str + evalloss_str + emetloss_str + evalmetloss_str)
 
             loss_hist.append(epoch_loss_avg.result())
             loss_val_hist.append(epoch_val_loss_avg.result())
