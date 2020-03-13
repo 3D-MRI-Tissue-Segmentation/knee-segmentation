@@ -29,7 +29,7 @@ class VolumeGenerator(Sequence):
         self.train_debug = train_debug
 
         if self.train_debug:
-            cut = int(len(self.data_paths) / 10)
+            cut = int(len(self.data_paths) / 5)
             self.data_paths = self.data_paths[:cut]
 
         assert self.batch_size <= len(self.data_paths), f"Batch size {self.batch_size} must be less than or equal to number of training examples {len(self.data_paths)}"

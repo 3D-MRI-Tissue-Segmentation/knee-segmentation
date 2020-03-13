@@ -142,8 +142,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
     loss_name = ""
     if n_classes == 1:
-        loss_func = dice_loss
-        loss_name = 'dice loss'
+        loss_func = bce_dice_loss
+        loss_name = 'bce dice loss'
         from tensorflow.keras.losses import binary_crossentropy
         met_loss = binary_crossentropy
         met_loss_name = 'binary_crossentropy'
@@ -161,7 +161,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
     metric_hist = [None] * len(metrics)
     metric_val_hist = [None] * len(metrics)
-    for i in range(1):  # we only care about 1 metrics
+    for i in range(2):  # we only care about 2 metrics
         metric_hist[i] = []
         metric_val_hist[i] = []
 
@@ -177,6 +177,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             epoch_val_loss_avg = tf.keras.metrics.Mean()
             epoch_met_loss_avg = tf.keras.metrics.Mean()
             epoch_val_met_loss_avg = tf.keras.metrics.Mean()
+            epoch_dice_loss_avg = tf.keras.metrics.Mean()
+            epoch_val_dice_loss_avg = tf.keras.metrics.Mean()
 
             for x, y in tdataset:
 
@@ -190,6 +192,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
                 met_loss_value = met_loss(y_true=y, y_pred=y_)
                 epoch_met_loss_avg(met_loss_value)
+                epoch_dice_loss_avg(dice_loss(y_true=y, y_pred=y_))
 
             y_ = vnet(x, training=False)
             slice_idx = int(y.shape[3] / 2)
@@ -210,6 +213,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
                 val_met_loss_value = met_loss(y_true=y, y_pred=y_)
                 epoch_val_met_loss_avg(val_met_loss_value)
+
+                epoch_val_dice_loss_avg(dice_loss(y_true=y, y_pred=y_))
 
                 if vidx == 0:
                     if get_position:
@@ -236,14 +241,18 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             evalloss_str = f" loss val: {epoch_val_loss_avg.result(): .5f},"
             emetloss_str = f" bce: {epoch_met_loss_avg.result(): .5f},"
             evalmetloss_str = f" bce val: {epoch_val_met_loss_avg.result(): .5f}"
+            emetdiceloss_str = f" dice: {epoch_dice_loss_avg.result(): .5f},"
+            evaldiceloss_str = f" dice val: {epoch_val_dice_loss_avg.result(): .5f}"
 
-            print(f"{time.perf_counter() - epoch_time:3.0f} s" + eloss_str + evalloss_str + emetloss_str + evalmetloss_str)
+            print(f"{time.perf_counter() - epoch_time:3.0f} s" + eloss_str + evalloss_str + emetloss_str + evalmetloss_str + emetdiceloss_str + evaldiceloss_str)
 
             loss_hist.append(epoch_loss_avg.result())
             loss_val_hist.append(epoch_val_loss_avg.result())
 
             metric_hist[0].append(epoch_met_loss_avg.result())
             metric_val_hist[0].append(epoch_val_met_loss_avg.result())
+            metric_hist[1].append(epoch_dice_loss_avg.result())
+            metric_val_hist[1].append(epoch_val_dice_loss_avg.result())
 
             f, axes = plt.subplots(3, 3)
 
@@ -308,15 +317,17 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                          steps_per_epoch=steps, validation_steps=vsteps)
             loss_val_hist = h.history['val_loss']
             metric_val_hist[0] = h.history[f'val_{met_loss_name}']
+            metric_val_hist[1] = h.history[f'val_dice_loss']
         else:
             h = vnet.fit(x=tdataset, callbacks=callbacks, epochs=epochs, verbose=1)
 
         loss_hist = h.history['loss']
         metric_hist[0] = h.history[f'{met_loss_name}']
+        metric_hist[1] = h.history[f'dice_loss']
 
     time_taken = time.perf_counter() - start_time
     roll_period = 5
-    f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
     ax1.plot(loss_hist, label="loss")
     ax1.plot(running_mean(loss_hist, roll_period), label="loss roll")
     if validate:
@@ -324,6 +335,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
         ax1.plot(running_mean(loss_val_hist, roll_period), label="val loss roll")
     ax1.set_xlabel("epoch")
     ax1.set_ylabel(loss_name)
+    ax1.set_title("loss: dice + bce")
     ax1.legend()
     ax2.plot(metric_hist[0], label=met_loss_name)
     ax2.plot(running_mean(metric_hist[0], roll_period), label=f"{met_loss_name} roll")
@@ -333,6 +345,14 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax2.set_xlabel("epoch")
     ax2.set_ylabel("cross entropy")
     ax2.legend()
+    ax3.plot(metric_hist[1], label="dice_loss")
+    ax3.plot(running_mean(metric_hist[1], roll_period), label=f"dice_loss roll")
+    if validate:
+        ax3.plot(metric_val_hist[1], label=f"val dice_loss")
+        ax3.plot(running_mean(metric_val_hist[1], roll_period), label=f"val dice_loss roll")
+    ax3.set_xlabel("epoch")
+    ax3.set_ylabel("cross entropy")
+    ax3.legend()
     f.tight_layout(rect=[0, 0.01, 1, 0.95])
     f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
     plt.savefig(f"checkpoints/{debug}train_session_{now_time}_{model}/train_result_{now_time}")
@@ -354,43 +374,42 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 100
+    e = 200
     examples_per_load = 1
     batch_size = 3
 
-    # toy = train("tiny", batch_size=2, sample_shape=(28, 28, 28), epochs=e,
-    #             examples_per_load=examples_per_load,
-    #             train_name="toy (28,28,28) lr=1e-4", custom_train_loop=True, train_debug=True)
+    toy = train("tiny", batch_size=2, sample_shape=(28, 28, 28), epochs=e,
+                examples_per_load=examples_per_load,
+                train_name="toy (28,28,28) lr=1e-4, bce+dice", custom_train_loop=True, train_debug=True)
 
-    # t0 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
-    #            examples_per_load=examples_per_load,
-    #            train_name="(384,384,7) lr=1e-4, k=(3,3,3)", kernel_size=(3, 3, 3), custom_train_loop=True)
+    t0 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+               examples_per_load=10,
+               train_name="(384,384,7) lr=1e-4, k=(3,3,3), bce+dice", kernel_size=(3, 3, 3), custom_train_loop=True)
 
-    # t1 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
-    #            examples_per_load=examples_per_load,
-    #            train_name="(384,384,7) lr=1e-4, k=(3,3,1)", kernel_size=(3, 3, 1), custom_train_loop=True)
+    t1 = train("slice", batch_size=batch_size, sample_shape=(384, 384, 7), epochs=e,
+               examples_per_load=10,
+               train_name="(384,384,7) lr=1e-4, k=(3,3,1), bce+dice", kernel_size=(3, 3, 1), custom_train_loop=True)
 
     # t2 = train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
     #            examples_per_load=examples_per_load,
-    #            train_name="(288,288,160) lr=1e-4, add", action="add", custom_train_loop=True)
+    #            train_name="(288,288,160) lr=1e-4, add, bce+dice", action="add", custom_train_loop=True)
 
     t3 = train("large_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(288,288,160) lr=1e-4, add", action="add", custom_train_loop=True)
+               train_name="(288,288,160) lr=1e-4, add, bce+dice", action="add", custom_train_loop=True)
 
     # t4 = train("tiny", batch_size=batch_size, sample_shape=(200, 200, 160), epochs=e,
     #            examples_per_load=examples_per_load,
-    #            train_name="(200,200,160) lr=1e-4", custom_train_loop=True)
+    #            train_name="(200,200,160) lr=1e-4, bce+dice", custom_train_loop=True)
 
     # t5 = train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
     #            examples_per_load=examples_per_load,
-    #            train_name="(240,240,160) lr=1e-4", custom_train_loop=True)
+    #            train_name="(240,240,160) lr=1e-4, bce+dice", custom_train_loop=True)
 
     # t6 = train("small", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
     #            examples_per_load=examples_per_load,
-    #            train_name="(288,288,160) lr=1e-4", custom_train_loop=True)
+    #            train_name="(288,288,160) lr=1e-4, bce+dice", custom_train_loop=True)
 
     t7 = train("large", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
                examples_per_load=examples_per_load,
-               train_name="(288,288,160) lr=1e-4", custom_train_loop=True)
-
+               train_name="(288,288,160) lr=1e-4, bce+dice", custom_train_loop=True)
