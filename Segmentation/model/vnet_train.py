@@ -67,18 +67,21 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     else:
         raise NotImplementedError()
 
-    if not os.path.exists('checkpoints'):
-        os.makedirs('checkpoints')
+    if not os.path.exists('ckpt'):
+        os.makedirs('ckpt')
+
+    if not os.path.exists('ckpt/checkpoints'):
+        os.makedirs('ckpt/checkpoints')
 
     now = datetime.now()
     now_time = now.strftime('%Y_%m_%d-%H_%M_%S')
 
-    if not os.path.exists(f'checkpoints/{debug}train_session_{now_time}_{model}'):
-        os.makedirs(f'checkpoints/{debug}train_session_{now_time}_{model}')
+    if not os.path.exists(f'ckpt/checkpoints/{debug}train_session_{now_time}_{model}'):
+        os.makedirs(f'ckpt/checkpoints/{debug}train_session_{now_time}_{model}')
 
     if custom_train_loop:
-        if not os.path.exists(f'checkpoints/{debug}train_session_{now_time}_{model}/progress'):
-            os.makedirs(f'checkpoints/{debug}train_session_{now_time}_{model}/progress')
+        if not os.path.exists(f'ckpt/checkpoints/{debug}train_session_{now_time}_{model}/progress'):
+            os.makedirs(f'ckpt/checkpoints/{debug}train_session_{now_time}_{model}/progress')
 
     setup_gpu()
 
@@ -166,7 +169,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
         metric_val_hist[i] = []
 
     save_models_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=f'checkpoints/{debug}train_session_{now_time}_{model}/chkp/model_' + '{epoch}',
+        filepath=f'ckpt/checkpoints/{debug}train_session_{now_time}_{model}/chkp/model_' + '{epoch}',
         verbose=1)
 
     if custom_train_loop:
@@ -292,10 +295,10 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
             f.tight_layout(rect=[0, 0.01, 1, 0.93])
             f.suptitle(f"{model}: {train_name}, epoch: {epoch}\nloss: {epoch_loss_avg.result(): .5f}, val loss: {epoch_val_loss_avg.result(): .5f}")
-            plt.savefig(f"checkpoints/{debug}train_session_{now_time}_{model}/progress/train_{epoch:04d}_{now_time}")
+            plt.savefig(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/progress/train_{epoch:04d}_{now_time}")
             plt.close('all')
             # print(f"plot saved: {time.perf_counter() - epoch_time:.0f}") plots are very fast to save, take ~1 second
-            vnet.save_weights(f"checkpoints/{debug}train_session_{now_time}_{model}/chkp/ckpt_{epoch:04d}_{now_time}.cktp")
+            vnet.save_weights(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/chkp/ckpt_{epoch:04d}_{now_time}.cktp")
     else:
 
         vnet.compile(optimizer=Adam(lr=start_lr),
@@ -357,15 +360,15 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax3.legend()
     f.tight_layout(rect=[0, 0.01, 1, 0.95])
     f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
-    plt.savefig(f"checkpoints/{debug}train_session_{now_time}_{model}/train_result_{now_time}")
+    plt.savefig(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/train_result_{now_time}")
 
     if custom_train_loop:
-        filenames = glob(f"checkpoints/{debug}train_session_{now_time}_{model}/progress/*")
+        filenames = glob(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/progress/*")
         filenames.sort()
         images = []
         for filename in filenames:
             images.append(imageio.imread(filename))
-        imageio.mimsave(f'checkpoints/{debug}train_session_{now_time}_{model}/progress.gif', images)
+        imageio.mimsave(f'ckpt/checkpoints/{debug}train_session_{now_time}_{model}/progress.gif', images)
     return time_taken
 
 
@@ -380,7 +383,7 @@ if __name__ == "__main__":
     examples_per_load = 1
     batch_size = 2
 
-    debug = True
+    debug = False
 
     if not debug:
         toy = train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e,

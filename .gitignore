@@ -3,8 +3,7 @@
 env/
 **/web_env/
 */checkpoints/
-checkpoints/
-checkpoints_old/
+ckpt/
 */web_env/
 web_env/
 **/ui_env/
