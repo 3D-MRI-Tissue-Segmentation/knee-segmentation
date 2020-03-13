@@ -16,11 +16,13 @@ class VNet_Small(tf.keras.Model):
                  data_format='channels_last',
                  merge_connections=False,
                  output_activation=None,
+                 noise=0.0001,
                  name="vnet_small"):
 
         super(VNet_Small, self).__init__(name=name)
         self.merge_connections = merge_connections
         self.num_classes = num_classes
+        self.noise = noise
 
         self.conv_1 = Conv3D_Block(num_channels, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
@@ -54,7 +56,10 @@ class VNet_Small(tf.keras.Model):
             self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size=(1, 1, 1), activation='softmax',
                                                    padding='same', data_format=data_format)
 
-    def call(self, inputs):
+    def call(self, inputs, training=False):
+        
+        if self.noise and training:
+            inputs = tf.keras.layers.GaussianNoise(self.noise)(inputs)
 
         # 1->64
         x1 = self.conv_1(inputs)

@@ -19,12 +19,14 @@ class VNet_Small_Relative(tf.keras.Model):
                  compressor_filters=3,
                  action='add',
                  output_activation=None,
+                 noise=0.0001,
                  name="vnet_small_relative"):
 
         super(VNet_Small_Relative, self).__init__(name=name)
         self.merge_connections = merge_connections
         self.num_classes = num_classes
         self.action = action
+        self.noise = noise
 
         assert self.action in ['add', 'multiply'], f"{self.action} not in action list"
 
@@ -79,6 +81,9 @@ class VNet_Small_Relative(tf.keras.Model):
 
     def call(self, inputs, training=True):
         image_inputs, pos_inputs = inputs
+
+        if self.noise and training:
+            image_inputs = tf.keras.layers.GaussianNoise(self.noise)(image_inputs)
 
         # decoder
         # 1->64

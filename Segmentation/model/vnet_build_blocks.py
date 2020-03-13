@@ -42,11 +42,10 @@ class Conv3D_Block(tf.keras.layers.Layer):
             if self.use_batchnorm:
                 x = self.batchnorm(x)
             x = self.activation(x)
-        if training:
-            if self.use_dropout:
-                x = self.dropout(x)
-        outputs = x
-        return outputs
+            if training:
+                if self.use_dropout:
+                    x = self.dropout(x)
+        return x
 
 
 class Up_Conv3D(tf.keras.layers.Layer):
@@ -85,5 +84,4 @@ class Up_Conv3D(tf.keras.layers.Layer):
         if self.use_batchnorm:
             x = self.batch_norm(x)
         outputs = self.activation(x)
-
         return outputs

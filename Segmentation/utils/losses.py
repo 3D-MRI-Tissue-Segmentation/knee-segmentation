@@ -21,7 +21,7 @@ def dice_loss(y_true, y_pred):
 
 def bce_dice_loss(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
-    loss = binary_crossentropy(y_true, y_pred) + dice_loss(y_true, y_pred)
+    loss = binary_crossentropy(y_true, y_pred) / 3 + dice_loss(y_true, y_pred)
     return loss
 
 def precision(y_true, y_pred):
