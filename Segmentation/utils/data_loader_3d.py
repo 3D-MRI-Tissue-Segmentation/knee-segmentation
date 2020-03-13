@@ -92,7 +92,7 @@ class VolumeGenerator(Sequence):
 
                 if self.get_position:
                     image_arr.append(volume_x)
-                    pos = np.empty(3)
+                    pos = np.empty(3, dtype=np.float32)
                     for i in range(3):
                         pos[i] = VolumeGenerator.normalise_position(sample_pos[i], sample_pos_max[i])
                     pos_arr.append(pos)
