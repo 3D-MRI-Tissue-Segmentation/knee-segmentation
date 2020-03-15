@@ -9,6 +9,7 @@ import os
 import time
 from glob import glob
 import imageio
+import subprocess
 
 
 def running_mean(x, N):
@@ -42,17 +43,30 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         self.initial_learning_rate = initial_learning_rate
         self.drop = drop
         self.epochs_drop = epochs_drop
+        self._step = 0
 
     def __call__(self, step):
+        self._step += 1
         lr_epoch = tf.cast(step, tf.float32) / self.steps_per_epoch
         lrate = self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1+lr_epoch)/self.epochs_drop))
         return lrate
 
     def get_config(self):
+        lr_epoch = tf.cast(self._step, tf.float32) / self.steps_per_epoch
         return {
         'initial_learning_rate': self.initial_learning_rate,
+        'step': self._step,
+        'current_learning_rate': (self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1+lr_epoch)/self.epochs_drop))).numpy()
         }
 
+def get_git_file_short_hash(file_path):
+    commit_id = None
+    try:
+        commit_id = subprocess.check_output(['git', 'log', '-1', '--pretty=format:%h', '--', file_path]).decode("utf-8") 
+    except Exception as e:
+        print(f"Get commit hash for file {file_path} failed: {e}")
+        commit_id = "Not Found"
+    return commit_id
 
 def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs=10,
           save_model=True, validate=True, train_name="", custom_train_loop=False, train_debug=False,
@@ -60,33 +74,53 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
           shuffle_order=True, normalise_input=True, remove_outliers=True,
           transform_angle=False, transform_position="normal",
           skip_empty=True, examples_per_load=1, use_optimizer="adadelta",
+          mean_loss_of_batch="", schedule_drop="", schedule_epochs_drop="",
           **model_kwargs):
     start_time = time.perf_counter()
     debug = ""
     if train_debug:
         debug = "debug_"
     get_position, get_slice = False, False
+    commit_id = ""
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
         vnet = VNet_Tiny(1, n_classes, **model_kwargs)
+        model_path = "Segmentation/model/vnet_tiny.py"
+        commit_id = get_git_file_short_hash(model_path)
+        print(commit_id)
     elif model == "small":
         from Segmentation.model.vnet_small import VNet_Small
         vnet = VNet_Small(1, n_classes, **model_kwargs)
+        model_path = "Segmentation/model/vnet_small.py"
+        commit_id = get_git_file_short_hash(model_path)
+        print(commit_id)
     elif model == "small_relative":
         from Segmentation.model.vnet_small_relative import VNet_Small_Relative
         vnet = VNet_Small_Relative(1, n_classes, **model_kwargs)
         get_position = True
+        model_path = "Segmentation/model/vnet_small_relative.py"
+        commit_id = get_git_file_short_hash(model_path)
+        print(commit_id)
     elif model == "slice":
         from Segmentation.model.vnet_slice import VNet_Slice
         vnet = VNet_Slice(1, n_classes, **model_kwargs)
         get_slice = True
+        model_path = "Segmentation/model/vnet_slice.py"
+        commit_id = get_git_file_short_hash(model_path)
+        print(commit_id)
     elif model == "large":
         from Segmentation.model.vnet_large import VNet_Large
         vnet = VNet_Large(1, n_classes, **model_kwargs)
+        model_path = "Segmentation/model/vnet_large.py"
+        commit_id = get_git_file_short_hash(model_path)
+        print(commit_id)
     elif model == "large_relative":
         from Segmentation.model.vnet_large_relative import VNet_Large_Relative
         vnet = VNet_Large_Relative(1, n_classes, **model_kwargs)
         get_position = True
+        model_path = "Segmentation/model/vnet_large_relative.py"
+        commit_id = get_git_file_short_hash(model_path)
+        print(commit_id)
     else:
         raise NotImplementedError()
 
@@ -202,12 +236,15 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             optimizer = tf.keras.optimizers.Adadelta(learning_rate=1e-6, rho=0.95)
         elif use_optimizer == "adam_schedule":
             assert dataset_load_method is None, "Need to be using data generator loader"
+            assert schedule_drop != "", "Schedule drop needs to be set when using schedule"
+            assert schedule_epochs_drop != "", "Schedule epochs drop needs to be set when using schedule"
             steps_per_epoch = int(len(VolumeGenerator.get_paths("t")) / batch_size)
-            lr_schedule = LearningRateSchedule(steps_per_epoch,
-                                               start_lr,
-                                               0.9,
-                                               5)
+            lr_schedule = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
+                                               initial_learning_rate=start_lr,
+                                               drop=0.95,
+                                               epochs_drop=3)
             optimizer = Adam(learning_rate=lr_schedule)
+        assert mean_loss_of_batch != "", "Set value for mean loss of batch: true or false"
         for epoch in range(epochs):
             epoch_time = time.perf_counter()
             epoch_loss_avg = tf.keras.metrics.Mean()
@@ -221,8 +258,10 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
 
                 with tf.GradientTape() as tape:
                     y_ = vnet(x, training=True)
-                    loss_value = tf.reduce_mean(loss_func(y_true=y, y_pred=y_))
-                    # loss_value = loss_func(y_true=y, y_pred=y_)
+                    if mean_loss_of_batch:
+                        loss_value = tf.reduce_mean(loss_func(y_true=y, y_pred=y_))
+                    else:
+                        loss_value = loss_func(y_true=y, y_pred=y_)
                 grads = tape.gradient(loss_value, vnet.trainable_variables)
 
                 optimizer.apply_gradients(zip(grads, vnet.trainable_variables))
@@ -231,6 +270,10 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                 met_loss_value = met_loss(y_true=y, y_pred=y_)
                 epoch_met_loss_avg(met_loss_value)
                 epoch_bcedice_loss_avg(bce_dice_loss(y_true=y, y_pred=y_))
+
+            clr = ""
+            if use_optimizer == "adam_schedule":
+                clr = f", lr: {optimizer.get_config()['learning_rate']['config']['current_learning_rate']: .07f}"
 
             y_ = vnet(x, training=False)
             slice_idx = int(y.shape[3] / 2)
@@ -327,28 +370,22 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                     ax.yaxis.set_visible(False)
 
             f.tight_layout(rect=[0, 0.01, 1, 0.93])
-            f.suptitle(f"{model}: {train_name}, epoch: {epoch}\nloss: {epoch_loss_avg.result(): .5f}, val loss: {epoch_val_loss_avg.result(): .5f}")
+            f.suptitle(f"{model}: {train_name}, epoch: {epoch}\nloss: {epoch_loss_avg.result(): .5f}, val loss: {epoch_val_loss_avg.result(): .5f}{clr}")
             plt.savefig(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/progress/train_{epoch:04d}_{now_time}")
             plt.close('all')
             # print(f"plot saved: {time.perf_counter() - epoch_time:.0f}") plots are very fast to save, take ~1 second
             vnet.save_weights(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/chkp/ckpt_{epoch:04d}_{now_time}.cktp")
     else:
-
         vnet.compile(optimizer=Adam(lr=start_lr),
                      loss=loss_func,
                      metrics=metrics,
                      experimental_run_tf_function=True)
-
-        callbacks = [
-            save_models_callback
-        ]
-
+        callbacks = [save_models_callback]
         if reduce_lr:
             callbacks.append(
                 tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,
                                                      patience=10, min_lr=1e-7, verbose=1)
             )
-
         if validate:
             h = vnet.fit(x=tdataset, validation_data=vdataset,
                          callbacks=callbacks, epochs=epochs, verbose=1,
@@ -358,7 +395,6 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             metric_val_hist[1] = h.history[f'val_dice_loss']
         else:
             h = vnet.fit(x=tdataset, callbacks=callbacks, epochs=epochs, verbose=1)
-
         loss_hist = h.history['loss']
         metric_hist[0] = h.history[f'{met_loss_name}']
         metric_hist[1] = h.history[f'dice_loss']
@@ -391,8 +427,10 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax3.set_xlabel("epoch")
     ax3.set_ylabel("bce + dice loss")
     ax3.legend()
-    f.tight_layout(rect=[0, 0.01, 1, 0.95])
-    f.suptitle(f"{model}: {train_name}, {time_taken:.1f}")
+    f.tight_layout(rect=[0, 0.01, 1, 0.93])
+    min_loss = min(loss_hist).numpy()
+    min_val_loss = min(loss_val_hist).numpy()
+    f.suptitle(f"{model}: {train_name}, {time_taken:.1f}\nMin Loss: {min_loss:.5f}, Min Val Loss: {min_val_loss:.5f}")
     plt.savefig(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/train_result_{now_time}")
 
     if custom_train_loop:
@@ -403,6 +441,21 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             images.append(imageio.imread(filename))
         imageio.mimsave(f'ckpt/checkpoints/{debug}train_session_{now_time}_{model}/progress.gif', images)
     print(f"time taken: {time_taken:.1f}")
+
+    train_cols = {
+            'Model': [model], 'Input Shape': [sample_shape], 'Learning Rate': [start_lr],
+            'Loss': [loss_name],'Optimizer': [use_optimizer],
+            'Num. Epochs': [epochs], 'Examples/Epoch': [examples_per_load],
+            'Min Loss': [min_loss], 'Min Val Loss': [min_val_loss], 'Fit': [custom_train_loop],
+            'Mean loss of batch': [mean_loss_of_batch], 
+            'Schedule Drop': [schedule_drop], 'Schedule Epochs Drop': [schedule_epochs_drop], 'Train Duration': [time_taken],
+            'Shuffle Order': [shuffle_order], 'Normalise Input': [normalise_input], 'Remove Outliers': [remove_outliers], 'Skip Empty': [skip_empty],
+            'transform_angle': [transform_angle], 'transform_position': [transform_position],
+            'Commit ID': [commit_id], 'Train Name': [f"{debug}train_session_{now_time}_{model}"],
+        }
+    df = pd.DataFrame(data=train_cols)
+    df.to_csv("vnet_train_experiments.csv", index=False, header=False, mode='a')
+
     return time_taken
 
 
@@ -413,99 +466,123 @@ if __name__ == "__main__":
     import sys
     sys.path.insert(0, os.getcwd())
 
-    e = 300
-    examples_per_load = 1
-    batch_size = 2
+    if not os.path.exists("vnet_train_experiments.csv"):
+        train_cols = {
+            'Model': [], 'Input Shape': [], 'Learning Rate': [],
+            'Loss': [],'Optimizer': [],
+            'Num. Epochs': [], 'Examples/Epoch': [],
+            'Min Loss': [], 'Min Val Loss': [], 'Fit': [],
+            'Mean loss of batch': [],
+            'Schedule Drop': [], 'Schedule Epochs Drop': [], 'Train Duration': [],
+            'Shuffle Order': [], 'Normalise Input': [], 'Remove Outliers': [], 'Skip Empty': [],
+            'transform_angle': [], 'transform_position': [],
+            'Commit ID': [], 'Train Name': [],
+        }
+        df = pd.DataFrame(data=train_cols)
+        df.to_csv("vnet_train_experiments.csv", index=False)
+
+    e = 15
 
     debug = False
 
     if not debug:
-        train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e,
-              examples_per_load=examples_per_load*5,
-              train_name="toy (64,64,64), Adam Schedule 1e-5, dice", custom_train_loop=True, train_debug=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+
+        train("slice", batch_size=5, sample_shape=(280, 280, 1), epochs=e,
+              examples_per_load=50,
+              train_name="(280,280,1), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
+              use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=True)
+        train("slice", batch_size=5, sample_shape=(280, 280, 1), epochs=e,
+              examples_per_load=50,
+              train_name="(280,280,1), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="uniform",
+              use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=True)
+        train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e,
+              examples_per_load=25,
+              train_name="(280,280,3), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
+              use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=True)
+        train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e,
+              examples_per_load=25,
+              train_name="(280,280,3), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="uniform",
+              use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=True)
+        train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e,
+              examples_per_load=25,
+              train_name="(280,280,3), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 3), custom_train_loop=True, transform_position="normal",
+              use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=True)
+        train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e,
+              examples_per_load=25,
+              train_name="(280,280,3), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 3), custom_train_loop=True, transform_position="uniform",
+              use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=True)
+
+        # train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e,
+        #       examples_per_load=examples_per_load*5,
+        #       train_name="toy (64,64,64), Adam Schedule 1e-3, dice", custom_train_loop=True, train_debug=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
         
-        train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e,
-              examples_per_load=examples_per_load*5,
-              train_name="toy (64,64,64), Adadelta 1e-6, dice", custom_train_loop=True, train_debug=True,
-              use_optimizer="adadelta")             
+        # train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e,
+        #       examples_per_load=examples_per_load*5,
+        #       train_name="toy (64,64,64), Adadelta 1e-4, dice", custom_train_loop=True, train_debug=True,
+        #       use_optimizer="adadelta", start_lr=1e-4, mean_loss_of_batch=True)             
 
-        train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
-              examples_per_load=10,
-              train_name="(288,288,5), Adadelta 1e-6, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
-              use_optimizer="adadelta")
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 1), epochs=e,
+        #       examples_per_load=10,
+        #       train_name="(288,288,1), Adam 1e-3, k=(3,3,1), dice", kernel_size=(3, 3, 1), custom_train_loop=True,
+        #       use_optimizer="adam", start_lr=1e-3, mean_loss_of_batch=True)
 
-        train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
-              examples_per_load=10,
-              train_name="(288,288,5), Adam 1e-5, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
-              use_optimizer="adam", start_lr=1e-5)
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
+        #       examples_per_load=10,
+        #       train_name="(288,288,5), Adam 1e-3, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
+        #       use_optimizer="adam", start_lr=1e-3, mean_loss_of_batch=True)
 
-        train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
-              examples_per_load=10,
-              train_name="(288,288,5), Adam 1e-7, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
-              use_optimizer="adam", start_lr=1e-7)
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
+        #       examples_per_load=10,
+        #       train_name="(288,288,5), Adam 1e-4, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
+        #       use_optimizer="adam", start_lr=1e-4, mean_loss_of_batch=True)
 
-        train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
-              examples_per_load=10,
-              train_name="(288,288,5), Adam Schedule 1e-5, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
+        #       examples_per_load=10,
+        #       train_name="(288,288,5), Adam Schedule 1e-3, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
 
-        train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
-              examples_per_load=10,
-              train_name="(288,288,5), Adam Schedule 1e-5, k=(3,3,1), dice", kernel_size=(3, 3, 1), custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
+        #       examples_per_load=10,
+        #       train_name="(288,288,5), Adam Schedule 1e-3, k=(3,3,1), dice", kernel_size=(3, 3, 1), custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
 
-        train("slice", batch_size=batch_size, sample_shape=(288, 288, 7), epochs=e,
-              examples_per_load=10,
-              train_name="(288,288,7), Adam Schedule 1e-5, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 7), epochs=e,
+        #       examples_per_load=10,
+        #       train_name="(288,288,7), Adam Schedule 1e-3, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
 
-        train("slice", batch_size=batch_size, sample_shape=(288, 288, 7), epochs=e,
-              examples_per_load=10,
-              train_name="(288,288,7), Adam Schedule 1e-5, k=(3,3,1), dice", kernel_size=(3, 3, 1), custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 7), epochs=e,
+        #       examples_per_load=10,
+        #       train_name="(288,288,7), Adam Schedule 1e-3, k=(3,3,1), dice", kernel_size=(3, 3, 1), custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
 
-        train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
-              examples_per_load=examples_per_load,
-              train_name="(288,288,160), Adam Schedule 1e-5, add, dice", action="add", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+        # train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
+        #       examples_per_load=examples_per_load,
+        #       train_name="(288,288,160), Adam Schedule 1e-3, add, dice", action="add", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
 
-        train("large_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
-              examples_per_load=examples_per_load,
-              train_name="(288,288,160), Adam Schedule 1e-5, add, dice", action="add", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+        # train("large_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
+        #       examples_per_load=examples_per_load,
+        #       train_name="(288,288,160), Adam Schedule 1e-3, add, dice", action="add", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
 
-        train("tiny", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
-              examples_per_load=examples_per_load,
-              train_name="(240,240,160), Adam Schedule 1e-5, dice", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+        # train("tiny", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
+        #       examples_per_load=examples_per_load,
+        #       train_name="(240,240,160), Adam Schedule 1e-3, dice", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
 
-        train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
-              examples_per_load=examples_per_load,
-              train_name="(240,240,160), Adam Schedule 1e-5, dice", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+        # train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
+        #       examples_per_load=examples_per_load,
+        #       train_name="(240,240,160), Adam Schedule 1e-3, dice", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
 
-        train("large", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
-              examples_per_load=examples_per_load,
-              train_name="(240,240,160), Adam Schedule 1e-5, dice", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=1e-5)
+        # train("large", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
+        #       examples_per_load=examples_per_load,
+        #       train_name="(240,240,160), Adam Schedule 1e-3, dice", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=True)
     else:
-        e = 45
+        e = 3
         train("tiny", batch_size=1, sample_shape=(160, 160, 160), epochs=e,
               examples_per_load=1,
-              train_name="debug (160,160,160), Adadelta, dice", custom_train_loop=True, train_debug=True)
-        train("small", batch_size=1, sample_shape=(160, 160, 160), epochs=e,
-              examples_per_load=1,
-              train_name="debug (160,160,160), Adadelta, dice", custom_train_loop=True, train_debug=True)
-        train("large", batch_size=1, sample_shape=(160, 160, 160), epochs=e,
-              examples_per_load=1,
-              train_name="debug (160,160,160), Adadelta, dice", custom_train_loop=True, train_debug=True)
-        train("small_relative", batch_size=2, sample_shape=(160, 160, 160), epochs=e,
-              examples_per_load=1,
-              train_name="debug (160,160,160), Adadelta, dice", custom_train_loop=True, train_debug=True)
-        train("large_relative", batch_size=1, sample_shape=(160, 160, 160), epochs=e,
-              examples_per_load=1,
-              train_name="debug (160,160,160), Adadelta, dice", custom_train_loop=True, train_debug=True)
-        train("slice", batch_size=1, sample_shape=(220, 220, 5), epochs=e,
-              examples_per_load=20,
-              train_name="debug (160,160,160), Adadelta, dice", custom_train_loop=True, train_debug=True)
+              train_name="debug (160,160,160), Adadelta, dice", custom_train_loop=True, train_debug=True, mean_loss_of_batch=True)
