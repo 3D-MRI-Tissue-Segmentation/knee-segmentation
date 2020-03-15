@@ -481,7 +481,7 @@ if __name__ == "__main__":
         df = pd.DataFrame(data=train_cols)
         df.to_csv("vnet_train_experiments.csv", index=False)
 
-    e = 15
+    e = 90
 
     debug = False
 
