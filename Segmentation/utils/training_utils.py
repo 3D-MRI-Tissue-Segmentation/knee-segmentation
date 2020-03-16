@@ -138,35 +138,3 @@ def label2color(img):
             img_color[row, col] = np.array(colour_maps[label])
 
     return img_color
-
-class SaveImage(tf.keras.callbacks.Callback):
-    def __init__(self, save_dir, train_img_file_path="t", test_img_file_path="v", num_imgs=3):
-        super(SaveImage, self).__init__()
-        # self.train_imgs_paths = SaveImage.get_paths(train_img_file_path)[:num_imgs]
-        # self.test_imgs_paths = SaveImage.get_paths(test_img_file_path)[:num_imgs]
-
-        self.input = tf.Variable(0.0, shape=tf.TensorShape(None))
-        self.target = tf.Variable(0.0, shape=tf.TensorShape(None))
-        self.output = tf.Variable(0.0, shape=tf.TensorShape(None))
-
-    def on_train_batch_end(self, batch, logs=None):
-        print('For train batch {}, loss is {:7.2f}.'.format(batch, logs['loss']))
-        print(K.eval(self.input))
-        print(K.eval(self.target))
-        print(K.eval(self.output))
-        print("===================")
-
-    # def on_test_batch_end(self, batch, logs=None):
-    #     print('For test batch {}, loss is {:7.2f}.'.format(batch, logs['loss']))
-    #     print(self.input)
-    #     print(self.targets)
-    #     print(self.output)
-    #     print("==================")
-
-    # def on_epoch_end(self, batch, logs=None):
-    #     print('For epoch {}, loss is {:7.2f}.'.format(batch, logs['loss']))
-    #     print(self.input)
-    #     print(self.targets)
-    #     print(self.output)
-    #     print("==================")
-

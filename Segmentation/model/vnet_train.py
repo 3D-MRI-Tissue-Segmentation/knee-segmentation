@@ -37,26 +37,30 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
                  steps_per_epoch,
                  initial_learning_rate,
                  drop,
-                 epochs_drop):
+                 epochs_drop,
+                 min_lr=1e-7):
         super(LearningRateSchedule, self).__init__()
         self.steps_per_epoch = steps_per_epoch
         self.initial_learning_rate = initial_learning_rate
         self.drop = drop
         self.epochs_drop = epochs_drop
         self._step = 0
+        self.min_lr = min_lr
 
     def __call__(self, step):
         self._step += 1
         lr_epoch = tf.cast(step, tf.float32) / self.steps_per_epoch
         lrate = self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1+lr_epoch)/self.epochs_drop))
+        if lrate < self.min_lr:
+            lrate = self.min_lr
         return lrate
 
     def get_config(self):
         lr_epoch = tf.cast(self._step, tf.float32) / self.steps_per_epoch
         return {
-        'initial_learning_rate': self.initial_learning_rate,
-        'step': self._step,
-        'current_learning_rate': (self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1+lr_epoch)/self.epochs_drop))).numpy()
+            'initial_learning_rate': self.initial_learning_rate,
+            'step': self._step,
+            'current_learning_rate': (self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1+lr_epoch)/self.epochs_drop))).numpy()
         }
 
 def get_git_file_short_hash(file_path):
@@ -241,8 +245,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
             steps_per_epoch = int(len(VolumeGenerator.get_paths("t")) / batch_size)
             lr_schedule = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
                                                initial_learning_rate=start_lr,
-                                               drop=0.95,
-                                               epochs_drop=3)
+                                               drop=schedule_drop,
+                                               epochs_drop=schedule_epochs_drop)
             optimizer = Adam(learning_rate=lr_schedule)
         assert mean_loss_of_batch != "", "Set value for mean loss of batch: true or false"
         for epoch in range(epochs):
@@ -443,16 +447,16 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     print(f"time taken: {time_taken:.1f}")
 
     train_cols = {
-            'Model': [model], 'Input Shape': [sample_shape], 'Learning Rate': [start_lr],
-            'Loss': [loss_name],'Optimizer': [use_optimizer],
-            'Num. Epochs': [epochs], 'Examples/Epoch': [examples_per_load],
-            'Min Loss': [min_loss], 'Min Val Loss': [min_val_loss], 'Fit': [custom_train_loop],
-            'Mean loss of batch': [mean_loss_of_batch], 
-            'Schedule Drop': [schedule_drop], 'Schedule Epochs Drop': [schedule_epochs_drop], 'Train Duration': [time_taken],
-            'Shuffle Order': [shuffle_order], 'Normalise Input': [normalise_input], 'Remove Outliers': [remove_outliers], 'Skip Empty': [skip_empty],
-            'transform_angle': [transform_angle], 'transform_position': [transform_position],
-            'Commit ID': [commit_id], 'Train Name': [f"{debug}train_session_{now_time}_{model}"],
-        }
+        'Model': [model], 'Input Shape': [sample_shape], 'Learning Rate': [start_lr],
+        'Loss': [loss_name], 'Optimizer': [use_optimizer],
+        'Num. Epochs': [epochs], 'Examples/Epoch': [examples_per_load],
+        'Min Loss': [min_loss], 'Min Val Loss': [min_val_loss], 'Fit': [custom_train_loop],
+        'Mean loss of batch': [mean_loss_of_batch],
+        'Schedule Drop': [schedule_drop], 'Schedule Epochs Drop': [schedule_epochs_drop], 'Train Duration': [time_taken],
+        'Shuffle Order': [shuffle_order], 'Normalise Input': [normalise_input], 'Remove Outliers': [remove_outliers], 'Skip Empty': [skip_empty],
+        'transform_angle': [transform_angle], 'transform_position': [transform_position],
+        'Commit ID': [commit_id], 'Train Name': [f"{debug}train_session_{now_time}_{model}"],
+    }
     df = pd.DataFrame(data=train_cols)
     df.to_csv("vnet_train_experiments.csv", index=False, header=False, mode='a')
 
@@ -481,109 +485,100 @@ if __name__ == "__main__":
         df = pd.DataFrame(data=train_cols)
         df.to_csv("vnet_train_experiments.csv", index=False)
 
-    e = 500
+    e = 30
     debug = False
     if not debug:
-        train("slice", batch_size=3, sample_shape=(280, 280, 1), epochs=e,
-              examples_per_load=20,
-              train_name="(280,280,1), Adam Schedule 1e-3, dice, Normal Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
-              use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=10, schedule_drop=0.99, mean_loss_of_batch=False)
-        train("slice", batch_size=20, sample_shape=(280, 280, 1), epochs=e,
-              train_name="(280,280,1), Adam Schedule 1e-3, dice, No Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position=None,
-              use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=10, schedule_drop=0.99, mean_loss_of_batch=False)
-        train("slice", batch_size=3, sample_shape=(280, 280, 3), epochs=e,
-              examples_per_load=10,
-              train_name="(280,280,3), Adam Schedule 1e-4, dice, Normal Trans", kernel_size=(3, 3, 3), custom_train_loop=True, transform_position="normal",
-              use_optimizer="adam_schedule", start_lr=1e-4, schedule_epochs_drop=10, schedule_drop=0.999, mean_loss_of_batch=False)
 
-        # train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e,
-        #       examples_per_load=25,
+        train("slice", batch_size=3, sample_shape=(280, 280, 3), epochs=e, examples_per_load=5,
+              train_name="(280,280,3), Adam Schedule 1e-1, dice, Normal Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
+              use_optimizer="adam_schedule", start_lr=1e-1, schedule_epochs_drop=1, schedule_drop=0.95, mean_loss_of_batch=False)
+        train("slice", batch_size=3, sample_shape=(280, 280, 3), epochs=e, examples_per_load=5,
+              train_name="(280,280,3), Adam Schedule 5e-4, dice, Normal Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
+              use_optimizer="adam_schedule", start_lr=5e-4, schedule_epochs_drop=1, schedule_drop=0.9999, mean_loss_of_batch=False)
+        train("slice", batch_size=3, sample_shape=(280, 280, 3), epochs=e, examples_per_load=5,
+              train_name="(280,280,3), Adam 5e-4, dice, Normal Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
+              use_optimizer="adam", start_lr=5e-4, mean_loss_of_batch=False)
+        train("slice", batch_size=3, sample_shape=(280, 280, 3), epochs=e, examples_per_load=5,
+              train_name="(280,280,3), Adam Schedule 1e-1, dice, Normal Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
+              use_optimizer="adam_schedule", start_lr=1e-1, schedule_epochs_drop=10, schedule_drop=0.1, mean_loss_of_batch=False)
+
+        # train("slice", batch_size=20, sample_shape=(280, 280, 1), epochs=e,
+        #       train_name="(280,280,1), Adam Schedule 1e-4, dice, No Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position=None,
+        #       use_optimizer="adam_schedule", start_lr=1e-4, schedule_epochs_drop=10, schedule_drop=0.999, mean_loss_of_batch=False)
+        # train("slice", batch_size=3, sample_shape=(280, 280, 3), epochs=e,
+        #       examples_per_load=10,
+        #       train_name="(280,280,3), Adam Schedule 1e-4, dice, Normal Trans", kernel_size=(3, 3, 3), custom_train_loop=True, transform_position="normal",
+        #       use_optimizer="adam_schedule", start_lr=1e-4, schedule_epochs_drop=10, schedule_drop=0.999, mean_loss_of_batch=False)
+
+        # train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e, examples_per_load=25,
         #       train_name="(280,280,3), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
         #       use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=False)
-        # train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e,
-        #       examples_per_load=25,
+        # train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e, examples_per_load=25,
         #       train_name="(280,280,3), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="uniform",
         #       use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=False)
-        # train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e,
-        #       examples_per_load=25,
+        # train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e, examples_per_load=25,
         #       train_name="(280,280,3), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 3), custom_train_loop=True, transform_position="normal",
         #       use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=False)
-        # train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e,
-        #       examples_per_load=25,
+        # train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e, examples_per_load=25,
         #       train_name="(280,280,3), Adam Schedule 5e-3, dice", kernel_size=(3, 3, 3), custom_train_loop=True, transform_position="uniform",
         #       use_optimizer="adam_schedule", start_lr=5e-3, schedule_epochs_drop=2, schedule_drop=0.95, mean_loss_of_batch=False)
 
-        # train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e,
-        #       examples_per_load=examples_per_load*5,
+        # train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e, examples_per_load=examples_per_load*5,
         #       train_name="toy (64,64,64), Adam Schedule 1e-3, dice", custom_train_loop=True, train_debug=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
-        
-        # train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e,
-        #       examples_per_load=examples_per_load*5,
+
+        # train("small", batch_size=2, sample_shape=(64, 64, 64), epochs=e, examples_per_load=examples_per_load*5,
         #       train_name="toy (64,64,64), Adadelta 1e-4, dice", custom_train_loop=True, train_debug=True,
         #       use_optimizer="adadelta", start_lr=1e-4, mean_loss_of_batch=False)
 
-        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 1), epochs=e,
-        #       examples_per_load=10,
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 1), epochs=e, examples_per_load=10,
         #       train_name="(288,288,1), Adam 1e-3, k=(3,3,1), dice", kernel_size=(3, 3, 1), custom_train_loop=True,
         #       use_optimizer="adam", start_lr=1e-3, mean_loss_of_batch=False)
 
-        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
-        #       examples_per_load=10,
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e, examples_per_load=10,
         #       train_name="(288,288,5), Adam 1e-3, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
         #       use_optimizer="adam", start_lr=1e-3, mean_loss_of_batch=False)
 
-        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
-        #       examples_per_load=10,
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e, examples_per_load=10,
         #       train_name="(288,288,5), Adam 1e-4, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
         #       use_optimizer="adam", start_lr=1e-4, mean_loss_of_batch=False)
 
-        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
-        #       examples_per_load=10,
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e, examples_per_load=10,
         #       train_name="(288,288,5), Adam Schedule 1e-3, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
 
-        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e,
-        #       examples_per_load=10,
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 5), epochs=e, examples_per_load=10,
         #       train_name="(288,288,5), Adam Schedule 1e-3, k=(3,3,1), dice", kernel_size=(3, 3, 1), custom_train_loop=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
 
-        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 7), epochs=e,
-        #       examples_per_load=10,
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 7), epochs=e, examples_per_load=10,
         #       train_name="(288,288,7), Adam Schedule 1e-3, k=(3,3,3), dice", kernel_size=(3, 3, 3), custom_train_loop=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
 
-        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 7), epochs=e,
-        #       examples_per_load=10,
+        # train("slice", batch_size=batch_size, sample_shape=(288, 288, 7), epochs=e, examples_per_load=10,
         #       train_name="(288,288,7), Adam Schedule 1e-3, k=(3,3,1), dice", kernel_size=(3, 3, 1), custom_train_loop=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
 
-        # train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
-        #       examples_per_load=examples_per_load,
+        # train("small_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e, examples_per_load=examples_per_load,
         #       train_name="(288,288,160), Adam Schedule 1e-3, add, dice", action="add", custom_train_loop=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
 
-        # train("large_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e,
-        #       examples_per_load=examples_per_load,
+        # train("large_relative", batch_size=batch_size, sample_shape=(288, 288, 160), epochs=e, examples_per_load=examples_per_load,
         #       train_name="(288,288,160), Adam Schedule 1e-3, add, dice", action="add", custom_train_loop=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
 
-        # train("tiny", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
-        #       examples_per_load=examples_per_load,
+        # train("tiny", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e, examples_per_load=examples_per_load,
         #       train_name="(240,240,160), Adam Schedule 1e-3, dice", custom_train_loop=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
 
-        # train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
-        #       examples_per_load=examples_per_load,
+        # train("small", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e, examples_per_load=examples_per_load,
         #       train_name="(240,240,160), Adam Schedule 1e-3, dice", custom_train_loop=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
 
-        # train("large", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e,
-        #       examples_per_load=examples_per_load,
+        # train("large", batch_size=batch_size, sample_shape=(240, 240, 160), epochs=e, examples_per_load=examples_per_load,
         #       train_name="(240,240,160), Adam Schedule 1e-3, dice", custom_train_loop=True,
         #       use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=3, schedule_drop=0.95, mean_loss_of_batch=False)
     else:
         e = 3
-        train("tiny", batch_size=1, sample_shape=(160, 160, 160), epochs=e,
-              examples_per_load=1,
+        train("tiny", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
               train_name="debug (160,160,160), Adadelta, dice", custom_train_loop=True, train_debug=True, mean_loss_of_batch=False)

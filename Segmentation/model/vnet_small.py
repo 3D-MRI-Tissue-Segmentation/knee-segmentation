@@ -17,22 +17,32 @@ class VNet_Small(tf.keras.Model):
                  merge_connections=False,
                  output_activation=None,
                  noise=0.0001,
+                 use_res_connect=False,
+                 use_stride_2=False,
                  name="vnet_small"):
 
         super(VNet_Small, self).__init__(name=name)
         self.merge_connections = merge_connections
         self.num_classes = num_classes
         self.noise = noise
+        self.use_res_connect = use_res_connect
+        self.use_stride_2 = use_stride_2
 
         self.conv_1 = Conv3D_Block(num_channels, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format, name="c1")
+        if self.use_stride_2:
+            self.conv_1_stride = tf.keras.layers.Conv3D(num_channels, strides=2, activation="selu")
         self.conv_2 = Conv3D_Block(num_channels * 2, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format, name="c2")
+        if self.use_stride_2:
+            self.conv_2_stride = tf.keras.layers.Conv3D(num_channels, strides=2, activation="selu")
         self.conv_3 = Conv3D_Block(num_channels * 4, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format, name="c3")
+        if self.use_stride_2:
+            self.conv_3_stride = tf.keras.layers.Conv3D(num_channels, strides=2, activation="selu")
         self.up_3 = Up_Conv3D(num_channels * 2, (2, 2, 2), nonlinearity,
                               use_batchnorm=use_batchnorm, data_format=data_format, name="cu3")
         self.up_2 = Up_Conv3D(num_channels, (2, 2, 2), nonlinearity,
@@ -57,7 +67,7 @@ class VNet_Small(tf.keras.Model):
                                                    padding='same', data_format=data_format)
 
     def call(self, inputs, training=False):
-        
+
         if self.noise and training:
             inputs = tf.keras.layers.GaussianNoise(self.noise)(inputs)
 
@@ -65,11 +75,17 @@ class VNet_Small(tf.keras.Model):
         x1 = self.conv_1(inputs)
 
         # 64->128
-        x2 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x1)
+        if self.use_stride_2:
+            x2 = self.conv_1_stride(x1)
+        else:
+            x2 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x1)
         x2 = self.conv_2(x2)
 
         # 128->256
-        x3 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x2)
+        if self.use_stride_2:
+            x3 = self.conv_2_stride(x2)
+        else:
+            x3 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x2)
         x3 = self.conv_3(x3)
 
         # 256->128
