@@ -72,12 +72,12 @@ class VNet_Slice(tf.keras.Model):
         # 256->128
         u3 = self.up_3(x3)
         if self.merge_connections:
-            u3 = tf.keras.layers.concatenate([x2, u3], axis=4)
+            u3 = tf.keras.layers.concatenate([x2, u3], axis=-1)
         u3 = self.up_conv2(u3)
         # 128->64
         u2 = self.up_2(u3)
         if self.merge_connections:
-            u2 = tf.keras.layers.concatenate([x1, u2], axis=4)
+            u2 = tf.keras.layers.concatenate([x1, u2], axis=-1)
         u2 = self.up_conv1(u2)
 
         output = self.conv_output(u2)
