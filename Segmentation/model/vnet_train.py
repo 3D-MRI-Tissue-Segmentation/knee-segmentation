@@ -484,13 +484,17 @@ if __name__ == "__main__":
     e = 500
     debug = False
     if not debug:
-        train("slice", batch_size=5, sample_shape=(280, 280, 1), epochs=e,
+        train("slice", batch_size=3, sample_shape=(280, 280, 1), epochs=e,
               examples_per_load=20,
-              train_name="(280,280,1), Adam Schedule 1e-4, dice, Normal Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
-              use_optimizer="adam_schedule", start_lr=1e-4, schedule_epochs_drop=5, schedule_drop=0.99, mean_loss_of_batch=False)
-        train("slice", batch_size=30, sample_shape=(280, 280, 1), epochs=e,
-              train_name="(280,280,1), Adam Schedule 1e-4, dice, No Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position=None,
-              use_optimizer="adam_schedule", start_lr=1e-4, schedule_epochs_drop=5, schedule_drop=0.99, mean_loss_of_batch=False)
+              train_name="(280,280,1), Adam Schedule 1e-3, dice, Normal Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position="normal",
+              use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=10, schedule_drop=0.99, mean_loss_of_batch=False)
+        train("slice", batch_size=20, sample_shape=(280, 280, 1), epochs=e,
+              train_name="(280,280,1), Adam Schedule 1e-3, dice, No Trans", kernel_size=(3, 3, 1), custom_train_loop=True, transform_position=None,
+              use_optimizer="adam_schedule", start_lr=1e-3, schedule_epochs_drop=10, schedule_drop=0.99, mean_loss_of_batch=False)
+        train("slice", batch_size=3, sample_shape=(280, 280, 3), epochs=e,
+              examples_per_load=10,
+              train_name="(280,280,3), Adam Schedule 1e-4, dice, Normal Trans", kernel_size=(3, 3, 3), custom_train_loop=True, transform_position="normal",
+              use_optimizer="adam_schedule", start_lr=1e-4, schedule_epochs_drop=10, schedule_drop=0.999, mean_loss_of_batch=False)
 
         # train("slice", batch_size=5, sample_shape=(280, 280, 3), epochs=e,
         #       examples_per_load=25,
