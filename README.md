@@ -33,29 +33,37 @@ Training Loss | Training Progress
 :------------:|:---------------------------:
 ![small-highway-less-loss](results/3d/small_highwayless_train_result_2020_03_17-08_07_29.png "Small 3D Unet Highwayless Loss") | ![small-highway-less-progress](results/3d/small_highwayless_progress.gif "Small 3D Unet Highwayless Progress")
 
+> Small 3D UNet Highwayless: loss plateaus very quickly and out of sample performance diverges very quickly.
+
 <br />
 
-<p align="center">Small 3D Unet</p>
+<p align="center"><b>Small 3D Unet</b></p>
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
 ![small-3d-unet-loss](results/3d/small_3dunet_train_result_2020_03_17-09_34_10.png "Small 3D Unet Loss") | ![small-3d-unet-progress](results/3d/small_3dunet_progress.gif "Small 3D Unet Progress")
 
+> Small 3D Unet: very slow convergence of the loss, the validation datasets loss has a large variance showing poor generalisation abilities.
+
 <br />
 
-<p align="center">Small Relative 3D Unet</p>
+<p align="center"><b>Small Relative 3D Unet</b></p>
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
 ![small-relative-3d-unet-loss](results/3d/small_relative_3dunet_train_result_2020_03_17-11_03_20.png "Small Relative 3D Unet Loss") | ![small-relative-3d-unet-progress](results/3d/small_relative_3dunet_progress.gif "Small Relative 3D Unet Progress")
 
+> Small Relative 3D Unet: very slow convergence of the loss, however the validation datasets loss quickly diverges showing the model is overfitting.
+
 <br />
 
-<p align="center">Small VNet</p>
+<p align="center"><b>Small VNet</b></p>
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
 ![small-vnet-loss](results/3d/small_vnet_train_result_2020_03_17-12_37_32.png "Small VNet Loss") | ![small-vnet-progress](results/3d/small_vnet_progress.gif "Small VNet Progress")
+
+> Small VNet: Loss and validation loss converge together and to a low value showing good generalisation abilities. Searching for optimum learning rates and network size is needed.
 
 ---
 
