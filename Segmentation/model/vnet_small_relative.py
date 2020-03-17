@@ -1,4 +1,5 @@
 import tensorflow as tf
+import inspect
 from Segmentation.model.vnet_build_blocks import Conv3D_Block, Up_Conv3D
 
 
@@ -14,17 +15,19 @@ class VNet_Small_Relative(tf.keras.Model):
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
-                 merge_connections=False,
+                 merge_connections=True,
                  num_compressors=3,
                  compressor_filters=3,
                  action='add',
                  output_activation=None,
+                 noise=0.0001,
                  name="vnet_small_relative"):
-
+        self.params = str(inspect.currentframe().f_locals)
         super(VNet_Small_Relative, self).__init__(name=name)
         self.merge_connections = merge_connections
         self.num_classes = num_classes
         self.action = action
+        self.noise = noise
 
         assert self.action in ['add', 'multiply'], f"{self.action} not in action list"
 
@@ -79,6 +82,9 @@ class VNet_Small_Relative(tf.keras.Model):
 
     def call(self, inputs, training=True):
         image_inputs, pos_inputs = inputs
+
+        if self.noise and training:
+            image_inputs = tf.keras.layers.GaussianNoise(self.noise)(image_inputs)
 
         # decoder
         # 1->64
