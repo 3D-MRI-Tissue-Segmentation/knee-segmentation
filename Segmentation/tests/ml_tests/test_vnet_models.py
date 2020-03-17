@@ -40,15 +40,14 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
                       relative_action)
 
     def run_vnet(self, model, height, width, depth, colour_channels, merge_connections,
-                 epochs=2, n_volumes=5, n_reps=2, n_classes=1, relative_action=None, custom_fit=False):
+                 epochs=2, n_volumes=5, n_reps=2, n_classes=1, relative_action=None, custom_fit=False, **kwargs):
         volumes, one_hots = self.create_test_volume(n_volumes, n_reps, n_classes,
                                                     width, height, depth, colour_channels)
         print("=============================")
-        print(one_hots.shape)
-
+        print("target shape:", one_hots.shape)
         if model == "slice":
             one_hots = one_hots[:, :, :, 3]
-            print(one_hots.shape)
+            print("slice target shape:", one_hots.shape)
         print("=============================")
 
         inputs = volumes
@@ -62,26 +61,34 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
         def build_vnet(model, colour_channels, n_classes, merge_connections):
             if model == "tiny":
                 from Segmentation.model.vnet_tiny import VNet_Tiny
-                return VNet_Tiny(colour_channels, n_classes, merge_connections=merge_connections)
+                return VNet_Tiny(colour_channels, n_classes,
+                                 merge_connections=merge_connections,
+                                 **kwargs)
             elif model == "small":
                 from Segmentation.model.vnet_small import VNet_Small
-                return VNet_Small(colour_channels, n_classes, merge_connections=merge_connections, use_batchnorm=False)
+                return VNet_Small(colour_channels, n_classes,
+                                  merge_connections=merge_connections,
+                                  **kwargs)
             elif model == "small_relative":
                 from Segmentation.model.vnet_small_relative import VNet_Small_Relative
-                return VNet_Small_Relative(colour_channels, n_classes, merge_connections=merge_connections,
-                                           action=relative_action)
+                return VNet_Small_Relative(colour_channels, n_classes,
+                                           merge_connections=merge_connections,
+                                           action=relative_action, **kwargs)
             elif model == "slice":
                 from Segmentation.model.vnet_slice import VNet_Slice
-                return VNet_Slice(colour_channels, n_classes, merge_connections=merge_connections, kernel_size=(3,3,3))
+                return VNet_Slice(colour_channels, n_classes,
+                                  merge_connections=merge_connections,
+                                  **kwargs)
             elif model == "large":
                 from Segmentation.model.vnet_large import VNet_Large
                 return VNet_Large(colour_channels, n_classes,
-                                  merge_connections=merge_connections, kernel_size=(3,3,3))
+                                  merge_connections=merge_connections, 
+                                  **kwargs)
             elif model == "large_relative":
                 from Segmentation.model.vnet_large_relative import VNet_Large_Relative
                 return VNet_Large_Relative(colour_channels, n_classes,
-                                           merge_connections=merge_connections, kernel_size=(3,3,3),
-                                           action=relative_action)
+                                           merge_connections=merge_connections,
+                                           action=relative_action, **kwargs)
             else:
                 raise NotImplementedError(f"no model named: {model}")
 
@@ -92,9 +99,10 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
             target_shape = (n_volumes, target_shape[1] * target_shape[2] * target_shape[3], n_classes)
 
         def vnet_feedforward(vnet, inputs, one_hots):
+            print("calling with training = false")
             output = vnet(inputs, training=False)
-            print(inputs.shape)
             assert output.shape == one_hots.shape, f"{output.shape} == {one_hots.shape}"
+            print("performing prediction")
             output = vnet.predict(inputs)
             assert output.shape == one_hots.shape, f"{output.shape} == {one_hots.shape}"
 
@@ -169,7 +177,11 @@ if __name__ == '__main__':
     # tf.test.main()
 
     tv = Test_VNet()
-    tv.run_vnet(model="tiny", n_volumes=1,
-                height=8, width=8, depth=8, colour_channels=1,
-                merge_connections=False, n_classes=1,
-                epochs=2, custom_fit=True)
+    # tv.run_vnet(model="small", n_volumes=1,
+    #             height=16, width=16, depth=16, colour_channels=1,
+    #             merge_connections=False, n_classes=1,
+    #             epochs=2, custom_fit=True)
+    tv.run_vnet(model="small", n_volumes=1,
+                height=16, width=16, depth=16, colour_channels=1,
+                merge_connections=True, n_classes=1,
+                epochs=2, custom_fit=True, use_stride_2=True, use_res_connect=True)

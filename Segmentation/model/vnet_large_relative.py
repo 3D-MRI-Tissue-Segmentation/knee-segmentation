@@ -1,4 +1,5 @@
 import tensorflow as tf
+import inspect
 from Segmentation.model.vnet_build_blocks import Conv3D_Block, Up_Conv3D
 
 
@@ -19,7 +20,7 @@ class VNet_Large_Relative(tf.keras.Model):
                  action='add',
                  output_activation=None,
                  name="vnet_large_relative"):
-
+        self.params = str(inspect.currentframe().f_locals)
         super(VNet_Large_Relative, self).__init__(name=name)
         self.merge_connections = merge_connections
         self.num_classes = num_classes
