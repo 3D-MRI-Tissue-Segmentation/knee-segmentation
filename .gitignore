@@ -38,3 +38,7 @@ htmlcov/
 
 # Data
 checkpoints/
+
+# Unignore
+!/results/
+!/results/**

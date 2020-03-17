@@ -485,24 +485,24 @@ if __name__ == "__main__":
         e = 100
         sample_shape = (160, 160, 160)
         learn_rate = 5e-4
-        train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, 3D Unet highwayless", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-              merge_connections=False,
-              notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
-        train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, 3D Unet", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-              notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
-        train("small_relative", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, 3D Unet", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-              notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
-        train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-              use_stride_2=True, use_res_connect=True,
-              notes="Baselining Small UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
+        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, 3D Unet highwayless", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
+        #       merge_connections=False,
+        #       notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
+        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, 3D Unet", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
+        #       notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
+        # train("small_relative", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, 3D Unet", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
+        #       notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
+        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
+        #       use_stride_2=True, use_res_connect=True,
+        #       notes="Baselining Small UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
 
         sample_shape = (288, 288, 3)
         train("slice", batch_size=3, sample_shape=sample_shape, epochs=e, examples_per_load=1,
