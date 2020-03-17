@@ -1,4 +1,5 @@
 import tensorflow as tf
+import inspect
 from Segmentation.model.vnet_build_blocks import Conv3D_Block, Up_Conv3D
 
 class VNet_Tiny(tf.keras.Model):
@@ -13,13 +14,15 @@ class VNet_Tiny(tf.keras.Model):
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
-                 merge_connections=False,
+                 merge_connections=True,
                  output_activation=None,
+                 noise=0.0001,
                  name="vnet_tiny"):
-
+        self.params = str(inspect.currentframe().f_locals)
         super(VNet_Tiny, self).__init__(name=name)
         self.merge_connections = merge_connections
         self.num_classes = num_classes
+        self.noise = noise
 
         self.conv_1 = Conv3D_Block(num_channels, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
@@ -46,32 +49,23 @@ class VNet_Tiny(tf.keras.Model):
             self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size=(1, 1, 1), activation='softmax',
                                                    padding='same', data_format=data_format)
 
-    def call(self, inputs):
+    def call(self, inputs, training=False):
+
+        if self.noise and training:
+            inputs = tf.keras.layers.GaussianNoise(self.noise)(inputs)
 
         # 1->64
         x1 = self.conv_1(inputs)
-        # tf.print("x1:", x1.get_shape())
-
         # 64->128
         x2 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x1)
-        # tf.print("x2:", x2.get_shape())
         x2 = self.conv_2(x2)
-        # tf.print("x2:", x2.get_shape())
-
         # 128->64
         u2 = self.up_2(x2)
-        # tf.print("u2:", u2.get_shape())
+
         if self.merge_connections:
             u2 = tf.keras.layers.concatenate([x1, u2], axis=4)
-        # tf.print("u2m:", u2.get_shape())
         u2 = self.up_conv1(u2)
-        # tf.print("u2:", u2.get_shape())
-
-        u1 = self.conv_output(u2)
-        # tf.print("u1:", u1.get_shape())
-        output = self.conv_1x1(u1)
-        # tf.print("output:", output.get_shape())
-
+        output = self.conv_output(u2)
         if self.num_classes == 1:
             output = self.conv_1x1_binary(output)
         else:
