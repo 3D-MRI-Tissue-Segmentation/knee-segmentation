@@ -9,7 +9,7 @@ class VNet_Slice(tf.keras.Model):
                  num_channels,
                  num_classes,
                  num_conv_layers=2,
-                 kernel_size=(3, 3, 1),
+                 kernel_size=(3, 3, 3),
                  nonlinearity='relu',
                  use_batchnorm=True,
                  dropout_rate=0.25,

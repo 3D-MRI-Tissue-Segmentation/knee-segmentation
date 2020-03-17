@@ -91,7 +91,7 @@ class VNet_Large(tf.keras.Model):
         # 512->1024
         x5 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x4)
         x5 = self.conv_5(x5)
-        
+
         # 1024->512
         u5 = self.up_5(x5)
         if self.merge_connections:

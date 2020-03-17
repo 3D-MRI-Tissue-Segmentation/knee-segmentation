@@ -14,7 +14,7 @@ class VNet_Tiny(tf.keras.Model):
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
-                 merge_connections=False,
+                 merge_connections=True,
                  output_activation=None,
                  noise=0.0001,
                  name="vnet_tiny"):
@@ -50,7 +50,7 @@ class VNet_Tiny(tf.keras.Model):
                                                    padding='same', data_format=data_format)
 
     def call(self, inputs, training=False):
-        
+
         if self.noise and training:
             inputs = tf.keras.layers.GaussianNoise(self.noise)(inputs)
 
