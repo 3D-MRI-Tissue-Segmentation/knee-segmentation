@@ -1,58 +1,140 @@
 import tensorflow as tf
 import tensorflow.keras.backend as K
+import matplotlib.pyplot as plt
+import math
+import numpy as np
+import datetime
+from glob import glob
 
-def dice_coef(y_true, y_pred, smooth=1):
-    """
-    Dice = (2*|X & Y|)/ (|X|+ |Y|)
-         =  2*sum(|A*B|)/(sum(A^2)+sum(B^2))
-    ref: https://arxiv.org/pdf/1606.04797v1.pdf
-    """
+def jaccard_distance_loss(y_true, y_pred, smooth=100):
     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    return (2. * intersection + smooth) / (K.sum(K.square(y_true),-1) + K.sum(K.square(y_pred),-1) + smooth)
+    sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=-1)
+    jac = (intersection + smooth) / (sum_ - intersection + smooth)
+    loss = (1 - jac) * smooth
+    return loss
 
 def dice_coef_loss(y_true, y_pred):
-    return 1-dice_coef(y_true, y_pred)
+    dice = -dice_loss(y_true, y_pred)
+    return dice
 
-def cross_entropy_loss(labels, logits, n_classes, loss_mask=None, data_format='channels_last', one_hot_labels=True, name='ce_loss'):
-    """
-    Cross-entropy loss.
-    :param labels: 4D tensor
-    :param logits: 4D tensor
-    :param n_classes: integer for number of classes
-    :param loss_mask: binary 4D tensor, pixels to mask should be marked by 1s
-    :param data_format: string
-    :param one_hot_labels: bool, indicator for whether labels are to be expected in one-hot representation
-    :param name: string
-    :return: dict of (pixel-wise) mean and sum of cross-entropy loss
-    """
-    # permute class channels into last axis
-    if data_format == 'channels_first':
-        labels = tf.transpose(labels, [0,2,3,1])
-        logits = tf.transpose(logits, [0,2,3,1])
+def dice_loss(y_true, y_pred):
 
-    batch_size = tf.cast(tf.shape(labels)[0], tf.float32)
+    szp = K.shape(y_pred)
+    img_len = szp[1] * szp[2] * szp[3]
 
-    if one_hot_labels:
-        flat_labels = tf.reshape(labels, [-1, n_classes])
+    y_true = K.reshape(y_true, (-1, img_len))
+    y_pred = K.reshape(y_pred, (-1, img_len))
+
+    ovlp = K.sum(y_true * y_pred, axis=-1)
+
+    mu = K.epsilon()
+    dice = (2.0 * ovlp + mu) / (K.sum(y_true, axis=-1) + K.sum(y_pred, axis=-1) + mu)
+    loss = -dice
+
+    return loss
+
+def tversky_loss(y_true, y_pred):
+    # hyperparameters
+    alpha = 0.5
+    beta = 0.5
+
+    ones = K.ones(K.shape(y_true))
+    p0 = y_pred  # proba that voxels are class i
+    p1 = ones - y_pred  # proba that voxels are not class i
+    g0 = y_true
+    g1 = ones - y_true
+
+    num = K.sum(p0 * g0, (0, 1, 2, 3))
+    den = num + alpha * K.sum(p0 * g1, (0, 1, 2, 3)) + beta * K.sum(p1 * g0, (0, 1, 2, 3))
+
+    T = K.sum(num / den)  # when summing over classes, T has dynamic range [0 Ncl]
+
+    Ncl = K.cast(K.shape(y_true)[-1], 'float32')
+    return Ncl - T
+
+def plot_train_history_loss(history, multi_class=True):
+    # summarize history for loss
+    fig, ax = plt.subplots(2, 1)
+    if multi_class:
+        ax[0].plot(history.history['loss'])
+        ax[0].plot(history.history['val_loss'])
+        ax[0].plot(history.history['categorical_crossentropy'])
+        ax[0].plot(history.history['val_categorical_crossentropy'])
+        ax[0].set_title('Model Loss')
+        ax[0].set(xlabel='epoch', ylabel='loss')
+        ax[0].legend(['train_tversky', 'val_tversky', 'train_cce', 'val_cce'], loc='upper right')
+
     else:
-        flat_labels = tf.reshape(labels, [-1])
-        flat_labels = tf.one_hot(indices=flat_labels, depth=n_classes, axis=-1)
-    flat_logits = tf.reshape(logits, [-1, n_classes])
+        ax[0].plot(history.history['dice_coef_loss'])
+        ax[0].plot(history.history['val_dice_coef_loss'])
+        ax[0].plot(history.history['binary_crossentropy'])
+        ax[0].plot(history.history['val_binary_crossentropy'])
+        ax[0].set_title('Model Loss')
+        ax[0].set(xlabel='epoch', ylabel='loss')
+        ax[0].legend(['train_dice', 'val_dice', 'train_bce', 'val_bce'], loc='upper right')
+    ax[1].plot(history.history['acc'])
+    ax[1].plot(history.history['val_acc'])
+    ax[1].set_title('Model Accuracy')
+    ax[1].set(xlabel='epoch', ylabel='accuracy')
+    ax[1].legend(['train_accuracy', 'val_accuracy'], loc='upper right')
+    fig.tight_layout()
+    plt.show()
 
-    # do not compute gradients w.r.t the labels
-    flat_labels = tf.stop_gradient(flat_labels)
+def visualise_binary(y_true, y_pred):
 
-    ce_per_pixel = tf.nn.softmax_cross_entropy_with_logits(labels=flat_labels, logits=flat_logits)
+    batch_size = y_true.shape[0]
 
-    # optional element-wise masking with binary loss mask
-    if loss_mask is None:
-        ce_sum = tf.reduce_sum(ce_per_pixel) / batch_size
-        ce_mean = tf.reduce_mean(ce_per_pixel)
-    else:
-        loss_mask_flat = tf.reshape(loss_mask, [-1,])
-        loss_mask_flat = (1. - tf.cast(loss_mask_flat, tf.float32))
-        ce_sum = tf.reduce_sum(loss_mask_flat * ce_per_pixel) / batch_size
-        n_valid_pixels = tf.reduce_sum(loss_mask_flat)
-        ce_mean = tf.reduce_sum(loss_mask_flat * ce_per_pixel) / n_valid_pixels
+    for i in range(batch_size):
+        fig, ax = plt.subplots(2, 1)
+        ax[0].imshow(y_true[i, :, :, 0], cmap='gray')
+        ax[0].set_title('Ground Truth')
+        ax[1].imshow(y_pred[i, :, :, 0], cmap='gray')
+        ax[1].set_title('Prediction')
 
-    return {'sum': ce_sum, 'mean': ce_mean}
+        fig.tight_layout()
+        plt.show()
+
+def visualise_multi_class(y_true, y_pred):
+    batch_size = y_true.shape[0]
+    for i in range(batch_size):
+        grd_truth = y_true[i, :, :]
+        pred = y_pred[i, :, :]
+        length = int(math.sqrt(y_true.shape[1]))
+        channel = y_true.shape[2]
+        # reshape ground truth and predictions back to 2D
+        grd_truth = np.reshape(grd_truth, (length, length, channel))
+        pred = np.reshape(pred, (length, length, channel))
+        pred_max = np.argmax(pred, axis=2)
+        pred_img_color = label2color(pred_max)
+        y_max = np.argmax(grd_truth, axis=2)
+        label_img_color = label2color(y_max)
+
+        fig, ax = plt.subplots(2, 1)
+        ax[0].imshow(label_img_color / 255)
+        ax[0].set_title('Ground Truth')
+        ax[1].imshow(pred_img_color / 255)
+        ax[1].set_title('Prediction')
+
+        fig.tight_layout()
+        plt.show()
+
+def label2color(img):
+    colour_maps = {
+        0: [255, 0, 0],
+        1: [0, 255, 0],
+        2: [0, 0, 255],
+        3: [128, 64, 255],
+        4: [70, 255, 70],
+        5: [255, 20, 147],
+        6: [0, 0, 0]
+    }
+
+    img_height, img_width = img.shape
+    img_color = np.zeros((img_height, img_width, 3))
+    for row in range(img_height):
+        for col in range(img_width):
+            label = img[row, col]
+
+            img_color[row, col] = np.array(colour_maps[label])
+
+    return img_color

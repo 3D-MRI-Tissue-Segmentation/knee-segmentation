@@ -28,42 +28,42 @@ class Toy_Volume:
         for class_idx in range(n_classes):
             count = 0
             valid = False
-            while( not valid ):
+            while(not valid):
                 colour = Toy_Volume.get_random_colour(colour_channels)
                 if colour not in classes:
                     classes.append(colour)
                     valid = True
         return classes
-    
+
     @staticmethod
     def get_random_colour(colour_channels):
         """ Returns a random colour """
         if colour_channels == 1:
-            return [randint(0,255)]
-        return [randint(0,255)/255,randint(0,255)/255,randint(0,255)/255]
-        
+            return [randint(0, 255)]
+        return [randint(0, 255) / 255, randint(0, 255) / 255, randint(0, 255) / 255]
+
     def get_empty_array(self, channels=None):
         """ Empty starting array """
         if channels is None:
             channels = self.colour_channels
-        return np.zeros([self.width, self.height, self.depth, channels], dtype=float)
+        return np.zeros([self.width, self.height, self.depth, channels], dtype=np.float32)
 
     def get_random_xyz(self):
-        x = randint(0, self.width-1)
-        y = randint(0, self.height-1)
-        z = randint(0, self.depth-1)
+        x = randint(0, self.width - 1)
+        y = randint(0, self.height - 1)
+        z = randint(0, self.depth - 1)
         return x, y, z
 
     def set_colour_to_xyz(self, x, y, z, colour_idx):
         """ Sets the colour for a specific pixel """
         if self.colour_channels == 1:
-            self.volume[x][y][z][0] = self.class_colours[colour_idx][0]
+            self.volume[x, y, z, 0] = self.class_colours[colour_idx][0]
         else:
-            self.volume[x][y][z][0] = self.class_colours[colour_idx][0]
-            self.volume[x][y][z][1] = self.class_colours[colour_idx][1]
-            self.volume[x][y][z][2] = self.class_colours[colour_idx][2]
-        self.one_hot_array[x][y][z][:] = 0
-        self.one_hot_array[x][y][z][colour_idx] = 1
+            self.volume[x, y, z, 0] = self.class_colours[colour_idx][0]
+            self.volume[x, y, z, 1] = self.class_colours[colour_idx][1]
+            self.volume[x, y, z, 2] = self.class_colours[colour_idx][2]
+        self.one_hot_array[x, y, z, :] = 0
+        self.one_hot_array[x, y, z, colour_idx] = 1
 
     def set_colour_to_random_xyz(self, colour_idx):
         self.set_colour_to_xyz(*self.get_random_xyz(), colour_idx)
@@ -82,18 +82,18 @@ class Toy_Volume:
 
     def get_shape_range_min(self, axis_pos, length):
         assert type(length) is int, "length must be an int"
-        temp_min = axis_pos - length 
+        temp_min = axis_pos - length
         range_min = temp_min if temp_min > 0 else 0
         return range_min
 
     def get_shape_range_max(self, axis_pos, length, frame_length):
         assert type(length) is int, "length must be an int"
-        temp_max = axis_pos + length 
+        temp_max = axis_pos + length
         range_max = temp_max if temp_max < (frame_length - 1) else frame_length
         return range_max
 
-    def set_rect_cuboid_to_xyz(self, x, y, z, 
-                               x_length, y_length, z_length, 
+    def set_rect_cuboid_to_xyz(self, x, y, z,
+                               x_length, y_length, z_length,
                                colour_idx):
         (x_min, x_max) = self.get_axis_range(x, x_length, self.width)
         (y_min, y_max) = self.get_axis_range(y, y_length, self.height)
@@ -101,17 +101,17 @@ class Toy_Volume:
         for x_ in range(x_min, x_max):
             for y_ in range(y_min, y_max):
                 for z_ in range(z_min, z_max):
-                    self.set_colour_to_xyz(x_, y_, z_, colour_idx)                 
+                    self.set_colour_to_xyz(x_, y_, z_, colour_idx)
 
     def set_cube_to_xyz(self, x, y, z, length, colour_idx):
         self.set_rect_cuboid_to_xyz(x, y, z, length, length, length, colour_idx)
-    
+
     def is_in_sphere(self, x, y, z, centre, radius):
         return self.is_in_ellipsoid(x, y, z, centre, radius, radius, radius)
 
     def is_in_ellipsoid(self, x, y, z, centre, x_radius, y_radius, z_radius):
         x_centre, y_centre, z_centre = centre
-        if ((x_centre-x)**2)/x_radius**2 + ((y_centre-y)**2)/y_radius**2 + ((z_centre-z)**2)/z_radius**2 < 1:
+        if ((x_centre - x)**2) / x_radius**2 + ((y_centre - y)**2) / y_radius**2 + ((z_centre - z)**2) / z_radius**2 < 1:
             return True
         return False
 
@@ -128,40 +128,57 @@ class Toy_Volume:
                     if self.is_in_ellipsoid(x_, y_, z_, (x, y, z), x_radius, y_radius, z_radius):
                         self.set_colour_to_xyz(x_, y_, z_, colour_idx)
 
-
-def get_test_volume(n_reps, n_classes, 
-                     width, height, depth, colour_channels):
+def get_test_volume(n_reps, n_classes,
+                    width, height, depth, colour_channels):
     td = Toy_Volume(n_classes, width, height, depth, colour_channels)
 
     for rep in range(n_reps):
         for colour_idx in range(n_classes):
             x, y, z = td.get_random_xyz()
-            rand_x_len = randint(1, int(td.width/4))
-            rand_y_len = randint(1, int(td.height/4))
-            rand_z_len = randint(1, int(td.depth/4))
+            rand_x_len = randint(1, int(td.width / 4))
+            rand_y_len = randint(1, int(td.height / 4))
+            rand_z_len = randint(1, int(td.depth / 4))
             rnd_i = randint(0, 1)
             if rnd_i == 0:
-                td.set_rect_cuboid_to_xyz(x, y, z, 
-                                          rand_x_len, rand_y_len, rand_z_len, 
+                td.set_rect_cuboid_to_xyz(x, y, z,
+                                          rand_x_len, rand_y_len, rand_z_len,
                                           colour_idx)
             elif rnd_i == 1:
                 td.set_ellipsoid_to_xyz(x, y, z,
-                                        rand_x_len, rand_y_len, rand_z_len, 
+                                        rand_x_len, rand_y_len, rand_z_len,
                                         colour_idx)
     return td.volume, td.one_hot_array
 
-def get_test_volumes(n_volumes, n_reps, n_classes, 
-                     width, height, depth, colour_channels):
+def get_test_volumes(n_volumes, n_reps, n_classes,
+                     width, height, depth, colour_channels, as_np=True):
     volumes, one_hots = [], []
     for i in range(n_volumes):
-        volume, one_hot = get_test_volume(n_reps, n_classes, 
+        volume, one_hot = get_test_volume(n_reps, n_classes,
                                           width, height, depth, colour_channels)
         volumes.append(volume)
         one_hots.append(one_hot)
+    if as_np:
+        volumes = np.stack(volumes)
+        one_hots = np.stack(one_hots)
     return volumes, one_hots
 
+
+def get_slice_from_volume(volume, one_hot, slice_shape, random_pos=True, return_pos=True):
+    vol_shape = volume.shape
+
+    rand_x = randint(slice_shape[0], vol_shape[0])
+    rand_y = randint(slice_shape[1], vol_shape[1])
+    rand_z = randint(slice_shape[2], vol_shape[2])
+    volume_slice = volume[rand_x - slice_shape[0]: rand_x,
+                          rand_y - slice_shape[1]: rand_y,
+                          rand_z - slice_shape[2]: rand_z, :]
+    one_hot_slice = one_hot[rand_x - slice_shape[0]: rand_x,
+                            rand_y - slice_shape[1]: rand_y,
+                            rand_z - slice_shape[2]: rand_z, :]
+    return volume_slice, one_hot_slice
+
 def plot_volume(volume, show=True):
-    voxel = volume[:,:,:,0] > 0
+    voxel = volume[:, :, :, 0] > 0
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
@@ -170,7 +187,6 @@ def plot_volume(volume, show=True):
     if show:
         plt.show()
 
-
 def rgb_to_hex(rgb):
     assert type(rgb) is list
     assert len(rgb) == 3
@@ -178,7 +194,11 @@ def rgb_to_hex(rgb):
     return '#%02x%02x%02x' % tuple(rgb)
 
 if __name__ == "__main__":
-    n_reps, n_classes = 4, 3
+    import sys
+    from os import getcwd
+    sys.path.insert(0, getcwd())
+
+    n_reps, n_classes = 15, 3
     width, height, depth = 40, 40, 40
     colour_channels = 3
 
@@ -186,19 +206,23 @@ if __name__ == "__main__":
 
     for rep in range(n_reps):
         for colour_idx in range(n_classes):
-            #td.set_colour_to_random_xyz(colour_idx)
+            # td.set_colour_to_random_xyz(colour_idx)
             x, y, z = td.get_random_xyz()
-            rand_x_len = randint(1, int(td.width/4))
-            rand_y_len = randint(1, int(td.height/4))
-            rand_z_len = randint(1, int(td.depth/4))
+            rand_x_len = randint(1, int(td.width / 4))
+            rand_y_len = randint(1, int(td.height / 4))
+            rand_z_len = randint(1, int(td.depth / 4))
             rnd_i = randint(0, 1)
             if rnd_i == 0:
-                td.set_rect_cuboid_to_xyz(x, y, z, 
-                                          rand_x_len, rand_y_len, rand_z_len, 
+                td.set_rect_cuboid_to_xyz(x, y, z,
+                                          rand_x_len, rand_y_len, rand_z_len,
                                           colour_idx)
             elif rnd_i == 1:
                 td.set_ellipsoid_to_xyz(x, y, z,
-                                        rand_x_len, rand_y_len, rand_z_len, 
+                                        rand_x_len, rand_y_len, rand_z_len,
                                         colour_idx)
 
-    plot_volume(td.volume)
+    plot_volume(td.volume, show=False)
+
+    vol_slice, one_hot_slice = get_slice_from_volume(td.volume, td.one_hot_array, (20, 20, 20))
+
+    plot_volume(vol_slice)

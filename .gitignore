@@ -2,6 +2,9 @@
 **/env/
 env/
 **/web_env/
+*/checkpoints/
+ckpt/
+*/web_env/
 web_env/
 **/ui_env/
 ui_env/
@@ -22,12 +25,20 @@ htmlcov/
 *.jpg
 *.im
 *.seg
+*.npy
 *.h5
 *.csv
 
 # IDE
 .vscode/
+.ipynb_checkpoints/
 
 # Logging
-
 **/logs/
+
+# Data
+checkpoints/
+
+# Unignore
+!/results/
+!/results/**
