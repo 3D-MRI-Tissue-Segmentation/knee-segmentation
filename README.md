@@ -27,15 +27,13 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 
 ### Comparison of Volume Segmentation Methods
 
-> <center>Small 3D Unet Highwayless</center>
+<p align="center">Small 3D Unet Highwayless</p>
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
 ![small-highway-less-loss](results/3d/small_highwayless_train_result_2020_03_17-08_07_29.png "Small 3D Unet Highwayless Loss") | ![small-highway-less-progress](results/3d/small_highwayless_progress.gif "Small 3D Unet Highwayless Progress")
 
 <br />
-
-> Small 3D Unet
 
 <p align="center">Small 3D Unet</p>
 
@@ -45,7 +43,7 @@ Training Loss | Training Progress
 
 <br />
 
-> <center>Small Relative 3D Unet</center>
+<p align="center">Small Relative 3D Unet</p>
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
@@ -53,7 +51,7 @@ Training Loss | Training Progress
 
 <br />
 
-> <center>Small VNet</center>
+<p align="center">Small VNet</p>
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
