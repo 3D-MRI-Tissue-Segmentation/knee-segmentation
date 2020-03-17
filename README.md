@@ -35,7 +35,9 @@ Training Loss | Training Progress
 
 <br />
 
-> <center>Small 3D Unet</center>
+> Small 3D Unet
+
+<p align="center">Small 3D Unet</p>
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
