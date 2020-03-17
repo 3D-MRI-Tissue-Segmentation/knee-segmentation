@@ -275,13 +275,13 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                 clr = f", lr: {optimizer.get_config()['learning_rate']['config']['current_learning_rate']: .07f}"
 
             y_ = vnet(x, training=False)
-            slice_idx = int(y.shape[3] / 2)
             if get_position:
                 x = x[0]
+            slice_idx = int(x.shape[3] / 2)
             store_x = x[0, :, :, slice_idx, 0]
             if get_slice:
-                store_y = y[0, :, :, slice_idx]
-                store_y_pred = y_[0, :, :, slice_idx]
+                store_y = y[0, :, :, 0]
+                store_y_pred = y_[0, :, :, 0]
             else:
                 store_y = y[0, :, :, slice_idx, 0]
                 store_y_pred = y_[0, :, :, slice_idx, 0]
@@ -301,8 +301,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                         x = x[0]
                     store_x_val_0 = x[0, :, :, slice_idx, 0]
                     if get_slice:
-                        store_y_val_0 = y[0, :, :, slice_idx]
-                        store_y_pred_val_0 = y_[0, :, :, slice_idx]
+                        store_y_val_0 = y[0, :, :, 0]
+                        store_y_pred_val_0 = y_[0, :, :, 0]
                     else:
                         store_y_val_0 = y[0, :, :, slice_idx, 0]
                         store_y_pred_val_0 = y_[0, :, :, slice_idx, 0]
@@ -311,8 +311,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
                 x = x[0]
             store_x_val = x[0, :, :, slice_idx, 0]
             if get_slice:
-                store_y_val = y[0, :, :, slice_idx]
-                store_y_pred_val = y_[0, :, :, slice_idx]
+                store_y_val = y[0, :, :, 0]
+                store_y_pred_val = y_[0, :, :, 0]
             else:
                 store_y_val = y[0, :, :, slice_idx, 0]
                 store_y_pred_val = y_[0, :, :, slice_idx, 0]
@@ -480,7 +480,7 @@ if __name__ == "__main__":
         df = pd.DataFrame(data=train_cols)
         df.to_csv("vnet_train_experiments.csv", index=False)
 
-    debug = True
+    debug = False
     if not debug:
         e = 100
         sample_shape = (160, 160, 160)
@@ -502,7 +502,7 @@ if __name__ == "__main__":
               train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
               use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
               use_stride_2=True, use_res_connect=True,
-              notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
+              notes="Baselining Small UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
 
         sample_shape = (288, 288, 3)
         train("slice", batch_size=3, sample_shape=sample_shape, epochs=e, examples_per_load=1,
@@ -545,5 +545,5 @@ if __name__ == "__main__":
               train_name="debug (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True)
         train("large_relative", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
               train_name="debug (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True)
-        train("slice", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True)
+        train("slice", batch_size=1, sample_shape=(160, 160, 5), epochs=e, examples_per_load=1,
+              train_name="debug (160,160,5), Adam, dice", custom_train_loop=True, train_debug=True)
