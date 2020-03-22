@@ -482,54 +482,86 @@ if __name__ == "__main__":
 
     debug = False
     if not debug:
-        e = 100
-        sample_shape = (160, 160, 160)
+
+        e = 150
         learn_rate = 5e-4
-        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, 3D Unet highwayless", custom_train_loop=True,
-        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-        #       merge_connections=False,
-        #       notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
-        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, 3D Unet", custom_train_loop=True,
-        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-        #       notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
-        # train("small_relative", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, 3D Unet", custom_train_loop=True,
-        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-        #       notes="Baselining UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
+
+        # sample_shape = (64, 64, 64)
+        # train("small", batch_size=4, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.95,
+        #       use_stride_2=True, use_res_connect=True,
+        #       notes="Training Small VNet for smaller size of (64,64,64)")
+
+        sample_shape = (160, 160, 160)
         # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
         #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-        #       use_stride_2=True, use_res_connect=True,
-        #       notes="Baselining Small UNet highway less vs 3D Unet vs Relative vs VNet, expect to underfit")
-
-        sample_shape = (288, 288, 3)
-        train("slice", batch_size=3, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, k=(3,3,1)", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-              kernel_size=(3, 3, 1),
-              notes="Baselining slice with kernel (3,3,1) vs (3,3,3), expect to underfit")
-        train("slice", batch_size=3, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, k=(3,3,3)", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-              kernel_size=(3, 3, 3),
-              notes="Baselining slice with kernel (3,3,1) vs (3,3,3), expect to underfit")
-
-        learn_rate = 5e-4
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.95,
+        #       use_stride_2=False, use_res_connect=True,
+        #       notes="Training Small VNet for smaller size of (160,160,160), use_stride_2=False, use_res_connect=True")
+        
+        
         sample_shape = (160, 160, 160)
-        train("tiny", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-              notes="Comparing tiny vs small vs large")
         train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-              notes="Comparing tiny vs small vs large")
-        train("large", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
-              notes="Comparing tiny vs small vs large")
+              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.95,
+              use_stride_2=True, use_res_connect=True,
+              notes="Training Small VNet for smaller size of (160,160,160), Repeat #2")
+        train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.95,
+              use_stride_2=True, use_res_connect=True,
+              notes="Training Small VNet for smaller size of (160,160,160), Repeat #3")
+
+        train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=4, schedule_drop=0.9,
+              use_stride_2=True, use_res_connect=True, kernel_size=(5, 5, 5),
+              notes="Training Small VNet for smaller size of (160,160,160), kernel size of (5,5,5)")
+        train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=4, schedule_drop=0.9,
+              use_stride_2=True, use_res_connect=True, kernel_size=(5, 5, 5),
+              notes="Training Small VNet for smaller size of (160,160,160), kernel size of (5,5,5), Repeat #2")
+        
+        # sample_shape = (240, 240, 160)
+        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.95,
+        #       use_stride_2=True, use_res_connect=True,
+        #       notes="Training Small VNet for size of (240, 240, 160)")
+        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.95,
+        #       use_stride_2=True, use_res_connect=True, kernel_size=(5, 5, 5),
+        #       notes="Training Small VNet for size of (240, 240, 160) and kernel size of (5,5,5)")
+
+        # sample_shape = (288, 288, 3)
+        # train("slice", batch_size=3, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, k=(3,3,1)", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
+        #       kernel_size=(3, 3, 1),
+        #       notes="Baselining slice with kernel (3,3,1) vs (3,3,3), expect to underfit")
+        # train("slice", batch_size=3, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, k=(3,3,3)", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
+        #       kernel_size=(3, 3, 3),
+        #       notes="Baselining slice with kernel (3,3,1) vs (3,3,3), expect to underfit")
+
+        # learn_rate = 5e-4
+        # sample_shape = (160, 160, 160)
+        # train("tiny", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
+        #       notes="Comparing tiny vs small vs large")
+        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
+        #       notes="Comparing tiny vs small vs large")
+        # train("large", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=10, schedule_drop=0.99,
+        #       notes="Comparing tiny vs small vs large")
     else:
         e = 3
         train("tiny", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
