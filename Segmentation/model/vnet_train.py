@@ -443,8 +443,12 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
         'BCE Val': metrics[cross_entropy_name]['val history'],
         'BCE + Dice': metrics['bce_dice_loss']['history'],
         'BCE + Dice Val': metrics['bce_dice_loss']['val history'],
+        'Precision': metrics['precision']['history'],
+        'Precision Val': metrics['precision']['val history'],
+        'Recall': metrics['recall']['history'],
+        'Recall Val': metrics['recall']['val history'],
     })
-    df_losses.to_csv(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/vnet_losses.csv")
+    df_losses.to_csv(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/vnet_losses.csv", index_label="epoch")
 
     train_cols = {
         'Model': [model], 'Input Shape': [sample_shape], 'Learning Rate': [start_lr], 'Debug': [debug],
