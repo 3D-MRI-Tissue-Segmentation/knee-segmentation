@@ -506,23 +506,30 @@ if __name__ == "__main__":
               train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
               use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.95,
               use_stride_2=True, use_res_connect=True,
-              notes="Training Small VNet for smaller size of (160,160,160), Repeat #2")
+              notes="Training Small VNet for smaller size of (160,160,160), Repeat #4")
         train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
               train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
               use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.95,
               use_stride_2=True, use_res_connect=True,
-              notes="Training Small VNet for smaller size of (160,160,160), Repeat #3")
+              notes="Training Small VNet for smaller size of (160,160,160), Repeat #5")
 
-        train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=4, schedule_drop=0.9,
-              use_stride_2=True, use_res_connect=True, kernel_size=(5, 5, 5),
-              notes="Training Small VNet for smaller size of (160,160,160), kernel size of (5,5,5)")
-        train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
-              train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-              use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=4, schedule_drop=0.9,
-              use_stride_2=True, use_res_connect=True, kernel_size=(5, 5, 5),
-              notes="Training Small VNet for smaller size of (160,160,160), kernel size of (5,5,5), Repeat #2")
+        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=4, schedule_drop=0.9,
+        #       use_stride_2=True, use_res_connect=True, kernel_size=(5, 5, 5),
+        #       notes="Training Small VNet for smaller size of (160,160,160), kernel size of (5,5,5)")
+        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=4, schedule_drop=0.9,
+        #       use_stride_2=True, use_res_connect=True, kernel_size=(5, 5, 5),
+        #       notes="Training Small VNet for smaller size of (160,160,160), kernel size of (5,5,5), Repeat #2")
+
+        # sample_shape = (180, 180, 160)
+        # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
+        #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=4, schedule_drop=0.9,
+        #       use_stride_2=True, use_res_connect=True, kernel_size=(5, 5, 5),
+        #       notes="Training Small VNet for smaller size of (180,180,160), kernel size of (5,5,5)")
         
         # sample_shape = (240, 240, 160)
         # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
