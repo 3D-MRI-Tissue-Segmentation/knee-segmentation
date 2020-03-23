@@ -51,7 +51,7 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
     def __call__(self, step):
         self._step += 1
         lr_epoch = tf.cast(step, tf.float32) / self.steps_per_epoch
-        lrate = self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1+lr_epoch)/self.epochs_drop))
+        lrate = self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1 + lr_epoch) / self.epochs_drop))
         if lrate < self.min_lr:
             lrate = self.min_lr
         return lrate
@@ -61,13 +61,13 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         return {
             'initial_learning_rate': self.initial_learning_rate,
             'step': self._step,
-            'current_learning_rate': (self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1+lr_epoch)/self.epochs_drop))).numpy()
+            'current_learning_rate': (self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1 + lr_epoch) / self.epochs_drop))).numpy()
         }
 
 def get_git_file_short_hash(file_path):
     commit_id = None
     try:
-        commit_id = subprocess.check_output(['git', 'log', '-1', '--pretty=format:%h', '--', file_path]).decode("utf-8") 
+        commit_id = subprocess.check_output(['git', 'log', '-1', '--pretty=format:%h', '--', file_path]).decode("utf-8")
     except Exception as e:
         print(f"Get commit hash for file {file_path} failed: {e}")
         commit_id = "Not Found"
@@ -468,7 +468,7 @@ if __name__ == "__main__":
     if not os.path.exists("vnet_train_experiments.csv"):
         train_cols = {
             'Model': [], 'Input Shape': [], 'Learning Rate': [],
-            'Loss': [],'Optimizer': [],
+            'Loss': [], 'Optimizer': [],
             'Num. Epochs': [], 'Examples/Epoch': [],
             'Min Loss': [], 'Min Val Loss': [], 'Fit': [],
             'Mean loss of batch': [],
@@ -499,8 +499,7 @@ if __name__ == "__main__":
         #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.95,
         #       use_stride_2=False, use_res_connect=True,
         #       notes="Training Small VNet for smaller size of (160,160,160), use_stride_2=False, use_res_connect=True")
-        
-        
+
         sample_shape = (160, 160, 160)
         train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
               train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
@@ -530,7 +529,7 @@ if __name__ == "__main__":
         #       use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=4, schedule_drop=0.9,
         #       use_stride_2=True, use_res_connect=True, kernel_size=(5, 5, 5),
         #       notes="Training Small VNet for smaller size of (180,180,160), kernel size of (5,5,5)")
-        
+
         # sample_shape = (240, 240, 160)
         # train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1,
         #       train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
