@@ -25,7 +25,14 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 
 ---
 
-### Comparison of Volume Segmentation Methods
+### Baseline Comparision of 3D Methods
+
+| Model               | Input Shape          | Min DL  | Min Val DL | Duration (mins) |
+|---------------------|----------------------|---------|------------|-----------------|
+| 3D Highwayless UNet | (160, 160, 160)      | 0.77735 | 0.84669    | 86.6            |
+| 3D UNet             | (160, 160, 160)      | 0.72841 | 0.4160     | 89.1            |
+| 3D Relative UNet    | (160, 160, 160), (3) | 0.82768 | 0.88853    | 90.1            |
+| 3D VNet             | (160, 160, 160)      | 0.37088 | 0.34238    | 89.5            |
 
 #### Small 3D Unet Highwayless
 
@@ -65,12 +72,7 @@ Training Loss | Training Progress
 
 > Small VNet: Loss and validation loss converge together and to a low value showing good performance and generalisation abilities; this is a significant improvement on the other three model styles.
 
-| Model               | Input Shape          | Min DL  | Min Val DL | Duration (mins) |
-|---------------------|----------------------|---------|------------|-----------------|
-| 3D Highwayless UNet | (160, 160, 160)      | 0.77735 | 0.84669    | 86.6            |
-| 3D UNet             | (160, 160, 160)      | 0.72841 | 0.4160     | 89.1            |
-| 3D Relative UNet    | (160, 160, 160), (3) | 0.82768 | 0.88853    | 90.1            |
-| 3D VNet             | (160, 160, 160)      | 0.37088 | 0.34238    | 89.5            |
+
 
 ---
 
