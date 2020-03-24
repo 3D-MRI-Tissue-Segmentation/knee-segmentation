@@ -512,11 +512,11 @@ if __name__ == "__main__":
 
         check_run = False
 
-        e = 10
+        e = 50
         if check_run:
             e = 3
         learn_rate = 5e-4
-        repeats = 1
+        repeats = 5
 
         # # for archer
         # for i in range(repeats):
