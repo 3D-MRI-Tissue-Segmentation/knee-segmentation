@@ -38,7 +38,7 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
-![small-highway-less-loss](results/3d/small_highwayless_train_result_2020_03_17-08_07_29.png "Small 3D Unet Highwayless Loss") | ![small-highway-less-progress](results/3d/small_highwayless_progress.gif "Small 3D Unet Highwayless Progress")
+![small-highway-less-loss](results_prevnet/3d/small_highwayless_train_result_2020_03_17-08_07_29.png "Small 3D Unet Highwayless Loss") | ![small-highway-less-progress](results_prevnet/3d/small_highwayless_progress.gif "Small 3D Unet Highwayless Progress")
 
 > Small 3D UNet Highwayless: Loss plateaus very quickly and validation loss diverges from the loss very quickly.
 
@@ -48,7 +48,7 @@ Training Loss | Training Progress
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
-![small-3d-unet-loss](results/3d/small_3dunet_train_result_2020_03_17-09_34_10.png "Small 3D Unet Loss") | ![small-3d-unet-progress](results/3d/small_3dunet_progress.gif "Small 3D Unet Progress")
+![small-3d-unet-loss](results_prevnet/3d/small_3dunet_train_result_2020_03_17-09_34_10.png "Small 3D Unet Loss") | ![small-3d-unet-progress](results_prevnet/3d/small_3dunet_progress.gif "Small 3D Unet Progress")
 
 > Small 3D Unet: Very slow minimisation of the loss, the validation loss has a large variance showing the model is overfitting.
 
@@ -58,7 +58,7 @@ Training Loss | Training Progress
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
-![small-relative-3d-unet-loss](results/3d/small_relative_3dunet_train_result_2020_03_17-11_03_20.png "Small Relative 3D Unet Loss") | ![small-relative-3d-unet-progress](results/3d/small_relative_3dunet_progress.gif "Small Relative 3D Unet Progress")
+![small-relative-3d-unet-loss](results_prevnet/3d/small_relative_3dunet_train_result_2020_03_17-11_03_20.png "Small Relative 3D Unet Loss") | ![small-relative-3d-unet-progress](results_prevnet/3d/small_relative_3dunet_progress.gif "Small Relative 3D Unet Progress")
 
 > Small Relative 3D Unet: Slow minimisation of the loss, the validation loss quickly diverges from the loss showing the model is overfitting.
 
@@ -68,7 +68,7 @@ Training Loss | Training Progress
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
-![small-vnet-loss](results/3d/small_vnet_train_result_2020_03_17-12_37_32.png "Small VNet Loss") | ![small-vnet-progress](results/3d/small_vnet_progress.gif "Small VNet Progress")
+![small-vnet-loss](results_prevnet/3d/small_vnet_train_result_2020_03_17-12_37_32.png "Small VNet Loss") | ![small-vnet-progress](results_prevnet/3d/small_vnet_progress.gif "Small VNet Progress")
 
 > Small VNet: Loss and validation loss converge together and to a low value showing good performance and generalisation abilities; this is a significant improvement on the other three model styles.
 
