@@ -41,8 +41,6 @@ class VNet_Small(tf.keras.Model):
         self.conv_3 = Conv3D_Block(num_channels * 4, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format, name="c3")
-        if self.use_stride_2:
-            self.conv_3_stride = tf.keras.layers.Conv3D(num_channels, kernel_size=kernel_size, strides=2, activation="selu", padding="same")
         self.up_3 = Up_Conv3D(num_channels * 2, (2, 2, 2), nonlinearity,
                               use_batchnorm=use_batchnorm, data_format=data_format, name="cu3")
         self.up_2 = Up_Conv3D(num_channels, (2, 2, 2), nonlinearity,
@@ -97,7 +95,7 @@ class VNet_Small(tf.keras.Model):
         u3_in = self.up_3(x3)
         u3 = u3_in
         if self.merge_connections:
-            u3 = tf.keras.layers.concatenate([x2, u3_in], axis=4)
+            u3 = tf.keras.layers.concatenate([x2, u3_in], axis=-1)
         u3 = self.up_conv2(u3)
         if self.use_res_connect:
             u3 = tf.keras.layers.add([u3, u3_in])
@@ -106,7 +104,7 @@ class VNet_Small(tf.keras.Model):
         u2_in = self.up_2(u3)
         u2 = u2_in
         if self.merge_connections:
-            u2 = tf.keras.layers.concatenate([x1, u2_in], axis=4)
+            u2 = tf.keras.layers.concatenate([x1, u2_in], axis=-1)
         u2 = self.up_conv1(u2)
         if self.use_res_connect:
             u2 = tf.keras.layers.add([u2, u2_in])

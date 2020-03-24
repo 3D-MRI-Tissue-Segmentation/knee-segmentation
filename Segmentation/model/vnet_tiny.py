@@ -17,16 +17,22 @@ class VNet_Tiny(tf.keras.Model):
                  merge_connections=True,
                  output_activation=None,
                  noise=0.0001,
+                 use_res_connect=False,
+                 use_stride_2=False,
                  name="vnet_tiny"):
         self.params = str(inspect.currentframe().f_locals)
         super(VNet_Tiny, self).__init__(name=name)
         self.merge_connections = merge_connections
         self.num_classes = num_classes
         self.noise = noise
+        self.use_res_connect = use_res_connect
+        self.use_stride_2 = use_stride_2
 
         self.conv_1 = Conv3D_Block(num_channels, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format)
+        if self.use_stride_2:
+            self.conv_1_stride = tf.keras.layers.Conv3D(num_channels, kernel_size=kernel_size, strides=2, activation="selu", padding="same")
         self.conv_2 = Conv3D_Block(num_channels * 2, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
                                    data_format=data_format)
@@ -50,22 +56,33 @@ class VNet_Tiny(tf.keras.Model):
                                                    padding='same', data_format=data_format)
 
     def call(self, inputs, training=False):
-
         if self.noise and training:
             inputs = tf.keras.layers.GaussianNoise(self.noise)(inputs)
 
-        # 1->64
+        # down x 1
         x1 = self.conv_1(inputs)
-        # 64->128
-        x2 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x1)
-        x2 = self.conv_2(x2)
-        # 128->64
-        u2 = self.up_2(x2)
+        if self.use_res_connect:
+            x1 = tf.keras.layers.add([x1, inputs])
 
+        # down x 2
+        if self.use_stride_2:
+            x2_in = self.conv_1_stride(x1)
+        else:
+            x2_in = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x1)
+        x2 = self.conv_2(x2_in)
+        if self.use_res_connect:
+            x2 = tf.keras.layers.add([x2, x2_in])
+
+        # down x 1
+        u2_in = self.up_2(x2)
+        u2 = u2_in
         if self.merge_connections:
-            u2 = tf.keras.layers.concatenate([x1, u2], axis=4)
+            u2 = tf.keras.layers.concatenate([x1, u2_in], axis=-1)
         u2 = self.up_conv1(u2)
+        if self.use_res_connect:
+            u2 = tf.keras.layers.add([u2, u2_in])
         output = self.conv_output(u2)
+
         if self.num_classes == 1:
             output = self.conv_1x1_binary(output)
         else:
