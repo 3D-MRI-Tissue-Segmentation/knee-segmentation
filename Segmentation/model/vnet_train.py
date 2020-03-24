@@ -388,8 +388,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax1.plot(metrics['loss']['history'], label="loss")
     ax1.plot(running_mean(metrics['loss']['history'], roll_period), label="loss roll")
     if validate:
-        ax1.plot(metrics[cross_entropy_name]['val history'], label="val loss")
-        ax1.plot(running_mean(metrics[cross_entropy_name]['val history'], roll_period), label="val loss roll")
+        ax1.plot(metrics['loss']['val history'], label="val loss")
+        ax1.plot(running_mean(metrics['loss']['val history'], roll_period), label="val loss roll")
     ax1.set_xlabel("epoch")
     ax1.set_ylabel(loss_name)
     ax1.set_title("loss: dice")
@@ -411,8 +411,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax3.set_ylabel("bce + dice loss")
     ax3.legend()
     f.tight_layout(rect=[0, 0.01, 1, 0.93])
-    min_loss = min(metrics[cross_entropy_name]['history'])
-    min_val_loss = min(metrics[cross_entropy_name]['val history'])
+    min_loss = min(metrics['loss']['history'])
+    min_val_loss = min(metrics['loss']['val history'])
     f.suptitle(f"{model}: {train_name}\nTime: {time_taken/60:.1f} mins, Min Loss: {min_loss:.5f}, Min Val Loss: {min_val_loss:.5f}")
     plt.savefig(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/train_result_{now_time}")
 
@@ -512,11 +512,11 @@ if __name__ == "__main__":
 
         check_run = False
 
-        e = 150
+        e = 10
         if check_run:
             e = 3
         learn_rate = 5e-4
-        repeats = 3
+        repeats = 1
 
         # # for archer
         # for i in range(repeats):
