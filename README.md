@@ -20,8 +20,8 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 - [x] Relative 3D UNet
 - [x] Slice 3D UNet
 - [x] VNet
-- [ ] Relative VNet
-- [ ] Slice VNet
+- [x] Relative VNet
+- [x] Slice VNet
 
 ---
 
