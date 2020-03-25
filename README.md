@@ -29,12 +29,12 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 
 ### Baseline Comparision of 3D Methods
 
-| Model               | Input Shape       | Loss  | Val Loss | Duration / Min  |
-|---------------------|-------------------|-------|----------|-----------------|
-| 3D Highwayless UNet | (160,160,160)     | 0.777 | 0.847    | 86.6            |
-| 3D UNet             | (160,160,160)     | 0.728 | 0.416    | 89.1            |
-| 3D Relative UNet    | (160,160,160),(3) | 0.828 | 0.889    | 90.1            |
-| 3D VNet             | (160,160,160)     | 0.371 | 0.342    | 89.5            |
+| Model                     | Input Shape       | Loss  | Val Loss | Duration / Min  |
+|---------------------------|-------------------|-------|----------|-----------------|
+| Small Highwayless 3D UNet | (160,160,160)     | 0.777 | 0.847    | 86.6            |
+| Small 3D UNet             | (160,160,160)     | 0.728 | 0.416    | 89.1            |
+| Small Relative 3D UNet    | (160,160,160),(3) | 0.828 | 0.889    | 90.1            |
+| Small VNet                | (160,160,160)     | 0.371 | 0.342    | 89.5            |
 
 #### Small 3D Unet Highwayless (160,160,160)
 
