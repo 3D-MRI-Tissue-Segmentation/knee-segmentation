@@ -25,6 +25,8 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 
 ---
 
+## Results
+
 ### Baseline Comparision of 3D Methods
 
 | Model               | Input Shape       | Loss  | Val Loss | Duration / Min  |
@@ -34,7 +36,7 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 | 3D Relative UNet    | (160,160,160),(3) | 0.828 | 0.889    | 90.1            |
 | 3D VNet             | (160,160,160)     | 0.371 | 0.342    | 89.5            |
 
-#### Small 3D Unet Highwayless (160, 160, 160)
+#### Small 3D Unet Highwayless (160,160,160)
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
@@ -44,7 +46,7 @@ Training Loss | Training Progress
 
 <br />
 
-#### Small 3D Unet (160, 160, 160)
+#### Small 3D Unet (160,160,160)
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
@@ -54,7 +56,7 @@ Training Loss | Training Progress
 
 <br />
 
-#### Small Relative 3D Unet (160, 160, 160), (3)
+#### Small Relative 3D Unet (160,160,160),(3)
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
@@ -64,7 +66,7 @@ Training Loss | Training Progress
 
 <br />
 
-#### Small VNet (160, 160, 160)
+#### Small VNet (160,160,160)
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
@@ -87,53 +89,57 @@ Training Loss | Training Progress
 |      Large     |    (240,240,160)  | 0.505 ± 0.262 |  0.554 ± 0.254 | 0.508 ± 0.262 | 0.574 ± 0.243 | 129.2 ± 0.50 |
 | Large Relative | (240,240,160),(3) | 0.709 ± 0.103 |  0.880 ± 0.078 | 0.725 ± 0.094 | 0.913 ± 0.081 | 148.6 ± 0.20 |
 
-#### Tiny VNet (64, 64, 64)
+> Baseline results from training VNet models for 50 epochs, exploring how quick models converge. Models optimized for dice loss using a scheduled Adam optimizier. Start learning rate: $5e^{-5}$, Schedule drop: $0.9$, Schedule drop epoch frequency: $3$. Z-Score normalisation and replacement of outliers with mean pixel was applied to inputs. Subsamples were selected normally distributed from the centre. Github commit: cb39158
+
+> Optimal training session is choosen for each visulation.
+
+#### Tiny VNet (64,64,64)
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
-![]() | ![]()
+![tiny_vnet_646464_loss](results/3d_50_epoch_baseline/archer/train_session_2020_03_24-19_12_02_tiny/train_result_2020_03_24-19_12_02.png) | ![tiny_vnet_646464_progress](results/3d_50_epoch_baseline/archer/train_session_2020_03_24-19_12_02_tiny/progress.gif)
 
-#### Tiny VNet (160, 160, 160)
-
-Training Loss | Training Progress
-:------------:|:---------------------------:
-![]() | ![]()
-
-#### Small VNet (160, 160, 160)
+#### Tiny VNet (160,160,160)
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
-![]() | ![]()
+![tiny_vnet_160160160_loss](results/3d_50_epoch_baseline/archer/train_session_2020_03_24-20_07_26_tiny/train_result_2020_03_24-20_07_26.png) | ![tiny_vnet_160160160_progress](results/3d_50_epoch_baseline/archer/train_session_2020_03_24-20_07_26_tiny/progress.gif)
 
-#### Small Relative VNet (160, 160, 160), (3)
-
-Training Loss | Training Progress
-:------------:|:---------------------------:
-![]() | ![]()
-
-#### Small Slice VNet (160, 160, 5)
+#### Small VNet (160,160,160)
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
-![]() | ![]()
+![small_vnet_160160160_loss](results/3d_50_epoch_baseline/archer/train_session_2020_03_25-05_09_08_small/train_result_2020_03_25-05_09_08.png) | ![small_vnet_160160160_progress](results/3d_50_epoch_baseline/archer/train_session_2020_03_25-05_09_08_small/progress.gif)
 
-#### Small VNet (240, 240, 160)
-
-Training Loss | Training Progress
-:------------:|:---------------------------:
-![]() | ![]()
-
-#### Large VNet (240, 240, 160)
+#### Small Relative VNet (160,160,160),(3)
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
-![]() | ![]()
+![small_rel_vnet_160160160_loss](results/3d_50_epoch_baseline/archer/train_session_2020_03_25-06_57_15_small_relative/train_result_2020_03_25-06_57_15.png) | ![small_rel_vnet_160160160_progress](results/3d_50_epoch_baseline/archer/train_session_2020_03_25-06_57_15_small_relative/progress.gif)
 
-#### Large Relative VNet (240, 240, 160), (3)
+#### Small Slice VNet (160,160,5)
 
 Training Loss | Training Progress
 :------------:|:---------------------------:
-![]() | ![]()
+![small_slice_vnet_1601605_loss](results/3d_50_epoch_baseline/archer/train_session_2020_03_25-01_25_31_slice/train_result_2020_03_25-01_25_31.png) | ![small_slice_vnet_1601605_progress](results/3d_50_epoch_baseline/archer/train_session_2020_03_25-01_25_31_slice/progress.gif)
+
+#### Small VNet (240,240,160)
+
+Training Loss | Training Progress
+:------------:|:---------------------------:
+![small_vnet_240240160_loss](results/3d_50_epoch_baseline/pompeii/train_session_2020_03_25-06_39_15_small/train_result_2020_03_25-06_39_15.png) | ![small_vnet_240240160_progress](results/3d_50_epoch_baseline/pompeii/train_session_2020_03_25-06_39_15_small/progress.gif)
+
+#### Large VNet (240,240,160)
+
+Training Loss | Training Progress
+:------------:|:---------------------------:
+![large_vnet_240240160_loss](results/3d_50_epoch_baseline/pompeii/train_session_2020_03_24-13_06_17_large/train_result_2020_03_24-13_06_17.png) | ![large_vnet_240240160_progress](results/3d_50_epoch_baseline/pompeii/train_session_2020_03_24-13_06_17_large/progress.gif)
+
+#### Large Relative VNet (240,240,160),(3)
+
+Training Loss | Training Progress
+:------------:|:---------------------------:
+![large_rel_vnet_240240160_loss](results/3d_50_epoch_baseline/pompeii/train_session_2020_03_25-04_10_24_large_relative/train_result_2020_03_25-04_10_24.png) | ![large_rel_vnet_240240160_progress](results/3d_50_epoch_baseline/pompeii/train_session_2020_03_25-04_10_24_large_relative/progress.gif)
 
 ---
 
