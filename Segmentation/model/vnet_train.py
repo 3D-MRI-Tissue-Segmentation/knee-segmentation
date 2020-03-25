@@ -388,8 +388,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax1.plot(metrics['loss']['history'], label="loss")
     ax1.plot(running_mean(metrics['loss']['history'], roll_period), label="loss roll")
     if validate:
-        ax1.plot(metrics[cross_entropy_name]['val history'], label="val loss")
-        ax1.plot(running_mean(metrics[cross_entropy_name]['val history'], roll_period), label="val loss roll")
+        ax1.plot(metrics['loss']['val history'], label="val loss")
+        ax1.plot(running_mean(metrics['loss']['val history'], roll_period), label="val loss roll")
     ax1.set_xlabel("epoch")
     ax1.set_ylabel(loss_name)
     ax1.set_title("loss: dice")
@@ -411,8 +411,8 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     ax3.set_ylabel("bce + dice loss")
     ax3.legend()
     f.tight_layout(rect=[0, 0.01, 1, 0.93])
-    min_loss = min(metrics[cross_entropy_name]['history'])
-    min_val_loss = min(metrics[cross_entropy_name]['val history'])
+    min_loss = min(metrics['loss']['history'])
+    min_val_loss = min(metrics['loss']['val history'])
     f.suptitle(f"{model}: {train_name}\nTime: {time_taken/60:.1f} mins, Min Loss: {min_loss:.5f}, Min Val Loss: {min_val_loss:.5f}")
     plt.savefig(f"ckpt/checkpoints/{debug}train_session_{now_time}_{model}/train_result_{now_time}")
 
@@ -512,71 +512,71 @@ if __name__ == "__main__":
 
         check_run = False
 
-        e = 150
+        e = 50
         if check_run:
             e = 3
         learn_rate = 5e-4
-        repeats = 3
+        repeats = 5
 
-        # # for archer
-        # for i in range(repeats):
-        #     sample_shape = (64, 64, 64)
-        #     train("tiny", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
-        #           use_stride_2=True, use_res_connect=True,
-        #           notes=f"Training Tiny VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-        #     sample_shape = (160, 160, 160)
-        #     train("tiny", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
-        #           use_stride_2=True, use_res_connect=True,
-        #           notes=f"Training Tiny VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-        #     sample_shape = (160, 160, 160)
-        #     train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
-        #           use_stride_2=True, use_res_connect=True,
-        #           notes=f"Training Small VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-        #     sample_shape = (160, 160, 160)
-        #     train("small_relative", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
-        #           use_stride_2=True, use_res_connect=True,
-        #           notes=f"Training Small Relative VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-        #     sample_shape = (160, 160, 5)
-        #     train("slice", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
-        #           use_stride_2=True, use_res_connect=True,
-        #           notes=f"Training Small Slice VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-        # for pompeii
+        # for archer
         for i in range(repeats):
-            sample_shape = (240, 240, 160)
+            sample_shape = (64, 64, 64)
+            train("tiny", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
+                  train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
+                  use_stride_2=True, use_res_connect=True,
+                  notes=f"Training Tiny VNet {sample_shape}, repeat: {i+1}/{repeats}")
+
+            sample_shape = (160, 160, 160)
+            train("tiny", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
+                  train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
+                  use_stride_2=True, use_res_connect=True,
+                  notes=f"Training Tiny VNet {sample_shape}, repeat: {i+1}/{repeats}")
+
+            sample_shape = (160, 160, 160)
             train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
                   train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
+                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
                   use_stride_2=True, use_res_connect=True,
                   notes=f"Training Small VNet {sample_shape}, repeat: {i+1}/{repeats}")
 
-            sample_shape = (240, 240, 160)
-            train("large", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
+            sample_shape = (160, 160, 160)
+            train("small_relative", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
                   train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
+                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
                   use_stride_2=True, use_res_connect=True,
-                  notes=f"Training Large VNet {sample_shape}, repeat: {i+1}/{repeats}")
+                  notes=f"Training Small Relative VNet {sample_shape}, repeat: {i+1}/{repeats}")
 
-            sample_shape = (240, 240, 160)
-            train("large_relative", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
+            sample_shape = (160, 160, 5)
+            train("slice", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
                   train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
+                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
                   use_stride_2=True, use_res_connect=True,
-                  notes=f"Training Large Relative VNet {sample_shape}, repeat: {i+1}/{repeats}")
+                  notes=f"Training Small Slice VNet {sample_shape}, repeat: {i+1}/{repeats}")
+
+        # # for pompeii
+        # for i in range(repeats):
+        #     sample_shape = (240, 240, 160)
+        #     train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
+        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
+        #           use_stride_2=True, use_res_connect=True,
+        #           notes=f"Training Small VNet {sample_shape}, repeat: {i+1}/{repeats}")
+
+        #     sample_shape = (240, 240, 160)
+        #     train("large", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
+        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
+        #           use_stride_2=True, use_res_connect=True,
+        #           notes=f"Training Large VNet {sample_shape}, repeat: {i+1}/{repeats}")
+
+        #     sample_shape = (240, 240, 160)
+        #     train("large_relative", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
+        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
+        #           use_stride_2=True, use_res_connect=True,
+        #           notes=f"Training Large Relative VNet {sample_shape}, repeat: {i+1}/{repeats}")
 
     else:
         e = 3
