@@ -42,7 +42,9 @@ Training Loss | Training Progress
 :------------:|:---------------------------:
 ![small-highway-less-loss](results/3unet_vs_vnet_baseline/small_highwayless_train_result_2020_03_17-08_07_29.png "Small 3D Unet Highwayless Loss") | ![small-highway-less-progress](results/3unet_vs_vnet_baseline/small_highwayless_progress.gif "Small 3D Unet Highwayless Progress")
 
-> Small 3D UNet Highwayless: Loss plateaus very quickly and validation loss diverges from the loss very quickly.
+```
+Small 3D UNet Highwayless: Loss plateaus very quickly and validation loss diverges from the loss very quickly.
+```
 
 <br />
 
@@ -52,7 +54,9 @@ Training Loss | Training Progress
 :------------:|:---------------------------:
 ![small-3d-unet-loss](results/3unet_vs_vnet_baseline/small_3dunet_train_result_2020_03_17-09_34_10.png "Small 3D Unet Loss") | ![small-3d-unet-progress](results/3unet_vs_vnet_baseline/small_3dunet_progress.gif "Small 3D Unet Progress")
 
-> Small 3D Unet: Very slow minimisation of the loss, the validation loss has a large variance showing the model is overfitting.
+```
+Small 3D Unet: Very slow minimisation of the loss, the validation loss has a large variance showing the model is overfitting.
+```
 
 <br />
 
@@ -62,7 +66,9 @@ Training Loss | Training Progress
 :------------:|:---------------------------:
 ![small-relative-3d-unet-loss](results/3unet_vs_vnet_baseline/small_relative_3dunet_train_result_2020_03_17-11_03_20.png "Small Relative 3D Unet Loss") | ![small-relative-3d-unet-progress](results/3unet_vs_vnet_baseline/small_relative_3dunet_progress.gif "Small Relative 3D Unet Progress")
 
-> Small Relative 3D Unet: Slow minimisation of the loss, the validation loss quickly diverges from the loss showing the model is overfitting.
+```
+Small Relative 3D Unet: Slow minimisation of the loss, the validation loss quickly diverges from the loss showing the model is overfitting.
+```
 
 <br />
 
@@ -72,7 +78,9 @@ Training Loss | Training Progress
 :------------:|:---------------------------:
 ![small-vnet-loss](results/3unet_vs_vnet_baseline/small_vnet_train_result_2020_03_17-12_37_32.png "Small VNet Loss") | ![small-vnet-progress](results/3unet_vs_vnet_baseline/small_vnet_progress.gif "Small VNet Progress")
 
-> Small VNet: Loss and validation loss converge together and to a low value showing good performance and generalisation abilities; this is a significant improvement on the other three model styles.
+```
+Small VNet: Loss and validation loss converge together and to a low value showing good performance and generalisation abilities; this is a significant improvement on the other three model styles.
+```
 
 ---
 
@@ -89,9 +97,13 @@ Training Loss | Training Progress
 |      Large     |    (240,240,160)  | 0.505 ± 0.262 |  0.554 ± 0.254 | 0.508 ± 0.262 | 0.574 ± 0.243 | 129.2 ± 0.50 |
 | Large Relative | (240,240,160),(3) | 0.709 ± 0.103 |  0.880 ± 0.078 | 0.725 ± 0.094 | 0.913 ± 0.081 | 148.6 ± 0.20 |
 
-> Baseline results from training VNet models for 50 epochs, exploring how quick models converge. Models optimized for dice loss using a scheduled Adam optimizier. Start learning rate: $5e^{-5}$, Schedule drop: $0.9$, Schedule drop epoch frequency: $3$. Z-Score normalisation and replacement of outliers with mean pixel was applied to inputs. Subsamples were selected normally distributed from the centre. Github commit: cb39158
+```
+Baseline results from training VNet models for 50 epochs, exploring how quick models converge. Models optimized for dice loss using a scheduled Adam optimizier. Start learning rate: $5e^{-5}$, Schedule drop: $0.9$, Schedule drop epoch frequency: $3$. Z-Score normalisation and replacement of outliers with mean pixel was applied to inputs. Subsamples were selected normally distributed from the centre. Github commit: cb39158
+```
 
-> Optimal training session is choosen for each visulation.
+```
+Optimal training session is choosen for each visulation.
+```
 
 #### Tiny VNet (64,64,64)
 
