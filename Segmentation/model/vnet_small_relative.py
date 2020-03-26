@@ -18,10 +18,12 @@ class VNet_Small_Relative(tf.keras.Model):
                  num_compressors=3,
                  compressor_filters=3,
                  action='add',
+                 output_activation=None,
                  name="vnet_small_relative"):
 
         super(VNet_Small_Relative, self).__init__(name=name)
         self.merge_connections = merge_connections
+        self.num_classes = num_classes
         self.action = action
 
         assert self.action in ['add', 'multiply'], f"{self.action} not in action list"
@@ -62,10 +64,18 @@ class VNet_Small_Relative(tf.keras.Model):
         self.comp_dense_3 = tf.keras.layers.Dense(1, activation="tanh")
 
         # convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv3D(2, kernel_size, activation=nonlinearity, padding='same',
+        self.conv_output = tf.keras.layers.Conv3D(num_classes, kernel_size, activation=nonlinearity, padding='same',
                                                   data_format=data_format)
-        self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size, padding='same',
-                                               data_format=data_format)
+        if output_activation is None:
+            output_activation = 'sigmoid'
+            if num_classes > 1:
+                output_activation = 'softmax'
+        if num_classes == 1:
+            self.conv_1x1_binary = tf.keras.layers.Conv3D(num_classes, (1, 1, 1), activation='sigmoid',
+                                                          padding='same', data_format=data_format)
+        else:
+            self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size=(1, 1, 1), activation='softmax',
+                                                   padding='same', data_format=data_format)
 
     def call(self, inputs, training=True):
         image_inputs, pos_inputs = inputs
@@ -105,12 +115,15 @@ class VNet_Small_Relative(tf.keras.Model):
         u3 = self.up_conv2(u3)
 
         # 128->64
-        u2 = self.up_2(x2)
+        u2 = self.up_2(u3)
         if self.merge_connections:
             u2 = tf.keras.layers.concatenate([x1, u2], axis=4)
         u2 = self.up_conv1(u2)
 
         u1 = self.conv_output(u2)
-        output = self.conv_1x1(u1)
 
+        if self.num_classes == 1:
+            output = self.conv_1x1_binary(u1)
+        else:
+            output = self.conv_1x1(u1)
         return output

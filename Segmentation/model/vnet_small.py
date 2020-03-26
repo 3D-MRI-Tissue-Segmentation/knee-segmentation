@@ -15,10 +15,12 @@ class VNet_Small(tf.keras.Model):
                  use_spatial_dropout=True,
                  data_format='channels_last',
                  merge_connections=False,
+                 output_activation=None,
                  name="vnet_small"):
 
         super(VNet_Small, self).__init__(name=name)
         self.merge_connections = merge_connections
+        self.num_classes = num_classes
 
         self.conv_1 = Conv3D_Block(num_channels, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
@@ -39,44 +41,49 @@ class VNet_Small(tf.keras.Model):
                                      use_batchnorm=use_batchnorm, data_format=data_format, name="upc1")
 
         # convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv3D(2, kernel_size, activation=nonlinearity, padding='same',
+        self.conv_output = tf.keras.layers.Conv3D(num_classes, kernel_size, activation=nonlinearity, padding='same',
                                                   data_format=data_format)
-        self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size, padding='same',
-                                               data_format=data_format)
+        if output_activation is None:
+            output_activation = 'sigmoid'
+            if num_classes > 1:
+                output_activation = 'softmax'
+        if num_classes == 1:
+            self.conv_1x1_binary = tf.keras.layers.Conv3D(num_classes, (1, 1, 1), activation='sigmoid',
+                                                          padding='same', data_format=data_format)
+        else:
+            self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size=(1, 1, 1), activation='softmax',
+                                                   padding='same', data_format=data_format)
 
     def call(self, inputs):
 
         # 1->64
         x1 = self.conv_1(inputs)
-        # tf.print("x1:", x1.get_shape())
 
         # 64->128
         x2 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x1)
         x2 = self.conv_2(x2)
-        # tf.print("x2:", x2.get_shape())
 
         # 128->256
         x3 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x2)
         x3 = self.conv_3(x3)
-        # tf.print("x3:", x3.get_shape())
 
         # 256->128
         u3 = self.up_3(x3)
         if self.merge_connections:
             u3 = tf.keras.layers.concatenate([x2, u3], axis=4)
         u3 = self.up_conv2(u3)
-        # tf.print("u3:", u3.get_shape())
 
         # 128->64
-        u2 = self.up_2(x2)
+        u2 = self.up_2(u3)
         if self.merge_connections:
             u2 = tf.keras.layers.concatenate([x1, u2], axis=4)
         u2 = self.up_conv1(u2)
-        # tf.print("u2:", u2.get_shape())
 
         u1 = self.conv_output(u2)
-        # tf.print("u1:", u1.get_shape())
         output = self.conv_1x1(u1)
 
-        # tf.print("output:", output.get_shape())
+        if self.num_classes == 1:
+            output = self.conv_1x1_binary(output)
+        else:
+            output = self.conv_1x1(output)
         return output

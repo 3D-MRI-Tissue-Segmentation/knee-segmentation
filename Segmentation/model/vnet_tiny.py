@@ -14,10 +14,12 @@ class VNet_Tiny(tf.keras.Model):
                  use_spatial_dropout=True,
                  data_format='channels_last',
                  merge_connections=False,
+                 output_activation=None,
                  name="vnet_tiny"):
 
         super(VNet_Tiny, self).__init__(name=name)
         self.merge_connections = merge_connections
+        self.num_classes = num_classes
 
         self.conv_1 = Conv3D_Block(num_channels, num_conv_layers, kernel_size,
                                    nonlinearity, use_batchnorm=use_batchnorm,
@@ -31,10 +33,18 @@ class VNet_Tiny(tf.keras.Model):
                                      use_batchnorm=use_batchnorm, data_format=data_format)
 
         # convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv3D(2, kernel_size, activation=nonlinearity, padding='same',
+        self.conv_output = tf.keras.layers.Conv3D(num_classes, kernel_size, activation=nonlinearity, padding='same',
                                                   data_format=data_format)
-        self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size, padding='same',
-                                               data_format=data_format)
+        if output_activation is None:
+            output_activation = 'sigmoid'
+            if num_classes > 1:
+                output_activation = 'softmax'
+        if num_classes == 1:
+            self.conv_1x1_binary = tf.keras.layers.Conv3D(num_classes, (1, 1, 1), activation='sigmoid',
+                                                          padding='same', data_format=data_format)
+        else:
+            self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size=(1, 1, 1), activation='softmax',
+                                                   padding='same', data_format=data_format)
 
     def call(self, inputs):
 
@@ -61,4 +71,9 @@ class VNet_Tiny(tf.keras.Model):
         # tf.print("u1:", u1.get_shape())
         output = self.conv_1x1(u1)
         # tf.print("output:", output.get_shape())
+
+        if self.num_classes == 1:
+            output = self.conv_1x1_binary(output)
+        else:
+            output = self.conv_1x1(output)
         return output

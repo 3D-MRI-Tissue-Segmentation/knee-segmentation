@@ -147,7 +147,6 @@ def main(argv):
         
         #define checkpoints 
         logdir = 'checkpoints\\' + datetime.now().strftime("%Y%m%d-%H%M%S")
-        
         ckpt_cb   = tf.keras.callbacks.ModelCheckpoint(FLAGS.logdir + '/' + FLAGS.model_architecture + '_weights.{epoch:03d}.ckpt',save_best_only=False, save_weights_only=True)
         lr_schedule = make_lr_scheduler(FLAGS.base_learning_rate)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='batch')

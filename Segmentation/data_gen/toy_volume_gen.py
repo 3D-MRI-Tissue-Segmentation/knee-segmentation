@@ -57,13 +57,13 @@ class Toy_Volume:
     def set_colour_to_xyz(self, x, y, z, colour_idx):
         """ Sets the colour for a specific pixel """
         if self.colour_channels == 1:
-            self.volume[x][y][z][0] = self.class_colours[colour_idx][0]
+            self.volume[x, y, z, 0] = self.class_colours[colour_idx][0]
         else:
-            self.volume[x][y][z][0] = self.class_colours[colour_idx][0]
-            self.volume[x][y][z][1] = self.class_colours[colour_idx][1]
-            self.volume[x][y][z][2] = self.class_colours[colour_idx][2]
-        self.one_hot_array[x][y][z][:] = 0
-        self.one_hot_array[x][y][z][colour_idx] = 1
+            self.volume[x, y, z, 0] = self.class_colours[colour_idx][0]
+            self.volume[x, y, z, 1] = self.class_colours[colour_idx][1]
+            self.volume[x, y, z, 2] = self.class_colours[colour_idx][2]
+        self.one_hot_array[x, y, z, :] = 0
+        self.one_hot_array[x, y, z, colour_idx] = 1
 
     def set_colour_to_random_xyz(self, colour_idx):
         self.set_colour_to_xyz(*self.get_random_xyz(), colour_idx)
@@ -128,7 +128,6 @@ class Toy_Volume:
                     if self.is_in_ellipsoid(x_, y_, z_, (x, y, z), x_radius, y_radius, z_radius):
                         self.set_colour_to_xyz(x_, y_, z_, colour_idx)
 
-
 def get_test_volume(n_reps, n_classes,
                     width, height, depth, colour_channels):
     td = Toy_Volume(n_classes, width, height, depth, colour_channels)
@@ -163,6 +162,21 @@ def get_test_volumes(n_volumes, n_reps, n_classes,
         one_hots = np.stack(one_hots)
     return volumes, one_hots
 
+
+def get_slice_from_volume(volume, one_hot, slice_shape, random_pos=True, return_pos=True):
+    vol_shape = volume.shape
+
+    rand_x = randint(slice_shape[0], vol_shape[0])
+    rand_y = randint(slice_shape[1], vol_shape[1])
+    rand_z = randint(slice_shape[2], vol_shape[2])
+    volume_slice = volume[rand_x - slice_shape[0]: rand_x,
+                          rand_y - slice_shape[1]: rand_y,
+                          rand_z - slice_shape[2]: rand_z, :]
+    one_hot_slice = one_hot[rand_x - slice_shape[0]: rand_x,
+                            rand_y - slice_shape[1]: rand_y,
+                            rand_z - slice_shape[2]: rand_z, :]
+    return volume_slice, one_hot_slice
+
 def plot_volume(volume, show=True):
     voxel = volume[:, :, :, 0] > 0
     import matplotlib.pyplot as plt
@@ -180,7 +194,11 @@ def rgb_to_hex(rgb):
     return '#%02x%02x%02x' % tuple(rgb)
 
 if __name__ == "__main__":
-    n_reps, n_classes = 4, 3
+    import sys
+    from os import getcwd
+    sys.path.insert(0, getcwd())
+
+    n_reps, n_classes = 15, 3
     width, height, depth = 40, 40, 40
     colour_channels = 3
 
@@ -203,4 +221,8 @@ if __name__ == "__main__":
                                         rand_x_len, rand_y_len, rand_z_len,
                                         colour_idx)
 
-    plot_volume(td.volume)
+    plot_volume(td.volume, show=False)
+
+    vol_slice, one_hot_slice = get_slice_from_volume(td.volume, td.one_hot_array, (20, 20, 20))
+
+    plot_volume(vol_slice)
