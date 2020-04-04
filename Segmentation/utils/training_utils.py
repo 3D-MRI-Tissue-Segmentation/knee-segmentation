@@ -4,17 +4,6 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 
-def iou_loss_core(y_true, y_pred, smooth=1):
-
-    y_true = K.cast_to_floatx(y_true)
-    y_pred = K.cast_to_floatx(y_pred)
-
-<<<<<<< HEAD
-    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
-    iou = (intersection + smooth) / ( union + smooth)
-    return iou
-
 def Mean_IOU(y_true, y_pred):
     nb_classes = K.int_shape(y_pred)[-1]
     iou = []
@@ -33,32 +22,6 @@ def Mean_IOU(y_true, y_pred):
     legal_labels = ~tf.math.is_nan(iou)
     iou = iou[legal_labels]
     return K.mean(iou)
-=======
-    ovlp = K.sum(y_true*y_pred,axis=-1)
-
-    mu = K.epsilon()
-    dice = (2.0 * ovlp + mu) / (K.sum(y_true,axis=-1) + K.sum(y_pred,axis=-1) + mu)
-    loss = -dice
-
-    return loss
-
-def tversky(y_true, y_pred):
-    # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
-    smooth = 1.0
-    y_true_pos = K.flatten(y_true)
-    y_pred_pos = K.flatten(y_pred)
-    true_pos = K.sum(y_true_pos * y_pred_pos)
-    false_neg = K.sum(y_true_pos * (1-y_pred_pos))
-    false_pos = K.sum((1-y_true_pos)*y_pred_pos)
-    alpha = 0.7
-    return (true_pos + smooth)/(true_pos + alpha*false_neg + (1-alpha)*false_pos + smooth)
-
-
-def tversky_loss(y_true, y_pred):
-    #hyperparameters
-    alpha = 0.5
-    beta = 0.5
->>>>>>> 6592c40f84d703c1b9c9decb26669147152b9a59
 
 def dice_coef_loss(y_true, y_pred):
     return 1.-dice_coef(y_true, y_pred)
@@ -115,12 +78,12 @@ def iou_loss_core(y_true, y_pred, smooth=1):
     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
     union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
     iou = (intersection + smooth) / ( union + smooth)
-    return iou
 
+    return iou
+  
 def plot_train_history_loss(history, multi_class=True):
-    
     # summarize history for loss
-    fig, ax = plt.subplots(2,1)
+    fig, ax = plt.subplots(2, 1)
     if multi_class:
         ax[0].plot(history.history['dice_coef'])
         ax[0].plot(history.history['val_dice_coef'])
@@ -129,8 +92,9 @@ def plot_train_history_loss(history, multi_class=True):
         ax[0].set_title('Model Loss')
         ax[0].set(xlabel='epoch', ylabel='loss')
         ax[0].legend(['train_dice', 'val_dice', 'train_cce', 'val_cce'], loc='upper right')
-        
-    else:
+        ax[0].legend(['train_tversky', 'val_tversky', 'train_cce', 'val_cce'], loc='upper right')
+
+        else:
         ax[0].plot(history.history['dice_coef'])
         ax[0].plot(history.history['val_dice_coef'])
         ax[0].plot(history.history['binary_crossentropy'])
@@ -138,16 +102,14 @@ def plot_train_history_loss(history, multi_class=True):
         ax[0].set_title('Model Loss')
         ax[0].set(xlabel='epoch', ylabel='loss')
         ax[0].legend(['train_dice', 'val_dice', 'train_bce', 'val_bce'], loc='upper right')
-        
     ax[1].plot(history.history['acc'])
     ax[1].plot(history.history['val_acc'])
     ax[1].set_title('Model Accuracy')
     ax[1].set(xlabel='epoch', ylabel='accuracy')
     ax[1].legend(['train_accuracy', 'val_accuracy'], loc='upper right')
-
     fig.tight_layout()
-    plt.show()    
-    
+    plt.show()
+
 def visualise_binary(y_true, y_pred):
 
     y_true = np.expand_dims(y_true,axis=3)
@@ -155,12 +117,12 @@ def visualise_binary(y_true, y_pred):
     batch_size = y_true.shape[0]
 
     for i in range(batch_size):
-        fig, ax = plt.subplots(2,1)
-        ax[0].imshow(y_true[i,:,:,0], cmap='gray')
+        fig, ax = plt.subplots(2, 1)
+        ax[0].imshow(y_true[i, :, :, 0], cmap='gray')
         ax[0].set_title('Ground Truth')
-        ax[1].imshow(y_pred[i,:,:,0], cmap='gray')
+        ax[1].imshow(y_pred[i, :, :, 0], cmap='gray')
         ax[1].set_title('Prediction')
-        
+
         fig.tight_layout()
         plt.show()
 
@@ -189,19 +151,18 @@ def visualise_multi_class(y_true, y_pred):
 
         fig.tight_layout()
         plt.show()
-    
+
 def label2color(img):
-    
     colour_maps = {
-        0: [255,0,0],
-        1: [0,255,0],
-        2: [0,0,255],
-        3: [128,64,255],
-        4: [70,255,70],
-        5: [255,20,147],
-        6: [0,0,0]
+        0: [255, 0, 0],
+        1: [0, 255, 0],
+        2: [0, 0, 255],
+        3: [128, 64, 255],
+        4: [70, 255, 70],
+        5: [255, 20, 147],
+        6: [0, 0, 0]
     }
-    
+
     img_height, img_width = img.shape
     img_color = np.zeros((img_height, img_width, 3))
     for row in range(img_height):
@@ -210,7 +171,6 @@ def label2color(img):
             img_color[row, col] = np.array(colour_maps[label])
 
     return img_color
-<<<<<<< HEAD
     
 def make_lr_scheduler(init_lr):
 
@@ -243,5 +203,3 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
     return {
         'initial_learning_rate': self.initial_learning_rate,
     }
-=======
->>>>>>> 6592c40f84d703c1b9c9decb26669147152b9a59
