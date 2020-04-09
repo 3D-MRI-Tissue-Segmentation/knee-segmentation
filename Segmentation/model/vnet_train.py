@@ -520,6 +520,9 @@ if __name__ == "__main__":
             'normalise': [],
             'remove_outliers': [],
             'skip_empty': [],
+            'time_taken': [],
+            'min_roll_loss': [],
+            'min_roll_val_loss': [],
         }
         df = pd.DataFrame(data=hp_cols)
         df.to_csv("vnet_train_hp.csv", index=False)
@@ -533,13 +536,13 @@ if __name__ == "__main__":
             e = 1
             repeats = 1
         
-        batch_sizes = [1, 2]
-        schedule_epochs_drops = [1, 2, 3, 4]
-        schedule_drops = [0.8, 0.9, 0.95, 0.99]
-        lrs = [5e-3, 1e-4, 5e-4, 1e-5]
-        es = [5, 10, 20] # [5, 10, 15, 20, 25, 30, 50, 75, 100]
-        noises = [0.01, 0.025, 0.05, 0.001]
-        input_shapes = [240, 288, 320]
+        batch_sizes = [1, 2, 3, 4]
+        schedule_epochs_drops = [3, 4, 5, 6, 8]
+        schedule_drops = [0.5, 0.8, 0.85, 0.9, 0.95, 0.99]
+        lrs = [1e-1, 5e-1, 1e-2, 5e-2, 1e-3, 5e-3, 1e-4]
+        es = [20, 25, 30, 35, 40]
+        noises = [0.0, 0.001, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 1.0]
+        input_shapes = [160, 240, 288, 320]
 
         for i in range(1000):
             
@@ -550,9 +553,15 @@ if __name__ == "__main__":
             e = random.choice(es)
             noise = random.choice(noises)
             input_width = random.choice(input_shapes)
-            normalise_input = bool(random.getrandbits(1))
+            if (input_width == 320) or (input_width == 288):
+                if batch_size > 2:
+                    batch_size = random.choice([1,2])
+            normalise_input = True
             remove_outliers = bool(random.getrandbits(1))
             skip_empty = bool(random.getrandbits(1))
+
+            print("---------------------")
+            print(batch_size, schedule_epochs_drop, schedule_drop, learn_rate, e, noise, input_width, normalise_input, remove_outliers, skip_empty)
 
             sample_shape = (input_width, input_width, 160)
             time_taken, min_roll_loss, min_roll_val_loss = train("large", batch_size=batch_size, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
@@ -579,6 +588,9 @@ if __name__ == "__main__":
                 'normalise': [normalise_input],
                 'remove_outliers': [remove_outliers],
                 'skip_empty': [skip_empty],
+                'time_taken': [time_taken],
+                'min_roll_loss': [min_roll_loss],
+                'min_roll_val_loss': [min_roll_val_loss],
             }
             df = pd.DataFrame(data=hp_cols)
             df.to_csv("vnet_train_hp.csv", index=False, header=False, mode='a')
