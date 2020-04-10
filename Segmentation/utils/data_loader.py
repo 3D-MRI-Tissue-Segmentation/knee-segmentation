@@ -221,7 +221,7 @@ def read_tfrecord(tfrecords_dir,batch_size, is_training=False):
     if is_training:
       dataset = dataset.shuffle(buffer_size=1000)
     
-    dataset = dataset.map(map_func=_parse_fn,num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.map(map_func=parse_fn,num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
     #optimise dataset performance
