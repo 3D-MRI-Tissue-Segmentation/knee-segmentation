@@ -9,8 +9,7 @@ from absl import flags
 from absl import logging 
 
 from Segmentation.model.unet import UNet, AttentionUNet_v1, MultiResUnet
-from Segmentation.tests.test_unet import UNetTest
-from Segmentation.utils.data_loader import DataGenerator, dataset_generator, get_multiclass
+from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, iou_loss_core, Mean_IOU, iou_loss_core
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, make_lr_scheduler, visualise_binary
 
@@ -22,7 +21,6 @@ flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_20
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 5, 'Number of training epochs.')
-flags.DEFINE_bool('use_generator', False, 'Whether to use data generator or not')
 
 ## Model options
 flags.DEFINE_string('model_architecture', 'unet', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
@@ -38,6 +36,7 @@ flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
 flags.DEFINE_integer('num_classes', 7, 'number of classes: 1 for binary (default) and 7 for multi-class')
 
 ## Logging, saving and testing options
+flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
 flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
@@ -90,59 +89,23 @@ def main(argv):
     optimiser = tf.keras.optimizers.Adam(learning_rate=FLAGS.base_learning_rate)
     
     if FLAGS.num_classes == 1:
-        if FLAGS.use_generator:
-            generator_train = DataGenerator("./Data/train_2d/samples/", 
-                                            "./Data/train_2d/labels/",
-                                            batch_size=FLAGS.batch_size,
-                                            shuffle=True,
-                                            multi_class=False)
-            generator_valid = DataGenerator("./Data/valid_2d/samples/", 
-                                            "./Data/valid_2d/labels/",
-                                            batch_size=FLAGS.batch_size,
-                                            shuffle=True,
-                                            multi_class=False)
         
-        else:
-            x_train = np.load('./Data/train/x_train.npy')
-            y_train = np.load('./Data/train/y_train.npy')
-            
-            x_valid = np.load('./Data/valid/x_valid.npy')
-            y_valid = np.load('./Data/valid/y_valid.npy')
+        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'train/'), batch_size=FLAGS.batch_size, is_training=True)
+        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'valid/'), batch_size=FLAGS.batch_size, is_training=False)
 
-            y_train = np.max(y_train[:,:,:,0:6], axis=3)
-            y_valid = np.max(y_valid[:,:,:,0:6], axis=3)
-        
         model.compile(optimizer=optimiser, 
                     loss=dice_coef_loss, 
                     metrics=[dice_coef, 'binary_crossentropy', 'acc'])
 
     else:                
-        if FLAGS.use_generator:
-            generator_train = DataGenerator("./Data/train_2d/samples/", 
-                                            "./Data/train_2d/labels/",
-                                            batch_size=FLAGS.batch_size,
-                                            shuffle=True,
-                                            multi_class=True)
-            generator_valid = DataGenerator("./Data/valid_2d/samples/", 
-                                            "./Data/valid_2d/labels/",
-                                            batch_size=FLAGS.batch_size,
-                                            shuffle=True,
-                                            multi_class=True)
-
-        else: 
-            x_train = np.load('./Data/train/x_train.npy')
-            y_train = np.load('./Data/train/y_train.npy')
-            
-            x_valid = np.load('./Data/valid/x_valid.npy')
-            y_valid = np.load('./Data/valid/y_valid.npy')
+        
+        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'train/'), batch_size=FLAGS.batch_size, is_training=True)
+        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'valid/'), batch_size=FLAGS.batch_size, is_training=False)
 
         model.compile(optimizer=optimiser, 
                 loss=tversky_loss, 
                 metrics=[dice_coef, 'categorical_crossentropy', 'acc'])
 
-    #Note that fit_generator will be deprecated in future Tensorflow version. 
-    #Use model.fit instead but ensure that your Tensorflow version is >= 2.1.0 or else it won't work with tf.keras.utils.Sequence object 
-    
     if FLAGS.train:
         
         #define checkpoints 
@@ -151,19 +114,12 @@ def main(argv):
         lr_schedule = make_lr_scheduler(FLAGS.base_learning_rate)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='batch')
 
-        if FLAGS.use_generator:
-            history = model.fit_generator(generator=generator_train,
-                                        epochs=FLAGS.train_epochs, 
-                                        validation_data=generator_valid,
-                                        use_multiprocessing=True,
-                                        workers=4,
-                                        callbacks=[ckpt_cb, lr_schedule,tb])
-        else:
-            history = model.fit(x_train,y_train,
-                                epochs=FLAGS.train_epochs,
-                                batch_size=FLAGS.batch_size,
-                                validation_data=(x_valid,y_valid),
-                                callbacks=[ckpt_cb, lr_schedule,tb])
+        history = model.fit(train_ds,
+                            steps_per_epoch=19200//FLAGS.batch_size,
+                            epochs=FLAGS.train_epochs,
+                            validation_data=valid_ds,
+                            validation_steps=4480//FLAGS.batch_size,
+                            callbacks=[ckpt_cb, lr_schedule,tb])
 
         if FLAGS.num_classes == 1:
             plot_train_history_loss(history, multi_class=False)
