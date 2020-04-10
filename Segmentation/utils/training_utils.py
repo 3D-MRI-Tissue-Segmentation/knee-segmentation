@@ -78,12 +78,12 @@ def iou_loss_core(y_true, y_pred, smooth=1):
     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
     union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
     iou = (intersection + smooth) / ( union + smooth)
-    return iou
 
+    return iou
+  
 def plot_train_history_loss(history, multi_class=True):
-    
     # summarize history for loss
-    fig, ax = plt.subplots(2,1)
+    fig, ax = plt.subplots(2, 1)
     if multi_class:
         ax[0].plot(history.history['dice_coef'])
         ax[0].plot(history.history['val_dice_coef'])
@@ -92,8 +92,9 @@ def plot_train_history_loss(history, multi_class=True):
         ax[0].set_title('Model Loss')
         ax[0].set(xlabel='epoch', ylabel='loss')
         ax[0].legend(['train_dice', 'val_dice', 'train_cce', 'val_cce'], loc='upper right')
-        
-    else:
+        ax[0].legend(['train_tversky', 'val_tversky', 'train_cce', 'val_cce'], loc='upper right')
+
+        else:
         ax[0].plot(history.history['dice_coef'])
         ax[0].plot(history.history['val_dice_coef'])
         ax[0].plot(history.history['binary_crossentropy'])
@@ -101,16 +102,14 @@ def plot_train_history_loss(history, multi_class=True):
         ax[0].set_title('Model Loss')
         ax[0].set(xlabel='epoch', ylabel='loss')
         ax[0].legend(['train_dice', 'val_dice', 'train_bce', 'val_bce'], loc='upper right')
-        
     ax[1].plot(history.history['acc'])
     ax[1].plot(history.history['val_acc'])
     ax[1].set_title('Model Accuracy')
     ax[1].set(xlabel='epoch', ylabel='accuracy')
     ax[1].legend(['train_accuracy', 'val_accuracy'], loc='upper right')
-
     fig.tight_layout()
-    plt.show()    
-    
+    plt.show()
+
 def visualise_binary(y_true, y_pred):
 
     y_true = np.expand_dims(y_true,axis=3)
@@ -118,12 +117,12 @@ def visualise_binary(y_true, y_pred):
     batch_size = y_true.shape[0]
 
     for i in range(batch_size):
-        fig, ax = plt.subplots(2,1)
-        ax[0].imshow(y_true[i,:,:,0], cmap='gray')
+        fig, ax = plt.subplots(2, 1)
+        ax[0].imshow(y_true[i, :, :, 0], cmap='gray')
         ax[0].set_title('Ground Truth')
-        ax[1].imshow(y_pred[i,:,:,0], cmap='gray')
+        ax[1].imshow(y_pred[i, :, :, 0], cmap='gray')
         ax[1].set_title('Prediction')
-        
+
         fig.tight_layout()
         plt.show()
 
@@ -152,19 +151,18 @@ def visualise_multi_class(y_true, y_pred):
 
         fig.tight_layout()
         plt.show()
-    
+
 def label2color(img):
-    
     colour_maps = {
-        0: [255,0,0],
-        1: [0,255,0],
-        2: [0,0,255],
-        3: [128,64,255],
-        4: [70,255,70],
-        5: [255,20,147],
-        6: [0,0,0]
+        0: [255, 0, 0],
+        1: [0, 255, 0],
+        2: [0, 0, 255],
+        3: [128, 64, 255],
+        4: [70, 255, 70],
+        5: [255, 20, 147],
+        6: [0, 0, 0]
     }
-    
+
     img_height, img_width = img.shape
     img_color = np.zeros((img_height, img_width, 3))
     for row in range(img_height):

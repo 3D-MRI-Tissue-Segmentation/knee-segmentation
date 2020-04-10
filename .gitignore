@@ -1,8 +1,9 @@
 # Environments
 **/env/
 env/
+**/web_env/
 */checkpoints/
-checkpoints/
+ckpt/
 */web_env/
 web_env/
 **/ui_env/
@@ -31,9 +32,14 @@ htmlcov/
 
 # IDE
 .vscode/
+.ipynb_checkpoints/
 
 # Logging
 **/logs/
 
 # Data
 checkpoints/
+
+# Unignore
+!/results/
+!/results/**
