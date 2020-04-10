@@ -4,17 +4,6 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 
-def iou_loss_core(y_true, y_pred, smooth=1):
-
-    y_true = K.cast_to_floatx(y_true)
-    y_pred = K.cast_to_floatx(y_pred)
-
-<<<<<<< HEAD
-    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
-    iou = (intersection + smooth) / ( union + smooth)
-    return iou
-
 def Mean_IOU(y_true, y_pred):
     nb_classes = K.int_shape(y_pred)[-1]
     iou = []
@@ -33,32 +22,6 @@ def Mean_IOU(y_true, y_pred):
     legal_labels = ~tf.math.is_nan(iou)
     iou = iou[legal_labels]
     return K.mean(iou)
-=======
-    ovlp = K.sum(y_true*y_pred,axis=-1)
-
-    mu = K.epsilon()
-    dice = (2.0 * ovlp + mu) / (K.sum(y_true,axis=-1) + K.sum(y_pred,axis=-1) + mu)
-    loss = -dice
-
-    return loss
-
-def tversky(y_true, y_pred):
-    # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
-    smooth = 1.0
-    y_true_pos = K.flatten(y_true)
-    y_pred_pos = K.flatten(y_pred)
-    true_pos = K.sum(y_true_pos * y_pred_pos)
-    false_neg = K.sum(y_true_pos * (1-y_pred_pos))
-    false_pos = K.sum((1-y_true_pos)*y_pred_pos)
-    alpha = 0.7
-    return (true_pos + smooth)/(true_pos + alpha*false_neg + (1-alpha)*false_pos + smooth)
-
-
-def tversky_loss(y_true, y_pred):
-    #hyperparameters
-    alpha = 0.5
-    beta = 0.5
->>>>>>> 6592c40f84d703c1b9c9decb26669147152b9a59
 
 def dice_coef_loss(y_true, y_pred):
     return 1.-dice_coef(y_true, y_pred)
@@ -210,7 +173,6 @@ def label2color(img):
             img_color[row, col] = np.array(colour_maps[label])
 
     return img_color
-<<<<<<< HEAD
     
 def make_lr_scheduler(init_lr):
 
@@ -243,5 +205,3 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
     return {
         'initial_learning_rate': self.initial_learning_rate,
     }
-=======
->>>>>>> 6592c40f84d703c1b9c9decb26669147152b9a59
