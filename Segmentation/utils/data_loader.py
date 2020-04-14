@@ -245,11 +245,6 @@ def read_tfrecord(tfrecords_dir,batch_size, is_training=False):
 
     return dataset
 
-#create_OAI_2D_dataset('./Data/train/', './Data/tfrecords/train/', get_train=True)
-#create_OAI_2D_dataset('./Data/valid/', './Data/tfrecords/valid/', get_train=False)
-#train_ds = read_tfrecord(tfrecords_dir='./Data/tfrecords/train', batch_size=5, is_training=True)
-#valid_ds = read_tfrecord(tfrecords_dir='./Data/tfrecords/valid', batch_size=5, is_training=False)
-
 
 
 
