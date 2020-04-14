@@ -4,7 +4,10 @@ import os.path
 import random
 import matplotlib.pyplot as plt
 import math
+from functools import partial
 import tensorflow as tf
+
+from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair, rotate_randomly_image_pair, translate_randomly_image_pair
 
 class DataGenerator(tf.keras.utils.Sequence):
     'Generates data for Keras'
@@ -160,7 +163,7 @@ def create_OAI_2D_dataset(data_folder, tfrecord_directory, get_train=True):
             seg_temp = np.zeros((160,288,288,1),dtype=np.int8)
             seg_sum = np.sum(seg, axis=3)
             seg_temp[seg_sum == 0] = 1
-            seg = np.concatenate([seg,seg_temp], axis=3)
+            seg = np.concatenate([seg_temp,seg], axis=3)
             img = np.expand_dims(img, axis=3) 
 
             shard_dir = '{0:03}-of-{1}.tfrecords'.format(count, num_shards)
@@ -191,7 +194,7 @@ def create_OAI_2D_dataset(data_folder, tfrecord_directory, get_train=True):
             count += 1 
         print('{} out of {} datasets have been processed'.format(i,end-1))
 
-def _parse_fn(example_proto):
+def _parse_fn(example_proto, training):
 
     features = {
         'height': tf.io.FixedLenFeature([],tf.int64),
@@ -205,9 +208,15 @@ def _parse_fn(example_proto):
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'],tf.float32)
     image = tf.reshape(image_raw, [288,288,1])
-
+    
     seg_raw = tf.io.decode_raw(image_features['label_raw'],tf.int16)
     seg = tf.reshape(seg_raw, [288,288,7])
+    seg = tf.cast(seg, tf.float32)
+
+    if training:
+        image, seg = flip_randomly_left_right_image_pair(image, seg)
+        image, seg = translate_randomly_image_pair(image, seg, 24, 12)
+        image, seg = rotate_randomly_image_pair(image, seg, tf.constant(-math.pi/12), tf.constant(math.pi/12))
 
     return (image,seg)
 
@@ -219,9 +228,10 @@ def read_tfrecord(tfrecords_dir,batch_size, is_training=False):
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length=16, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
-      dataset = dataset.shuffle(buffer_size=1000)
+      dataset = dataset.shuffle(buffer_size=5000)
     
-    dataset = dataset.map(map_func=_parse_fn,num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    parser = partial(_parse_fn, training=True if is_training else False)
+    dataset = dataset.map(map_func=parser,num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
     #optimise dataset performance
@@ -234,3 +244,12 @@ def read_tfrecord(tfrecords_dir,batch_size, is_training=False):
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
     return dataset
+
+#create_OAI_2D_dataset('./Data/train/', './Data/tfrecords/train/', get_train=True)
+#create_OAI_2D_dataset('./Data/valid/', './Data/tfrecords/valid/', get_train=False)
+#train_ds = read_tfrecord(tfrecords_dir='./Data/tfrecords/train', batch_size=5, is_training=True)
+#valid_ds = read_tfrecord(tfrecords_dir='./Data/tfrecords/valid', batch_size=5, is_training=False)
+
+
+
+

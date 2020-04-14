@@ -15,15 +15,15 @@ from Segmentation.utils.training_utils import plot_train_history_loss, visualise
 
 ## Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
-flags.DEFINE_integer('batch_size', 5, 'Batch size per GPU')
-flags.DEFINE_float('base_learning_rate', 5e-05, 'base learning rate at the start of training session')
+flags.DEFINE_integer('batch_size', 4, 'Batch size per GPU')
+flags.DEFINE_float('base_learning_rate', 1e-04, 'base learning rate at the start of training session')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 5, 'Number of training epochs.')
 
 ## Model options
-flags.DEFINE_string('model_architecture', 'unet', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
+flags.DEFINE_string('model_architecture', 'attention_unet_v1', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
@@ -129,36 +129,12 @@ def main(argv):
     else:
         #load the latest checkpoint in the FLAGS.logdir file 
         #latest = tf.train.latest_checkpoint(FLAGS.logdir)
-        model.load_weights('./checkpoints/attention_unet_v1_weights.005.ckpt').expect_partial()
+        model.load_weights('./checkpoints/unet/14-4-2020/unet_weights.005.ckpt').expect_partial()
+        for step, (image, label) in enumerate(valid_ds):
 
-        #this is just to roughly preview the results, we need to build a sproper pipeline for visualising & saving output segmentation 
-
-        for j in range(FLAGS.num_classes-1):
-            per_class_iou = []
-            per_class_accuracy = []
-            per_class_dice = []
-            for i in range(896):
-                x_val, y_val = generator_valid.__getitem__(idx=i)
-                y_val = y_val[:,:,:,j]
-                y_pred = model(x_val, training=False)
-                y_pred = y_pred[:,:,:,j]
-                dice = dice_coef(y_val, y_pred)
-                iou = iou_loss_core(y_val,y_pred)
-                acc = tf.keras.metrics.Accuracy()
-                acc.update_state(y_val,y_pred)
-                print('Class: {}, Step: {}, Dice: {}, IoU: {}, Acc: {}'.format(j,i,dice,iou,acc.result()))
-                per_class_dice.append(dice)
-                per_class_iou.append(iou)
-                per_class_accuracy.append(acc.result())
-                acc.reset_states()
-
-            per_class_dice = np.array(per_class_dice)
-            per_class_iou = np.array(per_class_iou)
-            per_class_accuracy = np.array(per_class_accuracy)
-            mean_per_class_iou = np.mean(per_class_iou)
-            mean_per_class_acc = np.mean(per_class_accuracy)
-            mean_per_class_dice = np.mean(per_class_dice)
-            print('Class {} Dice is {} IoU is {} & Accuracy is {}'.format(j,mean_per_class_dice,mean_per_class_iou,mean_per_class_acc))
-
+            if step >= 80:    
+                pred = model(image, training=False)
+                visualise_multi_class(label, pred)
+        
 if __name__ == '__main__':
   app.run(main)
