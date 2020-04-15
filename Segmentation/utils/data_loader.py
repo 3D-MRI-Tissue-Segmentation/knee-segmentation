@@ -194,7 +194,7 @@ def create_OAI_2D_dataset(data_folder, tfrecord_directory, get_train=True):
             count += 1 
         print('{} out of {} datasets have been processed'.format(i,end-1))
 
-def _parse_fn(example_proto, training):
+def parse_fn(example_proto, training, multi_class=True):
 
     features = {
         'height': tf.io.FixedLenFeature([],tf.int64),
@@ -218,9 +218,12 @@ def _parse_fn(example_proto, training):
         image, seg = translate_randomly_image_pair(image, seg, 24, 12)
         image, seg = rotate_randomly_image_pair(image, seg, tf.constant(-math.pi/12), tf.constant(math.pi/12))
 
+    if not multi_class:
+        seg = tf.math.reduce_sum(seg, axis=2)
+
     return (image,seg)
 
-def read_tfrecord(tfrecords_dir,batch_size, is_training=False):
+def read_tfrecord(tfrecords_dir, batch_size, buffer_size, multi_class=True,is_training=False):
     
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
@@ -228,9 +231,9 @@ def read_tfrecord(tfrecords_dir,batch_size, is_training=False):
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length=16, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
-      dataset = dataset.shuffle(buffer_size=5000)
+      dataset = dataset.shuffle(buffer_size=buffer_size)
     
-    parser = partial(_parse_fn, training=True if is_training else False)
+    parser = partial(parse_fn, training=True if is_training else False, multi_class=True if multi_class else False)
     dataset = dataset.map(map_func=parser,num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 

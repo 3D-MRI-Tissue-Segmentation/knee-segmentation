@@ -15,65 +15,82 @@ from Segmentation.utils.training_utils import plot_train_history_loss, visualise
 
 ## Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
-flags.DEFINE_integer('batch_size', 4, 'Batch size per GPU')
-flags.DEFINE_float('base_learning_rate', 1e-04, 'base learning rate at the start of training session')
+flags.DEFINE_integer('batch_size', 5, 'Batch size per TPU Core / GPU')
+flags.DEFINE_float('base_learning_rate', 5e-05, 'base learning rate at the start of training session')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 5, 'Number of training epochs.')
 
 ## Model options
-flags.DEFINE_string('model_architecture', 'attention_unet_v1', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
+flags.DEFINE_string('model_architecture', 'unet', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
+flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
+flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size (default: 1000)')
 flags.DEFINE_integer('respath_length', 2, 'residual path length')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
 flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
-flags.DEFINE_integer('num_classes', 7, 'number of classes: 1 for binary (default) and 7 for multi-class')
 
 ## Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
 flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
+## Accelerator flags
+flags.DEFINE_bool('use_gpu', True, 'Whether to run on GPU or otherwise TPU.')
+flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
+flags.DEFINE_integer('num_cores', 1, 'Number of TPU cores or number of GPUs.')
+flags.DEFINE_string('tpu', None, 'Name of the TPU. Only used if use_gpu is False.')
+
 FLAGS = flags.FLAGS
 
 def main(argv):
     
     del argv #unused arg
-    
-    #select mode architecture
-    if FLAGS.model_architecture == 'unet':
-        model = UNet(FLAGS.num_filters, 
-                    FLAGS.num_classes, 
-                    FLAGS.num_conv, 
-                    FLAGS.kernel_size,
-                    FLAGS.activation, 
-                    FLAGS.batchnorm,
-                    FLAGS.dropout_rate,
-                    FLAGS.use_spatial,
-                    FLAGS.channel_order)
+    tf.random.set_seed(FLAGS.seed) 
 
-    elif FLAGS.model_architecture == 'multires_unet':
-        model = MultiResUnet(FLAGS.num_filters,
-                            FLAGS.num_classes,
-                            FLAGS.respath_length,
-                            FLAGS.num_conv, 
-                            FLAGS.kernel_size,
-                            use_bias=False,
-                            padding='same',
-                            nonlinearity=FLAGS.activation, 
-                            use_batchnorm=FLAGS.batchnorm,
-                            use_transpose=True,
-                            data_format=FLAGS.channel_order)
+    # set whether to train on GPU or TPU
+    if FLAGS.use_gpu:
+        logging.info('Using GPU...')
+        strategy = tf.distribute.MirroredStrategy()
+    else:
+        logging.info('Use TPU at %s',
+                    FLAGS.tpu if FLAGS.tpu is not None else 'local')
+        resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=FLAGS.tpu)
+        tf.config.experimental_connect_to_cluster(resolver)
+        tf.tpu.experimental.initialize_tpu_system(resolver)
+        strategy = tf.distribute.experimental.TPUStrategy(resolver)
+
+    # set dataset configuration 
+    if FLAGS.dataset == 'oai_challenge':
+        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'train/'), batch_size=FLAGS.batch_size*FLAGS.num_cores, buffer_size=FLAGS.buffer_size, multi_class=FLAGS.multi_class, is_training=True)
+        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'valid/'), batch_size=FLAGS.batch_size*FLAGS.num_cores, buffer_size=FLAGS.buffer_size, multi_class=FLAGS.multi_class, is_training=False)
     
-    elif FLAGS.model_architecture == 'attention_unet_v1':
-        model = AttentionUNet_v1(FLAGS.num_filters,
-                                FLAGS.num_classes,
+    num_classes = 7 if FLAGS.multi_class else 1
+    crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy if FLAGS.multi_class else tf.keras.losses.binary_crossentropy
+
+    # set model architecture
+    with strategy.scope():
+        if FLAGS.model_architecture == 'unet':
+            model = UNet(FLAGS.num_filters, 
+                        num_classes, 
+                        FLAGS.num_conv, 
+                        FLAGS.kernel_size,
+                        FLAGS.activation, 
+                        FLAGS.batchnorm,
+                        FLAGS.dropout_rate,
+                        FLAGS.use_spatial,
+                        FLAGS.channel_order)
+
+        elif FLAGS.model_architecture == 'multires_unet':
+            model = MultiResUnet(FLAGS.num_filters,
+                                num_classes,
+                                FLAGS.respath_length,
                                 FLAGS.num_conv, 
                                 FLAGS.kernel_size,
                                 use_bias=False,
@@ -82,29 +99,29 @@ def main(argv):
                                 use_batchnorm=FLAGS.batchnorm,
                                 use_transpose=True,
                                 data_format=FLAGS.channel_order)
-    
-    else:
-        print("%s is not a valid or supported model architecture." % FLAGS.model_architecture)
-    
-    optimiser = tf.keras.optimizers.Adam(learning_rate=FLAGS.base_learning_rate)
-    
-    if FLAGS.num_classes == 1:
         
-        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'train/'), batch_size=FLAGS.batch_size, is_training=True)
-        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'valid/'), batch_size=FLAGS.batch_size, is_training=False)
+        elif FLAGS.model_architecture == 'attention_unet_v1':
+            model = AttentionUNet_v1(FLAGS.num_filters,
+                                    num_classes,
+                                    FLAGS.num_conv, 
+                                    FLAGS.kernel_size,
+                                    use_bias=False,
+                                    padding='same',
+                                    nonlinearity=FLAGS.activation, 
+                                    use_batchnorm=FLAGS.batchnorm,
+                                    use_transpose=True,
+                                    data_format=FLAGS.channel_order)
+        
+        else:
+            print("%s is not a valid or supported model architecture." % FLAGS.model_architecture)
+            exit()
+        
+        optimiser = tf.keras.optimizers.Adam(learning_rate=FLAGS.base_learning_rate)
 
         model.compile(optimizer=optimiser, 
-                    loss=dice_coef_loss, 
-                    metrics=[dice_coef, 'binary_crossentropy', 'acc'])
+                    loss=tversky_loss, 
+                    metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
 
-    else:                
-        
-        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'train/'), batch_size=FLAGS.batch_size, is_training=True)
-        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'valid/'), batch_size=FLAGS.batch_size, is_training=False)
-
-        model.compile(optimizer=optimiser, 
-                loss=tversky_loss, 
-                metrics=[dice_coef, 'categorical_crossentropy', 'acc'])
 
     if FLAGS.train:
         
@@ -131,7 +148,6 @@ def main(argv):
         #latest = tf.train.latest_checkpoint(FLAGS.logdir)
         model.load_weights('./checkpoints/unet/14-4-2020/unet_weights.005.ckpt').expect_partial()
         for step, (image, label) in enumerate(valid_ds):
-
             if step >= 80:    
                 pred = model(image, training=False)
                 visualise_multi_class(label, pred)
