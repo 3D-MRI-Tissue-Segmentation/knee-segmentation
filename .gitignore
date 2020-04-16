@@ -28,6 +28,7 @@ htmlcov/
 *.npy
 *.h5
 *.csv
+*.tfrecords
 
 # IDE
 .vscode/

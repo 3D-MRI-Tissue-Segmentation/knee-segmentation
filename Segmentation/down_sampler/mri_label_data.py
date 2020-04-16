@@ -308,11 +308,11 @@ class MRI_Label:
         self.ax[1][1].set_ylabel('x plane')
         # set the image to be one from the middle of the data to avoid an image of zeros which results in an empty colourmap.
         self.im_yz = self.ax[0][0].imshow(self.train_images[self.image_counter, int(self.bounds[0] / 2), :, :],
-                                          cmap='jet', aspect='auto')
+                                          cmap='gray', aspect='auto')
         self.im_xz = self.ax[0][1].imshow(self.train_images[self.image_counter, :, int(self.bounds[1] / 2), :],
-                                          cmap='jet', aspect='auto')
+                                          cmap='gray', aspect='auto')
         self.im_xy = self.ax[1][1].imshow(self.train_images[self.image_counter, :, :, int(self.bounds[2] / 2)],
-                                          cmap='jet', aspect='auto')
+                                          cmap='gray', aspect='auto')
         axnext = plt.axes([0.9, 0.01, 0.05, 0.075])
         self.bnext = Button(axnext, "Next")
 
@@ -396,4 +396,4 @@ def mri_3d_main(file_path='./Data/train/', data_type='train', target=False):
 
 
 if __name__ == "__main__":
-    mri_3d_main(file_path='./Data/valid/', data_type='valid', target=True)
+    mri_3d_main(file_path='./Data/valid/', data_type='valid', target=False)
