@@ -1,14 +1,14 @@
 import h5py
 import numpy as np
-import os.path
+import os
 import random
 import matplotlib.pyplot as plt
 import math
 from functools import partial
 import tensorflow as tf
 
-from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair, rotate_randomly_image_pair, \
-    translate_randomly_image_pair
+from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
+    translate_randomly_image_pair_2d
 
 def get_multiclass(label):
 
@@ -42,7 +42,10 @@ def _int64_feature(value):
     """Returns an int64_list from a bool / enum / int / uint."""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
-def create_OAI_2D_dataset(data_folder, tfrecord_directory, get_train=True):
+def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=True):
+
+    if not os.path.exists(tfrecord_directory):
+        os.mkdir(tfrecord_directory)
 
     start = 1
     if get_train:
@@ -94,26 +97,44 @@ def create_OAI_2D_dataset(data_folder, tfrecord_directory, get_train=True):
             tfrecord_filename = os.path.join(tfrecord_directory, shard_dir)
 
             with tf.io.TFRecordWriter(tfrecord_filename) as writer:
-                for k in range(len(img)):
-                    img_slice = img[k, :, :, :]
-                    seg_slice = seg[k, :, :, :]
+                if use_2d:
+                    for k in range(len(img)):
+                        img_slice = img[k, :, :, :]
+                        seg_slice = seg[k, :, :, :]
 
-                    img_raw = img_slice.tostring()
-                    seg_raw = seg_slice.tostring()
+                        img_raw = img_slice.tostring()
+                        seg_raw = seg_slice.tostring()
 
-                    height = img_slice.shape[0]
-                    width = img_slice.shape[1]
-                    num_channels = seg_slice.shape[2]
+                        height = img_slice.shape[0]
+                        width = img_slice.shape[1]
+                        num_channels = seg_slice.shape[-1]
+
+                        feature = {
+                            'height': _int64_feature(height),
+                            'width': _int64_feature(width),
+                            'num_channels': _int64_feature(num_channels),
+                            'image_raw': _bytes_feature(img_raw),
+                            'label_raw': _bytes_feature(seg_raw)
+                        }
+                        example = tf.train.Example(features=tf.train.Features(feature=feature))
+                        writer.write(example.SerializeToString())
+                else:
+                    height = img.shape[0]
+                    width = img.shape[1]
+                    depth = img.shape[2]
+                    num_channels = seg.shape[-1]
+
+                    img_raw = img.tostring()
+                    seg_raw = seg.tostring()
 
                     feature = {
                         'height': _int64_feature(height),
                         'width': _int64_feature(width),
+                        'depth': _int64_feature(depth),
                         'num_channels': _int64_feature(num_channels),
                         'image_raw': _bytes_feature(img_raw),
                         'label_raw': _bytes_feature(seg_raw)
                     }
-                    example = tf.train.Example(features=tf.train.Features(feature=feature))
-                    writer.write(example.SerializeToString())
             count += 1
         print('{} out of {} datasets have been processed'.format(i, end - 1))
 
@@ -137,12 +158,44 @@ def parse_fn_2d(example_proto, training, multi_class=True):
     seg = tf.cast(seg, tf.float32)
 
     if training:
-        image, seg = flip_randomly_left_right_image_pair(image, seg)
-        image, seg = translate_randomly_image_pair(image, seg, 24, 12)
-        image, seg = rotate_randomly_image_pair(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+        image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
+        image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
+        image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
 
     if not multi_class:
         seg = tf.math.reduce_sum(seg, axis=2)
+
+    return (image, seg)
+
+def parse_fn_3d(example_proto, training, multi_class=True):
+
+    features = {
+        'height': tf.io.FixedLenFeature([], tf.int64),
+        'width': tf.io.FixedLenFeature([], tf.int64),
+        'depth': tf.io.FixedLenFeature([], tf.int64),
+        'num_channels': tf.io.FixedLenFeature([], tf.int64),
+        'image_raw': tf.io.FixedLenFeature([], tf.string),
+        'label_raw': tf.io.FixedLenFeature([], tf.string)
+    }
+
+    # Parse the input tf.Example proto using the dictionary above.
+    image_features = tf.io.parse_single_example(example_proto, features)
+    image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
+    # image = tf.reshape(image_raw, [288, 288, 160]) <- Joonsu  why this way?
+    image = tf.reshape(image_raw, [image_features['height'], image_features['width'], image_features['depth']])
+
+    seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
+    seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
+                               image_features['depth'], image_features['num_channels']])
+    seg = tf.cast(seg, tf.float32)
+
+    # if training:
+    #     image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
+    #     image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
+    #     image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+
+    if not multi_class:
+        seg = tf.math.reduce_sum(seg, axis=-1)
 
     return (image, seg)
 
