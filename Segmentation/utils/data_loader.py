@@ -117,7 +117,7 @@ def create_OAI_2D_dataset(data_folder, tfrecord_directory, get_train=True):
             count += 1
         print('{} out of {} datasets have been processed'.format(i, end - 1))
 
-def parse_fn(example_proto, training, multi_class=True):
+def parse_fn_2d(example_proto, training, multi_class=True):
 
     features = {
         'height': tf.io.FixedLenFeature([], tf.int64),
@@ -146,7 +146,7 @@ def parse_fn(example_proto, training, multi_class=True):
 
     return (image, seg)
 
-def read_tfrecord(tfrecords_dir, batch_size, buffer_size, multi_class=True, is_training=False):
+def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d, multi_class=True, is_training=False):
 
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
