@@ -15,7 +15,7 @@ from Segmentation.utils.training_utils import plot_train_history_loss, visualise
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
-flags.DEFINE_integer('batch_size', 5, 'Batch size per TPU Core / GPU')
+flags.DEFINE_integer('batch_size', 1, 'Batch size per TPU Core / GPU')
 flags.DEFINE_float('base_learning_rate', 5e-05, 'base learning rate at the start of training session')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
@@ -30,11 +30,11 @@ flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size (default: 1000)')
+flags.DEFINE_integer('buffer_size', 50, 'shuffle buffer size (default: 1000)')
 flags.DEFINE_integer('respath_length', 2, 'residual path length')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
-flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
+flags.DEFINE_integer('num_filters', 32, 'number of filters in the model')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -44,7 +44,7 @@ flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise,
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', True, 'Whether to run on GPU or otherwise TPU.')
 flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
-flags.DEFINE_integer('num_cores', 1, 'Number of TPU cores or number of GPUs.')
+flags.DEFINE_integer('num_cores', 2, 'Number of TPU cores or number of GPUs.')
 flags.DEFINE_string('tpu', None, 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
