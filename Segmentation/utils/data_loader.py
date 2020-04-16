@@ -7,7 +7,8 @@ import math
 from functools import partial
 import tensorflow as tf
 
-from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair, rotate_randomly_image_pair, translate_randomly_image_pair
+from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair, rotate_randomly_image_pair, \
+    translate_randomly_image_pair
 
 class DataGenerator(tf.keras.utils.Sequence):
     'Generates data for Keras'
