@@ -30,7 +30,7 @@ flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size (default: 1000)')
+flags.DEFINE_integer('buffer_size', 500, 'shuffle buffer size (default: 500)')
 flags.DEFINE_integer('respath_length', 2, 'residual path length')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
@@ -66,10 +66,13 @@ def main(argv):
         tf.tpu.experimental.initialize_tpu_system(resolver)
         strategy = tf.distribute.experimental.TPUStrategy(resolver)
 
-    batch_size = FLAGS.batch_size*FLAGS.num_cores
-    
     # set dataset configuration 
     if FLAGS.dataset == 'oai_challenge':
+        
+        batch_size = FLAGS.batch_size*FLAGS.num_cores
+        steps_per_epoch = 19200 // batch_size
+        validation_steps = 4480 // batch_size 
+
         train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
@@ -81,7 +84,8 @@ def main(argv):
                                  multi_class=FLAGS.multi_class,
                                  is_training=False)
 
-    num_classes = 7 if FLAGS.multi_class else 1
+        num_classes = 7 if FLAGS.multi_class else 1
+
     crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy if FLAGS.multi_class else tf.keras.losses.binary_crossentropy
 
     # set model architecture
@@ -142,10 +146,10 @@ def main(argv):
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='batch')
 
         history = model.fit(train_ds,
-                            steps_per_epoch=19200 // batch_size,
+                            steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
                             validation_data=valid_ds,
-                            validation_steps=4480 // batch_size,
+                            validation_steps=validation_steps,
                             callbacks=[ckpt_cb, lr_schedule, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
