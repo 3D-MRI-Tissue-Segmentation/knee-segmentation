@@ -94,7 +94,7 @@ def plot_train_history_loss(history, multi_class=True):
         ax[0].legend(['train_dice', 'val_dice', 'train_cce', 'val_cce'], loc='upper right')
         ax[0].legend(['train_tversky', 'val_tversky', 'train_cce', 'val_cce'], loc='upper right')
 
-        else:
+    else:
         ax[0].plot(history.history['dice_coef'])
         ax[0].plot(history.history['val_dice_coef'])
         ax[0].plot(history.history['binary_crossentropy'])
@@ -154,13 +154,13 @@ def visualise_multi_class(y_true, y_pred):
 
 def label2color(img):
     colour_maps = {
-        0: [255, 0, 0],
-        1: [0, 255, 0],
-        2: [0, 0, 255],
-        3: [128, 64, 255],
-        4: [70, 255, 70],
-        5: [255, 20, 147],
-        6: [0, 0, 0]
+        0: [0, 0, 0],
+        1: [255, 0, 0],
+        2: [0, 255, 0],
+        3: [0, 0, 255],
+        4: [128, 64, 255],
+        5: [70, 255, 70],
+        6: [255, 20, 147]
     }
 
     img_height, img_width = img.shape
