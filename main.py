@@ -44,7 +44,7 @@ flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise,
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', True, 'Whether to run on GPU or otherwise TPU.')
 flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
-flags.DEFINE_integer('num_cores', 2, 'Number of TPU cores or number of GPUs.')
+flags.DEFINE_integer('num_cores', 1, 'Number of TPU cores or number of GPUs.')
 flags.DEFINE_string('tpu', None, 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
@@ -58,6 +58,15 @@ def main(argv):
     if FLAGS.use_gpu:
         logging.info('Using GPU...')
         strategy = tf.distribute.MirroredStrategy()
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        if gpus:
+            try:
+                tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+            except RuntimeError as e:
+                # Visible devices must be set before GPUs have been initialized
+                print(e)
     else:
         logging.info('Use TPU at %s',
                      FLAGS.tpu if FLAGS.tpu is not None else 'local')
@@ -96,7 +105,6 @@ def main(argv):
                          FLAGS.dropout_rate,
                          FLAGS.use_spatial,
                          FLAGS.channel_order)
-
         elif FLAGS.model_architecture == 'multires_unet':
             model = MultiResUnet(FLAGS.num_filters,
                                  num_classes,
@@ -109,7 +117,6 @@ def main(argv):
                                  use_batchnorm=FLAGS.batchnorm,
                                  use_transpose=True,
                                  data_format=FLAGS.channel_order)
-
         elif FLAGS.model_architecture == 'attention_unet_v1':
             model = AttentionUNet_v1(FLAGS.num_filters,
                                      num_classes,
@@ -121,7 +128,6 @@ def main(argv):
                                      use_batchnorm=FLAGS.batchnorm,
                                      use_transpose=True,
                                      data_format=FLAGS.channel_order)
-
         else:
             print("%s is not a valid or supported model architecture." % FLAGS.model_architecture)
             exit()
