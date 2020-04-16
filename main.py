@@ -66,6 +66,8 @@ def main(argv):
         tf.tpu.experimental.initialize_tpu_system(resolver)
         strategy = tf.distribute.experimental.TPUStrategy(resolver)
 
+    batch_size = FLAGS.batch_size*FLAGS.num_cores
+    
     # set dataset configuration 
     if FLAGS.dataset == 'oai_challenge':
         train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir,'train/'), batch_size=FLAGS.batch_size*FLAGS.num_cores, buffer_size=FLAGS.buffer_size, multi_class=FLAGS.multi_class, is_training=True)

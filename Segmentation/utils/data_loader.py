@@ -9,88 +9,9 @@ import tensorflow as tf
 
 from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair, rotate_randomly_image_pair, translate_randomly_image_pair
 
-class DataGenerator(tf.keras.utils.Sequence):
-    'Generates data for Keras'
-    def __init__(self, 
-                x_set, 
-                y_set,
-                batch_size=4, 
-                shuffle=True, 
-                multi_class=True):
-
-        self.x_set = x_set
-        self.y_set = y_set
-        self.x = os.listdir(x_set) 
-        self.y = os.listdir(y_set)
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.multi_class = multi_class
-        self.idx_list = np.arange(start=1, stop=len(self.x)+1)
-        
-    def __len__(self):
-        return math.ceil(len(self.x) / self.batch_size)
-
-    def __getitem__(self, idx):
-        
-        indexes = self.idx_list[idx*self.batch_size:(idx+1)*self.batch_size]
-        # generate data
-        X, y = self.data_generator(indexes)
-
-        return X, y
-
-    def on_epoch_end(self):
-        if self.shuffle == True:
-            random.shuffle(self.idx_list)
-
-    def data_generator(self, indexes):
-        
-        # Initialization
-        X = np.empty((self.batch_size, 288, 288, 1))
-        
-        if self.multi_class:
-            Y = np.empty((self.batch_size, 288,288, 7))
-        else:
-            Y = np.empty((self.batch_size, 288,288, 1))
-
-        for i, idx in enumerate(indexes):
-
-            img = np.load(self.x_set + 'img_' + str(idx) + '.npy')
-            X[i,:] = img
-
-            seg = np.load(self.y_set + 'img_' + str(idx) + '.npy')
-
-            if self.multi_class:
-                seg = self._get_multiclass(seg)
-            else:
-                seg = np.sum(seg, axis=2)
-                seg = np.expand_dims(seg, axis=2)
-                seg[seg != 0] = 1
-
-            Y[i,:] = seg
-
-        return X, Y
-
-    def _get_multiclass(self, label):
-        #label shape
-        #(height,width,channels)
-        
-        height = label.shape[0]
-        width = label.shape[1]
-        channels = label.shape[2]
-
-        background = np.zeros((height, width, 1))
-        label_sum = np.sum(label, axis=2)
-        background[label_sum == 0] = 1
-                    
-        label = np.concatenate((label, background), axis = 2)
-        
-        return label 
-
 def get_multiclass(label):
 
-    #label shape
-    #(batch_size, height,width,channels)
-    
+    #label shape    
     batch_size = label.shape[0]
     height = label.shape[1]
     width = label.shape[2]
