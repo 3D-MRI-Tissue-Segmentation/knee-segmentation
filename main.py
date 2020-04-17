@@ -38,14 +38,15 @@ flags.DEFINE_integer('num_filters', 32, 'number of filters in the model')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
+flags.DEFINE_string('log_dir', './checkpoints', 'directory for checkpoints')
+flags.DEFINE_string('weights_dir', './checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', True, 'Whether to run on GPU or otherwise TPU.')
 flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
 flags.DEFINE_integer('num_cores', 1, 'Number of TPU cores or number of GPUs.')
-flags.DEFINE_string('tpu', None, 'Name of the TPU. Only used if use_gpu is False.')
+flags.DEFINE_string('tpu', 'oai-tpu-machine', 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
 
@@ -87,6 +88,10 @@ def main(argv):
         num_classes = 7 if FLAGS.multi_class else 1
 
     crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy if FLAGS.multi_class else tf.keras.losses.binary_crossentropy
+
+    if FLAGS.use_bfloat16:
+        policy = tf.keras.mixed_precision.experimental.Policy('mixed_bfloat16')
+        tf.keras.mixed_precision.experimental.set_policy(policy)
 
     # set model architecture
     with strategy.scope():
