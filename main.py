@@ -15,12 +15,12 @@ from Segmentation.utils.training_utils import plot_train_history_loss, visualise
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
-flags.DEFINE_integer('batch_size', 1, 'Batch size per TPU Core / GPU')
-flags.DEFINE_float('base_learning_rate', 5e-05, 'base learning rate at the start of training session')
+flags.DEFINE_integer('batch_size', 32, 'Batch size per TPU Core / GPU')
+flags.DEFINE_float('base_learning_rate', 3.2e-04, 'base learning rate at the start of training session')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
-flags.DEFINE_integer('train_epochs', 5, 'Number of training epochs.')
+flags.DEFINE_integer('train_epochs', 20, 'Number of training epochs.')
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
@@ -30,11 +30,11 @@ flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size', 50, 'shuffle buffer size (default: 1000)')
+flags.DEFINE_integer('buffer_size', 19200, 'shuffle buffer size (default: 1000)')
 flags.DEFINE_integer('respath_length', 2, 'residual path length')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
-flags.DEFINE_integer('num_filters', 32, 'number of filters in the model')
+flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -42,17 +42,17 @@ flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
 # Accelerator flags
-flags.DEFINE_bool('use_gpu', True, 'Whether to run on GPU or otherwise TPU.')
+flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
 flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
-flags.DEFINE_integer('num_cores', 2, 'Number of TPU cores or number of GPUs.')
-flags.DEFINE_string('tpu', None, 'Name of the TPU. Only used if use_gpu is False.')
+flags.DEFINE_integer('num_cores', 8, 'Number of TPU cores or number of GPUs.')
+flags.DEFINE_string('tpu', 'oai-tpu-machine', 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
 
 def main(argv):
 
     del argv  # unused arg
-    tf.random.set_seed(FLAGS.seed)
+    #tf.random.set_seed(FLAGS.seed)
 
     # set whether to train on GPU or TPU
     if FLAGS.use_gpu:
@@ -135,7 +135,7 @@ def main(argv):
     if FLAGS.train:
 
         # define checkpoints
-        logdir = 'checkpoints\\' + datetime.now().strftime("%Y%m%d-%H%M%S")
+        logdir = FLAGS.logdir + '\\' + datetime.now().strftime("%Y%m%d-%H%M%S")
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(FLAGS.logdir + '/' + FLAGS.model_architecture + '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=False, save_weights_only=True)
         lr_schedule = make_lr_scheduler(FLAGS.base_learning_rate)
@@ -146,7 +146,7 @@ def main(argv):
                             epochs=FLAGS.train_epochs,
                             validation_data=valid_ds,
                             validation_steps=4480 // batch_size,
-                            callbacks=[ckpt_cb, lr_schedule, tb])
+                            callbacks=[ckpt_cb,lr_schedule,tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
 

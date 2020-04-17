@@ -175,7 +175,7 @@ def label2color(img):
 def make_lr_scheduler(init_lr):
 
     def step_decay(epoch):
-        drop = 0.5
+        drop = 0.8
         epochs_drop = 1.0
         lrate = init_lr * math.pow(drop, math.floor((1+epoch)/epochs_drop))
         return lrate
