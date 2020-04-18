@@ -42,7 +42,7 @@ flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
+flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', './checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
