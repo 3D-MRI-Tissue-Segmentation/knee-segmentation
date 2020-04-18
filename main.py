@@ -34,7 +34,7 @@ flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size', 19200, 'shuffle buffer size (default: 1000)')
+flags.DEFINE_integer('buffer_size', 19200, 'shuffle buffer size (default: 19200)')
 flags.DEFINE_integer('respath_length', 2, 'residual path length')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
@@ -84,6 +84,7 @@ def main(argv):
     if FLAGS.dataset == 'oai_challenge':
         
         batch_size = FLAGS.batch_size*FLAGS.num_cores
+        #TODO (Joonsu): these values shouldn't be hardcoded but rather obtained from the dataset 
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size 
 
@@ -148,7 +149,7 @@ def main(argv):
             lr_decay_epochs = FLAGS.lr_decay_epochs
         else:
             lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs+1,FLAGS.train_epochs))
-            
+
         lr_rate = LearningRateSchedule(steps_per_epoch, FLAGS.base_learning_rate, FLAGS.lr_drop_ratio, lr_decay_epochs, FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
 
