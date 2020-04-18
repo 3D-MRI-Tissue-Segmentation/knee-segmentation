@@ -68,12 +68,6 @@ def main(argv):
             try:
                 tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
                 logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
                 print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
             except RuntimeError as e:
                 # Visible devices must be set before GPUs have been initialized
@@ -143,9 +137,19 @@ def main(argv):
                                      FLAGS.kernel_size,
                                      use_bias=False,
                                      padding='same',
+                                     nonlinearity=FLAGS.activation,
+                                     use_batchnorm=FLAGS.batchnorm,
+                                     data_format=FLAGS.channel_order)
+        else:
+            print('The model architecture {} does not exist or is not supported. Please try again'.format(FLAGS.model_architecutre))
             exit()
         
-        lr_rate = LearningRateSchedule(steps_per_epoch, FLAGS.base_learning_rate, FLAGS.lr_drop_ratio, FLAGS.lr_decay_epochs, FLAGS.lr_warmup_epochs)
+        if FLAGS.custom_decay_lr:
+            lr_decay_epochs = FLAGS.lr_decay_epochs
+        else:
+            lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs+1,FLAGS.train_epochs))
+            
+        lr_rate = LearningRateSchedule(steps_per_epoch, FLAGS.base_learning_rate, FLAGS.lr_drop_ratio, lr_decay_epochs, FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
 
         model.compile(optimizer=optimiser,
