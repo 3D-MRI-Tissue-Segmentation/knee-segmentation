@@ -187,19 +187,31 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
                steps_per_epoch,
                initial_learning_rate,
                drop,
-               epochs_drop):
+               epochs_drop,
+               warmup_epochs):
     super(LearningRateSchedule, self).__init__()
     self.steps_per_epoch = steps_per_epoch
     self.initial_learning_rate = initial_learning_rate
     self.drop = drop
     self.epochs_drop = epochs_drop
+    self.warmup_epochs = warmup_epochs
 
   def __call__(self, step):
     lr_epoch = tf.cast(step, tf.float32) / self.steps_per_epoch
-    lrate = self.initial_learning_rate * tf.math.pow(self.drop, tf.math.floor((1+lr_epoch)/self.epochs_drop))
+    lrate = self.initial_learning_rate
+    if self.warmup_epochs >= 1:
+        lrate *= lr_epoch / self.warmup_epochs
+    epochs_drop = [self.warmup_epochs] + self.epochs_drop
+    for index, start_epoch in enumerate(epochs_drop):
+        lrate = tf.where(
+            lr_epoch >= start_epoch,
+            self.initial_learning_rate * self.drop**index,
+            lrate)
+
     return lrate
 
   def get_config(self):
     return {
+        'steps_per_epoch': self.steps_per_epoch,
         'initial_learning_rate': self.initial_learning_rate,
     }
