@@ -42,7 +42,7 @@ flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
+flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', './checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
@@ -143,7 +143,6 @@ def main(argv):
                                      data_format=FLAGS.channel_order)
         else:
             print('The model architecture {} does not exist or is not supported. Please try again'.format(FLAGS.model_architecutre))
-            exit()
         
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
