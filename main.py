@@ -71,6 +71,9 @@ def main(argv):
                 logical_gpus = tf.config.experimental.list_logical_devices('GPU')
                 logical_gpus = tf.config.experimental.list_logical_devices('GPU')
                 logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
                 print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
             except RuntimeError as e:
                 # Visible devices must be set before GPUs have been initialized
@@ -140,9 +143,6 @@ def main(argv):
                                      FLAGS.kernel_size,
                                      use_bias=False,
                                      padding='same',
-                                     nonlinearity=FLAGS.activation,
-                                     use_batchnorm=FLAGS.batchnorm,
-                                     use_transpose=True,
             exit()
         
         lr_rate = LearningRateSchedule(steps_per_epoch, FLAGS.base_learning_rate, FLAGS.lr_drop_ratio, FLAGS.lr_decay_epochs, FLAGS.lr_warmup_epochs)
