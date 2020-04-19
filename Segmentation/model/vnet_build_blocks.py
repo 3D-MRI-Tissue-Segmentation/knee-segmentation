@@ -1,6 +1,60 @@
 import tensorflow as tf
 
 
+class Conv3d_ResBlock(tf.keras.layers.Layer):
+
+    def __init__(self, 
+                 num_channels,
+                 kernel_size=(3, 3, 3),
+                 res_activation="selu",
+                 name="convolution_res_block",
+                 **kwargs):
+        super(Conv3d_ResBlock, self).__init__(name=name)
+
+        self.conv_block = Conv3D_Block(num_channels=num_channels, kernel_size=kernel_size, **kwargs)
+        self.conv_stride = tf.keras.layers.Conv3D(num_channels*2, kernel_size=kernel_size, strides=2, activation=res_activation, padding="same")
+
+    def call(self, inputs, training):
+        print("================")
+        x = inputs
+        print("inputs shape", inputs.shape)
+        x = self.conv_block(x, training=training)
+        print("x shape", x.shape)
+        x = tf.keras.layers.add([x, inputs])
+        print("res x shape", x.shape)
+        x = self.conv_stride(x)
+        print("stride shape", x.shape)
+        print("================")
+        return x
+
+
+class Up_ResBlock(tf.keras.layers.Layer):
+
+    def __init__(self, 
+                 num_channels,
+                 kernel_size=(3, 3, 3),
+                 res_activation="selu",
+                 name="upsampling_convolution_res_block",
+                 **kwargs):
+        super(Up_ResBlock, self).__init__(name=name)
+
+        self.up_conv = Up_Conv3D(num_channels=num_channels, kernel_size=kernel_size, **kwargs)
+        self.conv_block = Conv3D_Block(num_channels=num_channels, kernel_size=kernel_size, **kwargs)
+
+    def call(self, inputs, training):
+        print("================")
+        x = inputs
+        print("inputs shape", inputs.shape)
+        x_res_start = self.up_conv(x, training=training)
+        print("x res start shape", x_res_start.shape)
+        x = self.conv_block(x_res_start)
+        print("x shape", x.shape)
+        x = tf.keras.layers.add([x, x_res_start])
+        print("x out shape", x.shape)
+        print("================")
+        return x
+
+
 class Conv3D_Block(tf.keras.layers.Layer):
 
     def __init__(self,
@@ -32,7 +86,7 @@ class Conv3D_Block(tf.keras.layers.Layer):
             self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
 
         for _ in range(num_conv_layers):
-            self.conv.append(tf.keras.layers.Conv3D(num_channels, kernel_size,
+            self.conv.append(tf.keras.layers.Conv3D(filters=num_channels, kernel_size=kernel_size,
                                                     padding='same', data_format=data_format))
 
     def call(self, inputs, training):
@@ -65,12 +119,12 @@ class Up_Conv3D(tf.keras.layers.Layer):
 
         self.use_batchnorm = use_batchnorm
         self.upsample = tf.keras.layers.UpSampling3D(size=upsample_size)
-        self.conv = tf.keras.layers.Conv3D(num_channels, kernel_size,
+        self.conv = tf.keras.layers.Conv3D(filters=num_channels, kernel_size=kernel_size,
                                            padding='same', data_format=data_format)
         self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1)
         self.activation = tf.keras.layers.Activation(nonlinearity)
         self.use_transpose = use_transpose
-        self.conv_transpose = tf.keras.layers.Conv3DTranspose(num_channels, kernel_size, padding='same',
+        self.conv_transpose = tf.keras.layers.Conv3DTranspose(filters=num_channels, kernel_size=kernel_size, padding='same',
                                                               strides=strides, data_format=data_format)
 
     def call(self, inputs, training):
