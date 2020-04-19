@@ -137,14 +137,16 @@ def main(argv):
                                     data_format=FLAGS.channel_order)
         elif FLAGS.model_architecture == 'attention_unet_v1':
             model = AttentionUNet_v1(FLAGS.num_filters,
-                                        num_classes,
-                                        FLAGS.num_conv,
-                                        FLAGS.kernel_size,
-                                        use_bias=False,
-                                        padding='same',
-                                        nonlinearity=FLAGS.activation,
-                                        use_batchnorm=FLAGS.batchnorm,
-                                        data_format=FLAGS.channel_order)
+                                     num_classes,
+                                     FLAGS.num_conv,
+                                     FLAGS.kernel_size,
+                                     use_bias=False,
+                                     padding='same',
+                                     nonlinearity=FLAGS.activation,
+                                     use_batchnorm=FLAGS.batchnorm,
+                                     data_format=FLAGS.channel_order)
+        else:
+            print('The model {} does not exist or is not supported'.format(FLAGS.model_architecture))
             exit()
         
         if FLAGS.custom_decay_lr:
