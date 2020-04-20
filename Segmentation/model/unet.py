@@ -91,19 +91,19 @@ class Attention_Gate(tf.keras.Model):
                 nonlinearity='relu',
                 padding='same',
                 strides=(1,1),
-                use_bias=False,
+                use_bias=True,
                 data_format='channels_last',
                 name='attention_gate'):
 
         super(Attention_Gate, self).__init__()
-
-        self.conv_1 = tf.keras.layers.Conv2D(num_channels, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
+        
+        self.conv_1 = tf.keras.layers.Conv2D(num_channels, kernel_size, strides=strides, padding=padding, use_bias=use_bias, data_format=data_format)
         self.batch_norm_1 = tf.keras.layers.BatchNormalization(axis=-1, momentum=0.95, epsilon=0.001)
         
-        self.conv_2 = tf.keras.layers.Conv2D(num_channels, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
+        self.conv_2 = tf.keras.layers.Conv2D(num_channels, kernel_size, strides=strides, padding=padding, use_bias=use_bias, data_format=data_format)
         self.batch_norm_2 = tf.keras.layers.BatchNormalization(axis=-1, momentum=0.95, epsilon=0.001)
 
-        self.conv_3 = tf.keras.layers.Conv2D(num_channels, kernel_size, strides=strides, padding=padding, use_bias=False, data_format=data_format)
+        self.conv_3 = tf.keras.layers.Conv2D(num_channels, kernel_size, strides=strides, padding=padding, use_bias=use_bias, data_format=data_format)
         self.batch_norm_3 = tf.keras.layers.BatchNormalization(axis=-1, momentum=0.95, epsilon=0.001)
         
     def call(self, input_x, input_g, training=False):
@@ -370,22 +370,22 @@ class AttentionUNet_v1(tf.keras.Model):
 
         #DECODER PATH
         up4 = self.up_conv_1(x5, training=training)
-        a1 = self.a1(up4, x4, training=training)
+        a1 = self.a1(x4, up4, training=training)
         y1 = tf.keras.layers.concatenate([a1, up4])
         y1 = self.u1(y1, training=training)
 
         up5 = self.up_conv_2(y1, training=training)
-        a2 = self.a2(up5, x3, training=training)
+        a2 = self.a2(x3, up5, training=training)
         y2 = tf.keras.layers.concatenate([a2, up5])
         y2 = self.u2(y2, training=training)
 
         up6 = self.up_conv_3(y2, training=training)
-        a3 = self.a3(up6, x2, training=training)
+        a3 = self.a3(x2, up6, training=training)
         y3 = tf.keras.layers.concatenate([a3, up6])
         y3 = self.u3(y3, training=training)
 
         up7 = self.up_conv_4(y3, training=training)
-        a4 = self.a4(up7, x1, training=training)
+        a4 = self.a4(x1, up7, training=training)
         y4 = tf.keras.layers.concatenate([a4, up7])
         y4 = self.u4(y4, training=training)
         y5 = self.conv_1x1(y4)
