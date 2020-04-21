@@ -15,7 +15,7 @@ from Segmentation.utils.training_utils import plot_train_history_loss, visualise
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
-flags.DEFINE_integer('batch_size', 1, 'Batch size per TPU Core / GPU')
+flags.DEFINE_integer('batch_size', 32, 'Batch size per TPU Core / GPU')
 flags.DEFINE_float('base_learning_rate', 3.2e-04, 'base learning rate at the start of training session')
 flags.DEFINE_integer('lr_warmup_epochs', 1, 'Number of epochs for a linear warmup to the initial learning rate. Set it to 0 for no warmup')
 flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
@@ -24,7 +24,7 @@ flags.DEFINE_list('lr_decay_epochs', None, 'Epochs to decay the learning rate by
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
-flags.DEFINE_integer('train_epochs', 2, 'Number of training epochs.')
+flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
@@ -34,7 +34,7 @@ flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size', 1000, 'shuffle buffer size (default: 1000)')
+flags.DEFINE_integer('buffer_size',5000, 'shuffle buffer size (default: 5000)')
 flags.DEFINE_integer('respath_length', 2, 'residual path length')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
@@ -42,8 +42,8 @@ flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
-flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
+flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
+flags.DEFINE_string('weights_dir', './checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
 # Accelerator flags
@@ -113,6 +113,7 @@ def main(argv):
 
     # set model architecture
     with strategy.scope():
+        
         if FLAGS.model_architecture == 'unet':
             model = UNet(FLAGS.num_filters,
                             num_classes,
@@ -123,6 +124,7 @@ def main(argv):
                             FLAGS.dropout_rate,
                             FLAGS.use_spatial,
                             FLAGS.channel_order)
+        
         elif FLAGS.model_architecture == 'multires_unet':
             model = MultiResUnet(FLAGS.num_filters,
                                     num_classes,
@@ -135,6 +137,7 @@ def main(argv):
                                     use_batchnorm=FLAGS.batchnorm,
                                     use_transpose=True,
                                     data_format=FLAGS.channel_order)
+
         elif FLAGS.model_architecture == 'attention_unet_v1':
             model = AttentionUNet_v1(FLAGS.num_filters,
                                      num_classes,
@@ -146,7 +149,7 @@ def main(argv):
                                      use_batchnorm=FLAGS.batchnorm,
                                      data_format=FLAGS.channel_order)
         else:
-            print('The model {} does not exist or is not supported'.format(FLAGS.model_architecture))
+            print('The model architecture {} does not exist or is not supported. Please try again'.format(FLAGS.model_architecutre))
             exit()
         
         if FLAGS.custom_decay_lr:

@@ -158,9 +158,9 @@ def parse_fn_2d(example_proto, training, multi_class=True):
     seg = tf.cast(seg, tf.float32)
 
     #if training:
-        #image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
-        #image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
-        #image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+    #    image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
+    #    image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
+    #    image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
 
     if not multi_class:
         seg = tf.math.reduce_sum(seg, axis=-1)
@@ -188,10 +188,10 @@ def parse_fn_3d(example_proto, training, multi_class=True):
                                image_features['depth'], image_features['num_channels']])
     seg = tf.cast(seg, tf.float32)
 
-    # if training:
-    #     image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
-    #     image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
-    #     image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+     #if training:
+     #    image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
+     #    image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
+     #    image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
 
     if not multi_class:
         seg = tf.math.reduce_sum(seg, axis=-1)
