@@ -15,17 +15,17 @@ class Conv3d_ResBlock(tf.keras.layers.Layer):
         self.conv_stride = tf.keras.layers.Conv3D(num_channels*2, kernel_size=kernel_size, strides=2, activation=res_activation, padding="same")
 
     def call(self, inputs, training):
-        print("================")
+        # print(f"======= {self.name} =========")
         x = inputs
-        print("inputs shape", inputs.shape)
+        # print("inputs shape", inputs.shape)
         x = self.conv_block(x, training=training)
-        print("x shape", x.shape)
+        # print("x shape", x.shape)
         x = tf.keras.layers.add([x, inputs])
-        print("res x shape", x.shape)
-        x = self.conv_stride(x)
-        print("stride shape", x.shape)
-        print("================")
-        return x
+        # print("res x shape", x.shape)
+        down_x = self.conv_stride(x)
+        # print("stride shape", x.shape)
+        # print("================")
+        return down_x, x
 
 
 class Up_ResBlock(tf.keras.layers.Layer):
@@ -42,16 +42,21 @@ class Up_ResBlock(tf.keras.layers.Layer):
         self.conv_block = Conv3D_Block(num_channels=num_channels, kernel_size=kernel_size, **kwargs)
 
     def call(self, inputs, training):
-        print("================")
-        x = inputs
-        print("inputs shape", inputs.shape)
+        # print("================")
+        x, x_highway = inputs
+        # print("x shape", x.shape)
+        # print("highway shape", x_highway.shape)
         x_res_start = self.up_conv(x, training=training)
-        print("x res start shape", x_res_start.shape)
-        x = self.conv_block(x_res_start)
-        print("x shape", x.shape)
+        # print("x res start shape", x_res_start.shape)
+
+        x_up = tf.keras.layers.concatenate([x_res_start, x_highway], axis=-1)
+        # print("x up shape", x_up.shape)
+        
+        x = self.conv_block(x_up)
+        # print("x shape", x.shape)
         x = tf.keras.layers.add([x, x_res_start])
-        print("x out shape", x.shape)
-        print("================")
+        # print("x out shape", x.shape)
+        # print("================")
         return x
 
 

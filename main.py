@@ -15,7 +15,7 @@ from Segmentation.utils.training_utils import plot_train_history_loss, visualise
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
-flags.DEFINE_integer('batch_size', 8, 'Batch size per TPU Core / GPU')
+flags.DEFINE_integer('batch_size', 1, 'Batch size per TPU Core / GPU')
 flags.DEFINE_float('base_learning_rate', 3.2e-04, 'base learning rate at the start of training session')
 flags.DEFINE_integer('lr_warmup_epochs', 1, 'Number of epochs for a linear warmup to the initial learning rate. Set it to 0 for no warmup')
 flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
@@ -24,7 +24,7 @@ flags.DEFINE_list('lr_decay_epochs', None, 'Epochs to decay the learning rate by
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
-flags.DEFINE_integer('train_epochs', 3, 'Number of training epochs.')
+flags.DEFINE_integer('train_epochs', 2, 'Number of training epochs.')
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
@@ -49,7 +49,7 @@ flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise,
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
 flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
-flags.DEFINE_integer('num_cores', 8, 'Number of TPU cores or number of GPUs.')
+flags.DEFINE_integer('num_cores', 1, 'Number of TPU cores or number of GPUs.')
 flags.DEFINE_string('tpu', 'oai-tpu-machine', 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS

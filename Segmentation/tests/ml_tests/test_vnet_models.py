@@ -28,15 +28,15 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
         {"testcase_name": "small_relative_128-128-128-1_merge_multi", "model": "small_relative", "shape": (128, 128, 128, 1), "merge_connections": True, 'relative_action': "multiply"},
         {"testcase_name": "small_relative_128-128-128-1_no-merge_multi", "model": "small_relative", "shape": (128, 128, 128, 1), "merge_connections": False, 'relative_action': "multiply"},
     )
-    def test_run(self, model, shape, merge_connections,
+    def test_run(self, model, shape,
                  epochs=2, n_volumes=1, n_reps=2, n_classes=2, relative_action=None, custom_fit=False):
         height, width, depth, num_channels = shape
         self.run_vnet(model, height, width, depth,
-                      num_channels, merge_connections,
+                      num_channels,
                       epochs, n_volumes, n_reps, n_classes,
                       relative_action)
 
-    def run_vnet(self, model, height, width, depth, num_channels, merge_connections,
+    def run_vnet(self, model, height, width, depth, num_channels,
                  epochs=2, n_volumes=5, n_reps=2, n_classes=1, relative_action=None, custom_fit=False, **kwargs):
         volumes, one_hots = self.create_test_volume(n_volumes, n_reps, n_classes,
                                                     width, height, depth, 1)
@@ -51,45 +51,44 @@ class Test_VNet(parameterized.TestCase, tf.test.TestCase):
             assert volumes.shape[0] == pos.shape[0]
             inputs = [volumes, pos]
 
-        def build_vnet(model, num_channels, n_classes, merge_connections):
+        def build_vnet(model, num_channels, n_classes):
             if model == "tiny":
                 from Segmentation.model.vnet_tiny import VNet_Tiny
                 return VNet_Tiny(num_channels, n_classes,
-                                 merge_connections=merge_connections,
+                                 merge_connections=True,
                                  **kwargs)
             elif model == "small":
                 from Segmentation.model.vnet_small import VNet_Small
                 return VNet_Small(num_channels, n_classes,
-                                  merge_connections=merge_connections,
+                                  merge_connections=True,
                                   **kwargs)
             elif model == "small_relative":
                 from Segmentation.model.vnet_small_relative import VNet_Small_Relative
                 return VNet_Small_Relative(num_channels, n_classes,
-                                           merge_connections=merge_connections,
+                                           merge_connections=True,
                                            action=relative_action, **kwargs)
             elif model == "slice":
                 from Segmentation.model.vnet_slice import VNet_Slice
                 return VNet_Slice(num_channels, n_classes,
-                                  merge_connections=merge_connections,
+                                  merge_connections=True,
                                   **kwargs)
             elif model == "large":
                 from Segmentation.model.vnet_large import VNet_Large
                 return VNet_Large(num_channels, n_classes,
-                                  merge_connections=merge_connections, 
+                                  merge_connections=True, 
                                   **kwargs)
             elif model == "large_relative":
                 from Segmentation.model.vnet_large_relative import VNet_Large_Relative
                 return VNet_Large_Relative(num_channels, n_classes,
-                                           merge_connections=merge_connections,
+                                           merge_connections=True,
                                            action=relative_action, **kwargs)
             elif model == "vnet":
                 from Segmentation.model.vnet import VNet
-                return VNet(num_channels, n_classes,
-                            merge_connections=merge_connections, **kwargs)
+                return VNet(num_channels, n_classes, **kwargs)
             else:
                 raise NotImplementedError(f"no model named: {model}")
 
-        vnet = build_vnet(model, num_channels, n_classes, merge_connections)
+        vnet = build_vnet(model, num_channels, n_classes)
 
         target_shape = one_hots.shape
         if n_classes > 1:
@@ -180,6 +179,5 @@ if __name__ == '__main__':
     #             merge_connections=False, n_classes=1,
     #             epochs=2, custom_fit=True)
     tv.run_vnet(model="vnet", n_volumes=1,
-                height=16, width=16, depth=16, num_channels=2,
-                merge_connections=True, n_classes=1,
-                epochs=2, custom_fit=True)
+                height=64, width=64, depth=64, num_channels=16,
+                n_classes=1, epochs=2, custom_fit=True)

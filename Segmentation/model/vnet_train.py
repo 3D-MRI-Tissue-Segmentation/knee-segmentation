@@ -121,6 +121,11 @@ def train(model, num_channels=16, n_classes=1, batch_size=1, sample_shape=(128, 
         get_position = True
         model_path = "Segmentation/model/vnet_large_relative.py"
         commit_id = get_git_file_short_hash(model_path)
+    elif model == "vnet":
+        from Segmentation.model.vnet import VNet
+        vnet = VNet(num_channels, n_classes, **model_kwargs)
+        model_path = "Segmentation/model/vnet.py"
+        commit_id = get_git_file_short_hash(model_path)
     else:
         raise NotImplementedError()
 
@@ -529,23 +534,114 @@ if __name__ == "__main__":
 
     debug = False
     if not debug:
-        input_width = 240
-        sample_shape = (input_width, input_width, 160)
-        learn_rate = 5e-3
+
+        epoch = 250
+
+        learn_rate = 5e-4
+        schedule_epochs_drop = 4
+        schedule_drop = 0.9
+
         noise = 5e-3
-        schedule_epochs_drop = 2
-        schedule_drop = 0.8
         normalise_input = True
         remove_outliers = True
         skip_empty = True
 
-        time_taken, min_roll_loss, min_roll_val_loss = train("large", num_channels=1, batch_size=1, sample_shape=sample_shape, epochs=50, examples_per_load=1, train_debug=False,
-                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
+        input_width = 64
+        sample_shape = (input_width, input_width, 64)
+
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=64, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 64ch", custom_train_loop=True,
                 use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
                 schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
-                use_stride_2=True, use_res_connect=True,
                 normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
-                notes=f"Training Large VNet {sample_shape} - HP Search")
+                notes=f"Training VNet {sample_shape}")
+
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=16, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 16ch", custom_train_loop=True,
+                use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
+                normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                notes=f"Training VNet {sample_shape}")
+
+        learn_rate = 5e-3
+        schedule_epochs_drop = 4
+        schedule_drop = 0.8
+
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=1, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 1ch", custom_train_loop=True,
+                use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
+                normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                notes=f"Training VNet {sample_shape}")
+
+        
+
+        input_width = 128
+        sample_shape = (input_width, input_width, 128)
+
+        learn_rate = 5e-4
+        schedule_epochs_drop = 4
+        schedule_drop = 0.9
+
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=16, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 16ch", custom_train_loop=True,
+                use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
+                normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                notes=f"Training VNet {sample_shape}")
+
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=8, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 8ch", custom_train_loop=True,
+                use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
+                normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                notes=f"Training VNet {sample_shape}")
+
+        learn_rate = 5e-3
+        schedule_epochs_drop = 4
+        schedule_drop = 0.8
+
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=1, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 1ch", custom_train_loop=True,
+                use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
+                normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                notes=f"Training VNet {sample_shape}")
+
+
+        
+
+        input_width = 160
+        sample_shape = (input_width, input_width, 160)
+
+        learn_rate = 5e-4
+        schedule_epochs_drop = 4
+        schedule_drop = 0.9
+
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=8, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 8ch", custom_train_loop=True,
+                use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
+                normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                notes=f"Training VNet {sample_shape}")
+
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=4, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 4ch", custom_train_loop=True,
+                use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
+                normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                notes=f"Training VNet {sample_shape}")
+
+        learn_rate = 5e-3
+        schedule_epochs_drop = 4
+        schedule_drop = 0.8
+
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=1, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 1ch", custom_train_loop=True,
+                use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
+                normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                notes=f"Training VNet {sample_shape}")
 
         # check_run = False
 
