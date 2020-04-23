@@ -1,4 +1,6 @@
 import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
 
 import os
 from datetime import datetime
@@ -6,17 +8,15 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from Segmentation.model.unet import UNet, AttentionUNet, MultiResUnet
+from Segmentation.model.unet import UNet, AttentionUNet_v1, MultiResUnet
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.training_utils import dice_coef, tversky_loss
-from Segmentation.utils.training_utils import plot_train_history_loss
-from Segmentation.utils.training_utils import visualise_multi_class
-from Segmentation.utils.training_utils import LearningRateSchedule
+from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, iou_loss_core, Mean_IOU
+from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
-flags.DEFINE_integer('batch_size', 5, 'Batch size per TPU Core / GPU')
-flags.DEFINE_float('base_learning_rate', 5e-05, 'base learning rate at the start of training session')
+flags.DEFINE_integer('batch_size', 32, 'Batch size per TPU Core / GPU')
+flags.DEFINE_float('base_learning_rate', 3.2e-04, 'base learning rate at the start of training session')
 flags.DEFINE_integer('lr_warmup_epochs', 1, 'No. of epochs for a warmup to the base_learning_rate. 0 for no warmup')
 flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
 flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay learning rate.')
@@ -24,14 +24,15 @@ flags.DEFINE_list('lr_decay_epochs', None, 'Epochs to decay the learning rate by
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
-flags.DEFINE_integer('train_epochs', 5, 'Number of training epochs.')
+flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, multires_unet, attention_unet, R2_unet, R2_attention_unet')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
+flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size (default: 5000)')
@@ -42,9 +43,9 @@ flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
-flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model and weights. Only used if train is False')
-flags.DEFINE_bool('train', True, 'True to train, false to test')
+flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
+flags.DEFINE_string('weights_dir', './checkpoints', 'directory for saved model or weights. Only used if train is False')
+flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', True, 'Whether to run on GPU or otherwise TPU.')
@@ -53,7 +54,6 @@ flags.DEFINE_integer('num_cores', 1, 'Number of TPU cores or number of GPUs.')
 flags.DEFINE_string('tpu', 'oai-tpu-machine', 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
-
 
 def main(argv):
 
@@ -139,46 +139,42 @@ def main(argv):
                                  padding='same',
                                  nonlinearity=FLAGS.activation,
                                  use_batchnorm=FLAGS.batchnorm,
-                                 use_transpose=False,
+                                 use_transpose=True,
                                  data_format=FLAGS.channel_order)
 
-        elif FLAGS.model_architecture == 'attention_unet':
-            model = AttentionUNet(FLAGS.num_filters,
-                                  num_classes,
-                                  FLAGS.num_conv,
-                                  FLAGS.kernel_size,
-                                  use_bias=False,
-                                  padding='same',
-                                  nonlinearity=FLAGS.activation,
-                                  use_batchnorm=FLAGS.batchnorm,
-                                  data_format=FLAGS.channel_order)
+        elif FLAGS.model_architecture == 'attention_unet_v1':
+            model = AttentionUNet_v1(FLAGS.num_filters,
+                                     num_classes,
+                                     FLAGS.num_conv,
+                                     FLAGS.kernel_size,
+                                     use_bias=False,
+                                     padding='same',
+                                     nonlinearity=FLAGS.activation,
+                                     use_batchnorm=FLAGS.batchnorm,
+                                     data_format=FLAGS.channel_order)
         else:
-            logging.fatal('The model architecture {} does not exist!'.format(FLAGS.model_architecutre))
+            logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecutre))
 
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
         else:
-            lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs + 1,
-                                         FLAGS.train_epochs))
+            lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs + 1, FLAGS.train_epochs))
 
         lr_rate = LearningRateSchedule(steps_per_epoch,
                                        FLAGS.base_learning_rate,
                                        FLAGS.lr_drop_ratio,
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
-
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
 
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
-        model.build((FLAGS.batch_size, 288, 288, 1))
-        model.summary()
 
     if FLAGS.train:
 
         # define checkpoints
-        logdir = FLAGS.logdir + '\\' + datetime.now().strftime("%Y%m%d-%H%M%S")
+        logdir = FLAGS.logdir + '/' + datetime.now().strftime("%Y%m%d-%H%M%S")
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(FLAGS.logdir + "/" +
                                                      FLAGS.model_architecture +
                                                      '_weights.{epoch:03d}.ckpt',
