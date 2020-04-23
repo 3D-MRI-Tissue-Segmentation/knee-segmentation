@@ -155,8 +155,8 @@ def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False):
 
     # Parse the input tf.Example proto using the dictionary above.
     image_features = tf.io.parse_single_example(example_proto, features)
-    image_raw = tf.io.decode_raw(image_features['image_raw'], dtype)
-    image = tf.reshape(image_raw, [288, 288, 1])
+    image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
+    image = tf.cast(tf.reshape(image_raw, [288, 288, 1]), dtype)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
     seg = tf.reshape(seg_raw, [288, 288, 7])
