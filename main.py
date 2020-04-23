@@ -35,7 +35,7 @@ flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size (default: 5000)')
+flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_integer('respath_length', 2, 'residual path length')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
@@ -48,9 +48,9 @@ flags.DEFINE_string('weights_dir', './checkpoints', 'directory for saved model o
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
 # Accelerator flags
-flags.DEFINE_bool('use_gpu', True, 'Whether to run on GPU or otherwise TPU.')
-flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
-flags.DEFINE_integer('num_cores', 1, 'Number of TPU cores or number of GPUs.')
+flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
+flags.DEFINE_bool('use_bfloat16', True, 'Whether to use mixed precision.')
+flags.DEFINE_integer('num_cores', 8, 'Number of TPU cores or number of GPUs.')
 flags.DEFINE_string('tpu', 'oai-tpu-machine', 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
@@ -97,12 +97,14 @@ def main(argv):
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
                                  multi_class=FLAGS.multi_class,
-                                 is_training=True)
+                                 is_training=True,
+                                 use_bfloat16=FLAGS.use_bfloat16)
         valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
                                  multi_class=FLAGS.multi_class,
-                                 is_training=False)
+                                 is_training=False,
+                                 use_bfloat16=FLAGS.use_bfloat16)
 
         num_classes = 7 if FLAGS.multi_class else 1
 

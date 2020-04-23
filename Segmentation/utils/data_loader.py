@@ -138,7 +138,12 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
             count += 1
         print('{} out of {} datasets have been processed'.format(i, end - 1))
 
-def parse_fn_2d(example_proto, training, multi_class=True):
+def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False):
+
+    if use_bfloat16:
+        dtype = tf.bfloat16
+    else:
+        dtype = tf.float32
 
     features = {
         'height': tf.io.FixedLenFeature([], tf.int64),
@@ -150,17 +155,17 @@ def parse_fn_2d(example_proto, training, multi_class=True):
 
     # Parse the input tf.Example proto using the dictionary above.
     image_features = tf.io.parse_single_example(example_proto, features)
-    image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
+    image_raw = tf.io.decode_raw(image_features['image_raw'], dtype)
     image = tf.reshape(image_raw, [288, 288, 1])
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
     seg = tf.reshape(seg_raw, [288, 288, 7])
-    seg = tf.cast(seg, tf.float32)
+    seg = tf.cast(seg, dtype)
 
-    #if training:
-        #image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
-        #image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
-        #image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+    # if training:
+    #   image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
+    #   image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
+    #   image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
 
     if not multi_class:
         seg = tf.math.reduce_sum(seg, axis=-1)
@@ -198,17 +203,28 @@ def parse_fn_3d(example_proto, training, multi_class=True):
 
     return (image, seg)
 
-def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d, multi_class=True, is_training=False):
+def read_tfrecord(tfrecords_dir,
+                  batch_size,
+                  buffer_size,
+                  parse_fn=parse_fn_2d,
+                  multi_class=True,
+                  is_training=False,
+                  use_bfloat16=False):
 
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
     shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
     shards = shards.repeat()
-    dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length=8, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = shards.interleave(tf.data.TFRecordDataset,
+                                cycle_length=8,
+                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
 
-    parser = partial(parse_fn, training=True if is_training else False, multi_class=True if multi_class else False)
+    parser = partial(parse_fn,
+                     training=True if is_training else False,
+                     multi_class=True if multi_class else False,
+                     use_bfloat16=True if use_bfloat16 else False)
     dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
