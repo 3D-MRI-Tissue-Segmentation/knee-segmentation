@@ -8,7 +8,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from Segmentation.model.unet import UNet, AttentionUNet_v1, MultiResUnet
+from Segmentation.model.unet import UNet, AttentionUNet, MultiResUnet
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, iou_loss_core, Mean_IOU
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
@@ -27,7 +27,7 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, multires_unet, attention_unet, R2_unet, R2_attention_unet')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
@@ -144,17 +144,17 @@ def main(argv):
                                  use_transpose=FLAGS.use_transpose,
                                  data_format=FLAGS.channel_order)
 
-        elif FLAGS.model_architecture == 'attention_unet_v1':
-            model = AttentionUNet_v1(FLAGS.num_filters,
-                                     num_classes,
-                                     FLAGS.num_conv,
-                                     FLAGS.kernel_size,
-                                     use_bias=False,
-                                     padding='same',
-                                     nonlinearity=FLAGS.activation,
-                                     use_batchnorm=FLAGS.batchnorm,
-                                     use_transpose=FLAGS.use_transpose,
-                                     data_format=FLAGS.channel_order)
+        elif FLAGS.model_architecture == 'attention_unet':
+            model = AttentionUNet(FLAGS.num_filters,
+                                  num_classes,
+                                  FLAGS.num_conv,
+                                  FLAGS.kernel_size,
+                                  use_bias=False,
+                                  padding='same',
+                                  nonlinearity=FLAGS.activation,
+                                  use_batchnorm=FLAGS.batchnorm,
+                                  use_transpose=FLAGS.use_transpose,
+                                  data_format=FLAGS.channel_order)
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecutre))
 
