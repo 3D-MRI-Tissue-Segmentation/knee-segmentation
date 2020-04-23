@@ -139,7 +139,7 @@ def main(argv):
                                  padding='same',
                                  nonlinearity=FLAGS.activation,
                                  use_batchnorm=FLAGS.batchnorm,
-                                 use_transpose=True,
+                                 use_transpose=FLAGS.use_transpose,
                                  data_format=FLAGS.channel_order)
 
         elif FLAGS.model_architecture == 'attention_unet_v1':
@@ -151,6 +151,7 @@ def main(argv):
                                      padding='same',
                                      nonlinearity=FLAGS.activation,
                                      use_batchnorm=FLAGS.batchnorm,
+                                     use_transpose=FLAGS.use_transpose,
                                      data_format=FLAGS.channel_order)
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecutre))
