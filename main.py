@@ -8,7 +8,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from Segmentation.model.unet import UNet, AttentionUNet_v1, MultiResUnet
+from Segmentation.model.unet import UNet, AttentionUNet, MultiResUnet
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, iou_loss_core, Mean_IOU
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
@@ -144,17 +144,17 @@ def main(argv):
                                  use_transpose=FLAGS.use_transpose,
                                  data_format=FLAGS.channel_order)
 
-        elif FLAGS.model_architecture == 'attention_unet_v1':
-            model = AttentionUNet_v1(FLAGS.num_filters,
-                                     num_classes,
-                                     FLAGS.num_conv,
-                                     FLAGS.kernel_size,
-                                     use_bias=False,
-                                     padding='same',
-                                     nonlinearity=FLAGS.activation,
-                                     use_batchnorm=FLAGS.batchnorm,
-                                     use_transpose=FLAGS.use_transpose,
-                                     data_format=FLAGS.channel_order)
+        elif FLAGS.model_architecture == 'attention_unet':
+            model = AttentionUNet(FLAGS.num_filters,
+                                  num_classes,
+                                  FLAGS.num_conv,
+                                  FLAGS.kernel_size,
+                                  use_bias=False,
+                                  padding='same',
+                                  nonlinearity=FLAGS.activation,
+                                  use_batchnorm=FLAGS.batchnorm,
+                                  use_transpose=FLAGS.use_transpose,
+                                  data_format=FLAGS.channel_order)
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecutre))
 

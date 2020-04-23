@@ -261,21 +261,25 @@ class AttentionUNet(tf.keras.Model):
                                    (3, 3),
                                    nonlinearity,
                                    use_batchnorm=use_batchnorm,
+                                   use_transpose=use_transpose,
                                    data_format=data_format)
         self.up_conv_2 = Up_Conv2D(num_channels * 4,
                                    (3, 3),
                                    nonlinearity,
                                    use_batchnorm=use_batchnorm,
+                                   use_transpose=use_transpose,
                                    data_format=data_format)
         self.up_conv_3 = Up_Conv2D(num_channels * 2,
                                    (3, 3),
                                    nonlinearity,
                                    use_batchnorm=use_batchnorm,
+                                   use_transpose=use_transpose,
                                    data_format=data_format)
         self.up_conv_4 = Up_Conv2D(num_channels,
                                    (3, 3),
                                    nonlinearity,
                                    use_batchnorm=use_batchnorm,
+                                   use_transpose=use_transpose,
                                    data_format=data_format)
 
         self.a1 = Attention_Gate(num_channels * 8,
@@ -312,28 +316,24 @@ class AttentionUNet(tf.keras.Model):
                                kernel_size,
                                nonlinearity,
                                use_batchnorm=use_batchnorm,
-                               use_transpose=use_transpose,
                                data_format=data_format)
         self.u2 = Conv2D_Block(num_channels * 4,
                                num_conv_layers,
                                kernel_size,
                                nonlinearity,
                                use_batchnorm=use_batchnorm,
-                               use_transpose=use_transpose,
                                data_format=data_format)
         self.u3 = Conv2D_Block(num_channels * 2,
                                num_conv_layers,
                                kernel_size,
                                nonlinearity,
                                use_batchnorm=True,
-                               use_transpose=use_transpose,
                                data_format=data_format)
         self.u4 = Conv2D_Block(num_channels,
                                num_conv_layers,
                                kernel_size,
                                nonlinearity,
                                use_batchnorm=use_batchnorm,
-                               use_transpose=use_transpose,
                                data_format=data_format)
 
         self.conv_1x1 = tfkl.Conv2D(num_classes,
