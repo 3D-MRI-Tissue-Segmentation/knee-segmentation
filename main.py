@@ -39,7 +39,7 @@ flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
-flags.DEFINE_list('num_filters', [64, 128, 256, 512, 512], 'number of filters in the model')
+flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -151,19 +151,18 @@ def main(argv):
     if FLAGS.train:
 
         # define checkpoints
-        """
         logdir = FLAGS.logdir + '/' + datetime.now().strftime("%Y%m%d-%H%M%S")
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(FLAGS.logdir + "/" +
                                                      FLAGS.model_architecture +
                                                      '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=True, save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
-        """
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
                             validation_data=valid_ds,
-                            validation_steps=validation_steps)
+                            validation_steps=validation_steps,
+                            checkpoints=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
 
