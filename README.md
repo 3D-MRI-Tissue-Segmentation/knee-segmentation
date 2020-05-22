@@ -8,7 +8,7 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 
 - [x] Vanilla UNet 
 - [x] Attention UNet
-- [x] Multi-res UNet
+<del> - [x] Multi-res UNet </del>
 - [x] R2_UNet
 - [x] R2_Attention UNet
 - [ ] 100-layer Tiramisu
