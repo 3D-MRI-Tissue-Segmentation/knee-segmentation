@@ -8,7 +8,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from Segmentation.model.unet import UNet, AttentionUNet, MultiResUnet
+from Segmentation.model.unet import UNet
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, iou_loss_core, Mean_IOU
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
@@ -27,19 +27,19 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, R2_unet, R2_attention_unet')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
+flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_integer('respath_length', 2, 'residual path length')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
-flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
+flags.DEFINE_list('num_filters', [64, 128, 256, 512, 512], 'number of filters in the model')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -49,7 +49,7 @@ flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise,
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
-flags.DEFINE_bool('use_bfloat16', True, 'Whether to use mixed precision.')
+flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
 flags.DEFINE_integer('num_cores', 8, 'Number of TPU cores or number of GPUs.')
 flags.DEFINE_string('tpu', 'oai-tpu-machine', 'Name of the TPU. Only used if use_gpu is False.')
 
@@ -65,8 +65,6 @@ def main(argv):
         logging.info('Using GPU...')
         # strategy requires: export TF_FORCE_GPU_ALLOW_GROWTH=true to be wrote in cmd
         strategy = tf.distribute.MirroredStrategy()  # works
-        # strategy = tf.distribute.MirroredStrategy(cross_device_ops=tf.distribute.HierarchicalCopyAllReduce())  # works
-        # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()   # works
         gpus = tf.config.experimental.list_physical_devices('GPU')
         if gpus:
             for gpu in gpus:
@@ -121,40 +119,17 @@ def main(argv):
     with strategy.scope():
 
         if FLAGS.model_architecture == 'unet':
+
             model = UNet(FLAGS.num_filters,
                          num_classes,
                          FLAGS.num_conv,
                          FLAGS.kernel_size,
                          FLAGS.activation,
+                         FLAGS.use_attention,
                          FLAGS.batchnorm,
                          FLAGS.dropout_rate,
                          FLAGS.use_spatial,
                          FLAGS.channel_order)
-
-        elif FLAGS.model_architecture == 'multires_unet':
-            model = MultiResUnet(FLAGS.num_filters,
-                                 num_classes,
-                                 FLAGS.respath_length,
-                                 FLAGS.num_conv,
-                                 FLAGS.kernel_size,
-                                 use_bias=False,
-                                 padding='same',
-                                 nonlinearity=FLAGS.activation,
-                                 use_batchnorm=FLAGS.batchnorm,
-                                 use_transpose=FLAGS.use_transpose,
-                                 data_format=FLAGS.channel_order)
-
-        elif FLAGS.model_architecture == 'attention_unet':
-            model = AttentionUNet(FLAGS.num_filters,
-                                  num_classes,
-                                  FLAGS.num_conv,
-                                  FLAGS.kernel_size,
-                                  use_bias=False,
-                                  padding='same',
-                                  nonlinearity=FLAGS.activation,
-                                  use_batchnorm=FLAGS.batchnorm,
-                                  use_transpose=FLAGS.use_transpose,
-                                  data_format=FLAGS.channel_order)
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecutre))
 
@@ -169,7 +144,6 @@ def main(argv):
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
-
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
@@ -177,19 +151,19 @@ def main(argv):
     if FLAGS.train:
 
         # define checkpoints
+        """
         logdir = FLAGS.logdir + '/' + datetime.now().strftime("%Y%m%d-%H%M%S")
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(FLAGS.logdir + "/" +
                                                      FLAGS.model_architecture +
                                                      '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=True, save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
-
+        """
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
                             validation_data=valid_ds,
-                            validation_steps=validation_steps,
-                            callbacks=[ckpt_cb, tb])
+                            validation_steps=validation_steps)
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
 
