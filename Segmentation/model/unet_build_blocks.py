@@ -167,3 +167,103 @@ class Attention_Gate(tf.keras.Model):
         outputs = tf.math.multiply(alpha, input_x)
 
         return outputs
+
+class Recurrent_Block(tf.keras.Model):
+
+    def __init__(self,
+                 num_channels,
+                 kernel_size=(3, 3),
+                 nonlinearity='relu',
+                 padding='same',
+                 strides=(1, 1),
+                 t=2,
+                 use_batchnorm=True,
+                 data_format='channels_last',
+                 **kwargs):
+
+        super(Recurrent_Block, self).__init__(**kwargs)
+
+        self.num_channels = num_channels
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
+        self.padding = padding
+        self.strides = strides
+        self.t = t
+        self.use_batchnorm = use_batchnorm
+        self.data_format = data_format
+
+        self.conv = []
+
+        for i in range(self.t + 1):
+            self.conv.append(Conv2D_Block(num_channels=self.num_channels,
+                                          num_conv_layers=1,
+                                          kernel_size=self.kernel_size,
+                                          nonlinearity=self.nonlinearity,
+                                          use_batchnorm=self.use_batchnorm,
+                                          data_format=self.data_format))
+
+    def call(self, x, training=False):
+
+        for i in range(self.t):
+
+            if i == 0:
+                x1 = self.conv[i](x, training=training)
+
+            x1 = tfkl.Add()([x, x1])
+            x1 = self.conv[i + 1](x1)
+
+        return x1
+
+class Recurrent_ResConv_block(tf.keras.Model):
+    def __init__(self,
+                 num_channels,
+                 kernel_size=(3, 3),
+                 nonlinearity='relu',
+                 padding='same',
+                 strides=(1, 1),
+                 t=2,
+                 use_batchnorm=True,
+                 data_format='channels_last',
+                 **kwargs):
+
+        super(Recurrent_ResConv_block, self).__init__(**kwargs)
+
+        self.num_channels = num_channels
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
+        self.padding = padding
+        self.strides = strides
+        self.t = t
+        self.use_batchnorm = use_batchnorm
+        self.data_format = data_format
+
+        self.Recurrent_CNN = tf.keras.Sequential([
+            Recurrent_Block(self.num_channels,
+                            self.kernel_size,
+                            self.nonlinearity,
+                            self.padding,
+                            self.strides,
+                            self.t,
+                            self.use_batchnorm,
+                            self.data_format),
+            Recurrent_Block(self.num_channels,
+                            self.kernel_size,
+                            self.nonlinearity,
+                            self.padding,
+                            self.strides,
+                            self.t,
+                            self.use_batchnorm,
+                            self.data_format)])
+
+        self.Conv_1x1 = tf.keras.layers.Conv2D(self.num_channels,
+                                               kernel_size=(1, 1),
+                                               strides=self.strides,
+                                               padding=self.padding,
+                                               data_format=self.data_format)
+
+    def call(self, x):
+        x = self.Conv_1x1(x)
+        x1 = self.Recurrent_CNN(x)
+        output = tfkl.Add()([x, x1])
+
+        return output

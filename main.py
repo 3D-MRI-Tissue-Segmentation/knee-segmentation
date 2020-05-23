@@ -8,7 +8,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from Segmentation.model.unet import UNet
+from Segmentation.model.unet import UNet, R2_UNet
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, iou_loss_core, Mean_IOU
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
@@ -27,7 +27,7 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, R2_unet, R2_attention_unet')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
@@ -43,8 +43,8 @@ flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters i
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
-flags.DEFINE_string('weights_dir', './checkpoints', 'directory for saved model or weights. Only used if train is False')
+flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
+flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
 # Accelerator flags
@@ -64,7 +64,10 @@ def main(argv):
     if FLAGS.use_gpu:
         logging.info('Using GPU...')
         # strategy requires: export TF_FORCE_GPU_ALLOW_GROWTH=true to be wrote in cmd
-        strategy = tf.distribute.MirroredStrategy()  # works
+        if FLAGS.num_cores == 1:
+            strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
+        else:
+            strategy = tf.distribute.MirroredStrategy()  # works
         gpus = tf.config.experimental.list_physical_devices('GPU')
         if gpus:
             for gpu in gpus:
@@ -130,6 +133,20 @@ def main(argv):
                          FLAGS.dropout_rate,
                          FLAGS.use_spatial,
                          FLAGS.channel_order)
+
+        elif FLAGS.model_architecture == 'r2unet':
+
+            model = R2_UNet(FLAGS.num_filters,
+                            num_classes,
+                            FLAGS.num_conv,
+                            FLAGS.kernel_size,
+                            FLAGS.activation,
+                            2,
+                            FLAGS.use_attention,
+                            FLAGS.batchnorm,
+                            True,
+                            FLAGS.channel_order)
+
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecutre))
 
@@ -144,6 +161,7 @@ def main(argv):
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+        model.build(input_shape=(batch_size, 288, 288, 1))
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
@@ -151,25 +169,25 @@ def main(argv):
     if FLAGS.train:
 
         # define checkpoints
-        logdir = FLAGS.logdir + '/' + datetime.now().strftime("%Y%m%d-%H%M%S")
-        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(FLAGS.logdir + "/" +
-                                                     FLAGS.model_architecture +
-                                                     '_weights.{epoch:03d}.ckpt',
-                                                     save_best_only=True, save_weights_only=True)
+        logdir = os.path.join(FLAGS.logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
+        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.hdf5',
+                                                     save_best_only=False,
+                                                     save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
                             validation_data=valid_ds,
                             validation_steps=validation_steps,
-                            checkpoints=[ckpt_cb, tb])
+                            callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
 
     else:
         # load the latest checkpoint in the FLAGS.logdir file
         # latest = tf.train.latest_checkpoint(FLAGS.logdir)
-        model.load_weights('./checkpoints/unet/14-4-2020/unet_weights.005.ckpt').expect_partial()
+        model.load_weights('checkpoints/20200523-204940/unet_weights.005.hdf5')
         for step, (image, label) in enumerate(valid_ds):
             if step >= 80:
                 pred = model(image, training=False)
