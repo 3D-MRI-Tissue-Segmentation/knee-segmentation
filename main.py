@@ -154,7 +154,7 @@ def main(argv):
                             FLAGS.channel_order)
 
         else:
-            logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecutre))
+            logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
 
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
