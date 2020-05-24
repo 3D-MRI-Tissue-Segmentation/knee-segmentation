@@ -28,13 +28,16 @@ flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet')
+flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
-flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
+flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
+flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
 flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
-flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
+flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
+flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
@@ -125,11 +128,14 @@ def main(argv):
 
             model = UNet(FLAGS.num_filters,
                          num_classes,
+                         FLAGS.backbone_architecture,
                          FLAGS.num_conv,
                          FLAGS.kernel_size,
                          FLAGS.activation,
                          FLAGS.use_attention,
-                         FLAGS.batchnorm,
+                         FLAGS.use_batchnorm,
+                         FLAGS.use_bias,
+                         FLAGS.use_dropout,
                          FLAGS.dropout_rate,
                          FLAGS.use_spatial,
                          FLAGS.channel_order)
@@ -144,7 +150,7 @@ def main(argv):
                             2,
                             FLAGS.use_attention,
                             FLAGS.batchnorm,
-                            True,
+                            FLAGS.use_bias,
                             FLAGS.channel_order)
 
         else:

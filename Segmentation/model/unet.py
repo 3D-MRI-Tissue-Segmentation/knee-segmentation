@@ -3,7 +3,7 @@ import tensorflow.keras.layers as tfkl
 from Segmentation.model.unet_build_blocks import Conv2D_Block, Up_Conv2D
 from Segmentation.model.unet_build_blocks import Attention_Gate
 from Segmentation.model.unet_build_blocks import Recurrent_ResConv_block
-from Segmentation.model.backbone import VGG16_Encoder
+from Segmentation.model.backbone import VGG16_Encoder, VGG19_Encoder
 
 
 class UNet(tf.keras.Model):
@@ -13,6 +13,7 @@ class UNet(tf.keras.Model):
     def __init__(self,
                  num_channels,
                  num_classes,
+                 backbone='default',
                  num_conv_layers=2,
                  kernel_size=(3, 3),
                  nonlinearity='relu',
@@ -29,6 +30,7 @@ class UNet(tf.keras.Model):
 
         self.num_classes = num_classes
         self.num_channels = num_channels
+        self.backbone = backbone
         self.num_conv_layers = num_conv_layers
         self.kernel_size = kernel_size
         self.nonlinearity = nonlinearity
@@ -43,17 +45,25 @@ class UNet(tf.keras.Model):
         self.contracting_path = []
 
         for i in range(len(self.num_channels)):
-            output = self.num_channels[i]
-            self.contracting_path.append(Conv2D_Block(output,
-                                                      self.num_conv_layers,
-                                                      self.kernel_size,
-                                                      self.nonlinearity,
-                                                      self.use_batchnorm,
-                                                      self.use_bias,
-                                                      self.use_dropout,
-                                                      self.dropout_rate,
-                                                      self.use_spatial_dropout,
-                                                      self.data_format))
+            if self.backbone == 'default':
+                output = self.num_channels[i]
+                self.contracting_path.append(Conv2D_Block(output,
+                                                          self.num_conv_layers,
+                                                          self.kernel_size,
+                                                          self.nonlinearity,
+                                                          self.use_batchnorm,
+                                                          self.use_bias,
+                                                          self.use_dropout,
+                                                          self.dropout_rate,
+                                                          self.use_spatial_dropout,
+                                                          self.data_format))
+
+            elif self.backbone == 'vgg16':
+                encoder = VGG16_Encoder()
+                self.contracting_path.append(encoder.get_conv_block(i))
+            elif self.backbone == 'vgg19':
+                encoder = VGG19_Encoder()
+                self.contracting_path.append(encoder.get_conv_block(i))
             if i != len(self.num_channels) - 1:
                 self.contracting_path.append(tfkl.MaxPooling2D())
 
@@ -176,7 +186,6 @@ class R2_UNet(tf.keras.Model):
                                     padding='same',
                                     data_format=data_format)
 
-    @tf.function
     def call(self, x, training=False):
         blocks = []
         for i, down in enumerate(self.contracting_path):
@@ -196,3 +205,5 @@ class R2_UNet(tf.keras.Model):
             output = tfkl.Activation('softmax')(x)
 
         return output
+
+

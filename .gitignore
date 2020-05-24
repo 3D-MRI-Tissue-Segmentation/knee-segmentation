@@ -27,6 +27,7 @@ htmlcov/
 *.seg
 *.npy
 *.h5
+*.hdf5
 *.csv
 *.tfrecords
 
@@ -37,7 +38,7 @@ htmlcov/
 # Logging
 **/logs/
 
-# Data
+# Checkpoints
 checkpoints/
 
 # Unignore
