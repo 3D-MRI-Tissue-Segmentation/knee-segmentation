@@ -205,5 +205,3 @@ class R2_UNet(tf.keras.Model):
             output = tfkl.Activation('softmax')(x)
 
         return output
-
-

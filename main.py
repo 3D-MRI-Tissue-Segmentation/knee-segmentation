@@ -193,7 +193,7 @@ def main(argv):
     else:
         # load the latest checkpoint in the FLAGS.logdir file
         # latest = tf.train.latest_checkpoint(FLAGS.logdir)
-        model.load_weights('checkpoints/20200523-204940/unet_weights.005.hdf5')
+        model.load_weights(FLAGS.weights_dir)
         for step, (image, label) in enumerate(valid_ds):
             if step >= 80:
                 pred = model(image, training=False)
