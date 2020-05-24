@@ -192,25 +192,22 @@ class Recurrent_Block(tf.keras.Model):
         self.use_batchnorm = use_batchnorm
         self.data_format = data_format
 
-        self.conv = []
-
-        for i in range(self.t + 1):
-            self.conv.append(Conv2D_Block(num_channels=self.num_channels,
-                                          num_conv_layers=1,
-                                          kernel_size=self.kernel_size,
-                                          nonlinearity=self.nonlinearity,
-                                          use_batchnorm=self.use_batchnorm,
-                                          data_format=self.data_format))
+        self.conv = Conv2D_Block(num_channels=self.num_channels,
+                                 num_conv_layers=1,
+                                 kernel_size=self.kernel_size,
+                                 nonlinearity=self.nonlinearity,
+                                 use_batchnorm=self.use_batchnorm,
+                                 data_format=self.data_format)
 
     def call(self, x, training=False):
 
         for i in range(self.t):
 
             if i == 0:
-                x1 = self.conv[i](x, training=training)
+                x1 = self.conv(x, training=training)
 
             x1 = tfkl.Add()([x, x1])
-            x1 = self.conv[i + 1](x1)
+            x1 = self.conv(x1, training=training)
 
         return x1
 
