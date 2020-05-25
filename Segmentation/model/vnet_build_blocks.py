@@ -8,8 +8,8 @@ class Conv3D_Block(tf.keras.layers.Layer):
                  num_conv_layers=2,
                  kernel_size=(3, 3, 3),
                  nonlinearity='relu',
-                 use_batchnorm=False,
-                 use_dropout=False,
+                 use_batchnorm=True,
+                 use_dropout=True,
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
@@ -35,18 +35,17 @@ class Conv3D_Block(tf.keras.layers.Layer):
             self.conv.append(tf.keras.layers.Conv3D(num_channels, kernel_size,
                                                     padding='same', data_format=data_format))
 
-    def call(self, inputs):
+    def call(self, inputs, training):
         x = inputs
         for i in range(self.num_conv_layers):
             x = self.conv[i](x)
             if self.use_batchnorm:
                 x = self.batchnorm(x)
             x = self.activation(x)
-
-        if self.use_dropout:
-            x = self.dropout(x)
-        outputs = x
-        return outputs
+            if training:
+                if self.use_dropout:
+                    x = self.dropout(x)
+        return x
 
 
 class Up_Conv3D(tf.keras.layers.Layer):
@@ -58,13 +57,14 @@ class Up_Conv3D(tf.keras.layers.Layer):
                  use_batchnorm=False,
                  use_transpose=False,
                  strides=(2, 2, 2),
+                 upsample_size=(2, 2, 2),
                  data_format='channels_last',
                  name="upsampling_convolution_block"):
 
         super(Up_Conv3D, self).__init__(name=name)
 
         self.use_batchnorm = use_batchnorm
-        self.upsample = tf.keras.layers.UpSampling3D(size=(2, 2, 2))
+        self.upsample = tf.keras.layers.UpSampling3D(size=upsample_size)
         self.conv = tf.keras.layers.Conv3D(num_channels, kernel_size,
                                            padding='same', data_format=data_format)
         self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1)
@@ -73,7 +73,7 @@ class Up_Conv3D(tf.keras.layers.Layer):
         self.conv_transpose = tf.keras.layers.Conv3DTranspose(num_channels, kernel_size, padding='same',
                                                               strides=strides, data_format=data_format)
 
-    def call(self, inputs):
+    def call(self, inputs, training):
 
         x = inputs
         if self.use_transpose:
@@ -84,5 +84,4 @@ class Up_Conv3D(tf.keras.layers.Layer):
         if self.use_batchnorm:
             x = self.batch_norm(x)
         outputs = self.activation(x)
-
         return outputs
