@@ -1,18 +1,62 @@
 import h5py
 import numpy as np
-import os.path
+import os
 import random
 import matplotlib.pyplot as plt
 import math
+from functools import partial
 import tensorflow as tf
 
-#TODO(Joonsu): Integrate the function with Tensorflow Dataset 
-def create_OAI_dataset(data_folder, get_train=True, start=1, end=61, get_slices=True, save=False):
-    
-    img_list = []
-    seg_list = []
-    
-    for i in range(start,end):
+from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
+    translate_randomly_image_pair_2d
+
+def get_multiclass(label):
+
+    # label shape
+    # (batch_size, height,width,channels)
+
+    batch_size = label.shape[0]
+    height = label.shape[1]
+    width = label.shape[2]
+    channels = label.shape[3]
+
+    background = np.zeros((batch_size, height, width, 1))
+    label_sum = np.sum(label, axis=3)
+    background[label_sum == 0] = 1
+
+    label = np.concatenate((label, background), axis=3)
+
+    return label
+
+def _bytes_feature(value):
+    """Returns a bytes_list from a string / byte."""
+    if isinstance(value, type(tf.constant(0))):
+        value = value.numpy()  # BytesList won't unpack a string from an EagerTensor.
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+def _float_feature(value):
+    """Returns a float_list from a float /p double."""
+    return tf.train.Feature(float_list=tf.train.FloatList(value=[value]))
+
+def _int64_feature(value):
+    """Returns an int64_list from a bool / enum / int / uint."""
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=True):
+
+    if not os.path.exists(tfrecord_directory):
+        os.mkdir(tfrecord_directory)
+
+    start = 1
+    if get_train:
+        end = 61
+    else:
+        end = 15
+
+    count = 1
+    num_shards = (end - 1) * 2
+
+    for i in range(start, end):
         for j in range(2):
             if i <= 9:
                 if get_train:
@@ -28,211 +72,169 @@ def create_OAI_dataset(data_folder, get_train=True, start=1, end=61, get_slices=
                 else:
                     fname_img = 'valid_0{}_V0{}.im'.format(i, j)
                     fname_seg = 'valid_0{}_V0{}.seg'.format(i, j)
-            
+
             img_filepath = os.path.join(data_folder, fname_img)
             seg_filepath = os.path.join(data_folder, fname_seg)
 
-            with h5py.File(img_filepath,'r') as hf:
+            with h5py.File(img_filepath, 'r') as hf:
                 img = np.array(hf['data'])
-            with h5py.File(seg_filepath,'r') as hf:
+            with h5py.File(seg_filepath, 'r') as hf:
                 seg = np.array(hf['data'])
-            
-            if get_slices:
-                img = np.rollaxis(img, 2, 0)
-                seg = np.rollaxis(seg, 2, 0) 
-            
-            img = np.expand_dims(img, axis=3)    
-            img_list.append(img)
-            seg_list.append(seg)
 
-        print('{} out of {} datasets have been processed'.format(i, end-start))
+            img = np.rollaxis(img, 2, 0)
+            seg = np.rollaxis(seg, 2, 0)
 
-    x = np.asarray(img_list)
-    y = np.asarray(seg_list)
+            img = img[:, 48:336, 48:336]
+            seg = seg[:, 48:336, 48:336, :]
 
-    if get_slices:
-        x = np.reshape(x, (x.shape[0]*x.shape[1], x.shape[2], x.shape[3], x.shape[4]))
-        y = np.reshape(y, (y.shape[0]*y.shape[1], y.shape[2], y.shape[3], y.shape[4]))
+            seg_temp = np.zeros((160, 288, 288, 1), dtype=np.int8)
+            seg_sum = np.sum(seg, axis=3)
+            seg_temp[seg_sum == 0] = 1
+            seg = np.concatenate([seg_temp, seg], axis=3)
+            img = np.expand_dims(img, axis=3)
 
-    if save:
-        if get_train:
-            fname_img_npy = os.path.join(data_folder, 'x_train.npy')
-            fname_seg_npy = os.path.join(data_folder, 'y_train.npy')
-        else:
-            fname_img_npy = os.path.join(data_folder, 'x_valid.npy')
-            fname_seg_npy = os.path.join(data_folder, 'y_valid.npy')
+            shard_dir = '{0:03}-of-{1}.tfrecords'.format(count, num_shards)
+            tfrecord_filename = os.path.join(tfrecord_directory, shard_dir)
 
-        np.save(fname_img_npy, x)
-        np.save(fname_seg_npy, y)
+            with tf.io.TFRecordWriter(tfrecord_filename) as writer:
+                if use_2d:
+                    for k in range(len(img)):
+                        img_slice = img[k, :, :, :]
+                        seg_slice = seg[k, :, :, :]
 
-    return x, y
+                        img_raw = img_slice.tostring()
+                        seg_raw = seg_slice.tostring()
 
-def train_generator(data_path, batch_size = 10, multi_class = False):
-    
-    folders = os.listdir(data_path)
+                        height = img_slice.shape[0]
+                        width = img_slice.shape[1]
+                        num_channels = seg_slice.shape[-1]
 
-    sample_idx = folders.index("samples")
-    samples_path = data_path + str(folders[sample_idx])
-
-    labels_idx = folders.index("labels")
-    labels_path = data_path + str(folders[labels_idx]) 
-
-    samples_in = os.listdir(samples_path)
-    labels_in = os.listdir(labels_path)    
-    
-    # Loop forever so the generator never terminates
-    while True: 
-
-        samples = []
-        labels = []
-
-        count = 0
-        
-        while count < batch_size:
-
-            rand_idx = random.randint(0, len(samples_in) - 1)
-
-            sample = np.load(samples_path + "/" + samples_in[rand_idx])
-            sample = sample[48:336,48:336]
-            samples.append(sample)
-            
-            label = np.load(labels_path + "/" + labels_in[rand_idx])
-            label = label[48:336,48:336,:]
-
-            if multi_class == True:
-                background = np.zeros((label.shape[0], label.shape[1], 1))
-                for i in range(label.shape[0]):
-                    for j in range(label.shape[1]):
-                        sum = np.sum(label[i,j,:])
-                        if sum == 0:
-                            background[i][j] = 1
-                        else:
-                            background[i][j] = 0
-                            
-                label = np.concatenate((label, background), axis = 2)
-                label = np.reshape(label, (label.shape[0]*label.shape[1], 7))
-                labels.append(label)
-
-            else:
-                label = np.sum(label, axis = 2)
-                labels.append(label)
-            
-            X_ = np.array(samples)
-            Y_ = np.array(labels)
-
-            X_ = np.expand_dims(X_, axis=3)
-            if not multi_class:
-                Y_ = np.expand_dims(Y_, axis=3)
-                        
-            count += 1
-
-        yield (X_, Y_)
-
-def get_slices(path_in, path_out, extension):
-    
-    image_3d = os.listdir(path_in)
-    idx = 1
-    file_list = []
-
-    for image in image_3d:
-        if image.endswith(extension):
-            file_list.append(image)
-    
-    for image in file_list:
-        # create training samples
-        img_path = os.path.join(path_in, str(image))
-        with h5py.File(img_path, 'r') as hf:
-            img = np.array(hf['data'])
-
-        img_shape = img.shape
-
-        for channel in range(img_shape[2]):
-            if len(img_shape) == 3:
-                img_slice = img[:,:,channel]
-            elif len(img_shape) == 4:
-                img_slice = img[:,:,channel,:]
-            
-            name_out = "img_" + str(idx)
-            save_samples = os.path.join(path_out, name_out)
-            np.save(save_samples, img_slice)
-            idx += 1
-
-class DataGenerator(tf.keras.utils.Sequence):
-    'Generates data for Keras'
-    def __init__(self, 
-                x_set, 
-                y_set,
-                batch_size=4, 
-                shuffle=True, 
-                multi_class=True):
-
-        self.x_set = x_set
-        self.y_set = y_set
-        self.x = os.listdir(x_set) 
-        self.y = os.listdir(y_set)
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.multi_class = multi_class
-        self.idx_list = np.arange(start=1, stop=len(self.x)+1)
-        
-    def __len__(self):
-        return math.ceil(len(self.x) / self.batch_size)
-
-    def __getitem__(self, idx):
-        
-        indexes = self.idx_list[idx*self.batch_size:(idx+1)*self.batch_size]
-        # generate data
-        X, y = self.data_generator(indexes)
-
-        return X, y
-
-    def on_epoch_end(self):
-        if self.shuffle == True:
-            random.shuffle(self.idx_list)
-
-    def data_generator(self, indexes):
-        
-        # Initialization
-        X = np.empty((self.batch_size, 288, 288, 1))
-        
-        if self.multi_class:
-            Y = np.empty((self.batch_size, 288*288, 7))
-        else:
-            Y = np.empty((self.batch_size, 288,288, 1))
-
-        for i, idx in enumerate(indexes):
-
-            img = np.load(self.x_set + 'img_' + str(idx) + '.npy')
-            img = img[48:336,48:336]
-            img = np.expand_dims(img, axis=2)
-            X[i,:] = img
-
-            seg = np.load(self.y_set + 'img_' + str(idx) + '.npy')
-            seg = seg[48:336,48:336,:]
-
-            if self.multi_class:
-                seg_1d = self.get_multiclass(seg)
-                Y[i,:] = seg_1d
-            else:
-                seg = np.sum(seg, axis=2)
-                seg = np.expand_dims(seg, axis=2)
-                Y[i,:] = seg
-       
-        return X, Y
-
-    def get_multiclass(self, label):
-        
-        background = np.zeros((label.shape[0], label.shape[1], 1))
-        for i in range(label.shape[0]):
-            for j in range(label.shape[1]):
-                sum = np.sum(label[i,j,:])
-                if sum == 0:
-                    background[i][j] = 1
+                        feature = {
+                            'height': _int64_feature(height),
+                            'width': _int64_feature(width),
+                            'num_channels': _int64_feature(num_channels),
+                            'image_raw': _bytes_feature(img_raw),
+                            'label_raw': _bytes_feature(seg_raw)
+                        }
+                        example = tf.train.Example(features=tf.train.Features(feature=feature))
+                        writer.write(example.SerializeToString())
                 else:
-                    background[i][j] = 0
-                    
-        label = np.concatenate((label, background), axis = 2)
-        label = np.reshape(label, (label.shape[0]*label.shape[1], label.shape[2]))
-        
-        return label
-        
+                    height = img.shape[0]
+                    width = img.shape[1]
+                    depth = img.shape[2]
+                    num_channels = seg.shape[-1]
+
+                    img_raw = img.tostring()
+                    seg_raw = seg.tostring()
+
+                    feature = {
+                        'height': _int64_feature(height),
+                        'width': _int64_feature(width),
+                        'depth': _int64_feature(depth),
+                        'num_channels': _int64_feature(num_channels),
+                        'image_raw': _bytes_feature(img_raw),
+                        'label_raw': _bytes_feature(seg_raw)
+                    }
+            count += 1
+        print('{} out of {} datasets have been processed'.format(i, end - 1))
+
+def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False):
+
+    if use_bfloat16:
+        dtype = tf.bfloat16
+    else:
+        dtype = tf.float32
+
+    features = {
+        'height': tf.io.FixedLenFeature([], tf.int64),
+        'width': tf.io.FixedLenFeature([], tf.int64),
+        'num_channels': tf.io.FixedLenFeature([], tf.int64),
+        'image_raw': tf.io.FixedLenFeature([], tf.string),
+        'label_raw': tf.io.FixedLenFeature([], tf.string)
+    }
+
+    # Parse the input tf.Example proto using the dictionary above.
+    image_features = tf.io.parse_single_example(example_proto, features)
+    image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
+    image = tf.cast(tf.reshape(image_raw, [288, 288, 1]), dtype)
+
+    seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
+    seg = tf.reshape(seg_raw, [288, 288, 7])
+    seg = tf.cast(seg, dtype)
+
+    # if training:
+    #   image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
+    #   image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
+    #   image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+
+    if not multi_class:
+        seg = tf.math.reduce_sum(seg, axis=-1)
+
+    return (image, seg)
+
+def parse_fn_3d(example_proto, training, multi_class=True):
+
+    features = {
+        'height': tf.io.FixedLenFeature([], tf.int64),
+        'width': tf.io.FixedLenFeature([], tf.int64),
+        'depth': tf.io.FixedLenFeature([], tf.int64),
+        'num_channels': tf.io.FixedLenFeature([], tf.int64),
+        'image_raw': tf.io.FixedLenFeature([], tf.string),
+        'label_raw': tf.io.FixedLenFeature([], tf.string)
+    }
+
+    # Parse the input tf.Example proto using the dictionary above.
+    image_features = tf.io.parse_single_example(example_proto, features)
+    image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
+    image = tf.reshape(image_raw, [image_features['height'], image_features['width'], image_features['depth']])
+
+    seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
+    seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
+                               image_features['depth'], image_features['num_channels']])
+    seg = tf.cast(seg, tf.float32)
+
+    # if training:
+    #     image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
+    #     image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
+    #     image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+
+    if not multi_class:
+        seg = tf.math.reduce_sum(seg, axis=-1)
+
+    return (image, seg)
+
+def read_tfrecord(tfrecords_dir,
+                  batch_size,
+                  buffer_size,
+                  parse_fn=parse_fn_2d,
+                  multi_class=True,
+                  is_training=False,
+                  use_bfloat16=False):
+
+    file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
+    shards = tf.data.Dataset.from_tensor_slices(file_list)
+    shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
+    shards = shards.repeat()
+    dataset = shards.interleave(tf.data.TFRecordDataset,
+                                cycle_length=8,
+                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    if is_training:
+        dataset = dataset.shuffle(buffer_size=buffer_size)
+
+    parser = partial(parse_fn,
+                     training=True if is_training else False,
+                     multi_class=True if multi_class else False,
+                     use_bfloat16=True if use_bfloat16 else False)
+    dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
+
+    # optimise dataset performance
+    options = tf.data.Options()
+    options.experimental_optimization.parallel_batch = True
+    options.experimental_optimization.map_fusion = True
+    options.experimental_optimization.map_vectorization.enabled = True
+    options.experimental_optimization.map_parallelization = True
+    dataset = dataset.with_options(options)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+    return dataset
