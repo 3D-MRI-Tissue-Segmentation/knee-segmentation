@@ -3,7 +3,7 @@ import tensorflow.keras.layers as tfkl
 from Segmentation.model.unet_build_blocks import Conv2D_Block, Up_Conv2D
 from Segmentation.model.unet_build_blocks import Attention_Gate
 from Segmentation.model.unet_build_blocks import Recurrent_ResConv_block
-from Segmentation.model.backbone import VGG16_Encoder, VGG19_Encoder
+from Segmentation.model.backbone import Encoder
 
 
 class UNet(tf.keras.Model):
@@ -44,8 +44,8 @@ class UNet(tf.keras.Model):
 
         self.contracting_path = []
 
-        for i in range(len(self.num_channels)):
-            if self.backbone == 'default':
+        if self.backbone == 'default':
+            for i in range(len(self.num_channels)):
                 output = self.num_channels[i]
                 self.contracting_path.append(Conv2D_Block(output,
                                                           self.num_conv_layers,
@@ -57,15 +57,19 @@ class UNet(tf.keras.Model):
                                                           self.dropout_rate,
                                                           self.use_spatial_dropout,
                                                           self.data_format))
-
-            elif self.backbone == 'vgg16':
-                encoder = VGG16_Encoder()
-                self.contracting_path.append(encoder.get_conv_block(i))
-            elif self.backbone == 'vgg19':
-                encoder = VGG19_Encoder()
-                self.contracting_path.append(encoder.get_conv_block(i))
-            if i != len(self.num_channels) - 1:
-                self.contracting_path.append(tfkl.MaxPooling2D())
+                if i != len(self.num_channels) - 1:
+                    self.contracting_path.append(tfkl.MaxPooling2D())
+        else:
+            encoder = Encoder(weights_init='imagenet', model_architecture=self.backbone)
+            encoder.freeze_pretrained_layers()
+            for j in len(encoder.conv_list):
+                self.contracting_path.append(encoder.get_conv_block(j))
+                if self.backbone in ['vgg16', 'vgg19']:
+                    if j != len(encoder.conv_list) - 1:
+                        self.contracting_path.append(tfkl.MaxPooling2D())
+                elif self.backbone in ['resnet50']:
+                    if j == 0:
+                        self.contracting_path.append(tfkl.MaxPooling2D())
 
         self.upsampling_path = []
 
@@ -96,7 +100,13 @@ class UNet(tf.keras.Model):
                 blocks.append(x)
 
         for j, up in enumerate(self.upsampling_path):
-            x = up(x, blocks[-2 * j - 2], training=training)
+            if self.backbone in ['default', 'vgg16', 'vgg19']:
+                x = up(x, blocks[-2 * j - 2], training=training)
+            elif self.backbone in ['resnet50']:
+                if j != 2:
+                    x = up(x, blocks[-j - 2], training=training)
+                else:
+                    x = up(x, blocks[-j - 3], training=training)
 
         del blocks
 

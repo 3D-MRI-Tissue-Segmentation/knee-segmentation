@@ -138,7 +138,7 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
             count += 1
         print('{} out of {} datasets have been processed'.format(i, end - 1))
 
-def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False):
+def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False, use_RGB=False):
 
     if use_bfloat16:
         dtype = tf.bfloat16
@@ -157,6 +157,9 @@ def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False):
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
     image = tf.cast(tf.reshape(image_raw, [288, 288, 1]), dtype)
+
+    if use_RGB:
+        image = tf.image.grayscale_to_rgb(image)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
     seg = tf.reshape(seg_raw, [288, 288, 7])
@@ -209,7 +212,8 @@ def read_tfrecord(tfrecords_dir,
                   parse_fn=parse_fn_2d,
                   multi_class=True,
                   is_training=False,
-                  use_bfloat16=False):
+                  use_bfloat16=False,
+                  use_RGB=False):
 
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
@@ -224,7 +228,8 @@ def read_tfrecord(tfrecords_dir,
     parser = partial(parse_fn,
                      training=True if is_training else False,
                      multi_class=True if multi_class else False,
-                     use_bfloat16=True if use_bfloat16 else False)
+                     use_bfloat16=True if use_bfloat16 else False,
+                     use_RGB=True if use_RGB else False)
     dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
