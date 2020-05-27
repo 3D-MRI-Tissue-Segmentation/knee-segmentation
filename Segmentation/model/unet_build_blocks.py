@@ -168,6 +168,7 @@ class Attention_Gate(tf.keras.Model):
 
         return outputs
 
+
 class Recurrent_Block(tf.keras.Model):
 
     def __init__(self,
@@ -210,6 +211,7 @@ class Recurrent_Block(tf.keras.Model):
             x1 = self.conv(x1, training=training)
 
         return x1
+
 
 class Recurrent_ResConv_block(tf.keras.Model):
     def __init__(self,

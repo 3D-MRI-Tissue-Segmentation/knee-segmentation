@@ -10,7 +10,7 @@ from absl import logging
 
 from Segmentation.model.unet import UNet, R2_UNet
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, iou_loss_core, Mean_IOU
+from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
 
 # Dataset/training options
@@ -28,7 +28,7 @@ flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet')
-flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19')
+flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
@@ -102,13 +102,15 @@ def main(argv):
                                  buffer_size=FLAGS.buffer_size,
                                  multi_class=FLAGS.multi_class,
                                  is_training=True,
-                                 use_bfloat16=FLAGS.use_bfloat16)
+                                 use_bfloat16=FLAGS.use_bfloat16,
+                                 use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
         valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
                                  multi_class=FLAGS.multi_class,
                                  is_training=False,
-                                 use_bfloat16=FLAGS.use_bfloat16)
+                                 use_bfloat16=FLAGS.use_bfloat16,
+                                 use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
 
         num_classes = 7 if FLAGS.multi_class else 1
 
@@ -149,7 +151,7 @@ def main(argv):
                             FLAGS.activation,
                             2,
                             FLAGS.use_attention,
-                            FLAGS.batchnorm,
+                            FLAGS.use_batchnorm,
                             FLAGS.use_bias,
                             FLAGS.channel_order)
 
@@ -167,9 +169,13 @@ def main(argv):
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
-        model.build(input_shape=(batch_size, 288, 288, 1))
+        if FLAGS.backbone_architecture == 'default':
+            model.build((FLAGS.batch_size, 288, 288, 1))
+        else:
+            model.build((FLAGS.batch_size, 288, 288, 3))
+        model.summary()
         model.compile(optimizer=optimiser,
-                      loss=tversky_loss,
+                      loss=tversky_loss_v2,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
 
     if FLAGS.train:
@@ -181,18 +187,18 @@ def main(argv):
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
+
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
                             validation_data=valid_ds,
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
-
+        FLAGS.append_flags_into_file(logdir_arch + '_test_flags.cfg')
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
 
     else:
         # load the latest checkpoint in the FLAGS.logdir file
-        # latest = tf.train.latest_checkpoint(FLAGS.logdir)
         model.load_weights(FLAGS.weights_dir)
         for step, (image, label) in enumerate(valid_ds):
             if step >= 80:
