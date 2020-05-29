@@ -175,7 +175,7 @@ def main(argv):
             model.build((FLAGS.batch_size, 288, 288, 3))
         model.summary()
         model.compile(optimizer=optimiser,
-                      loss=tversky_loss_v2,
+                      loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
 
     if FLAGS.train:
