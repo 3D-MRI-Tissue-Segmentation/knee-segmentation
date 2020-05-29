@@ -1,12 +1,9 @@
 import tensorflow as tf
 import tensorflow.keras.layers as tfkl
-from Segmentation.model.unet_build_blocks import Conv2D_Block, Up_Conv2D
-from Segmentation.model.unet_build_blocks import Attention_Gate
-from Segmentation.model.unet_build_blocks import Recurrent_ResConv_block
-from Segmentation.model.backbone import VGG16_Encoder, VGG19_Encoder
 
 class SegNet (tf.keras.Model):
-    """ hhh """
+    """ Tensorflow 2 Implementation of 'SegNet: A Deep Convolutional Encoder-Decoder
+    Architecture for Image Segmentation' https://arxiv.org/abs/1611.09326 """
 
     def __init__(self,
                  num_channels,
@@ -118,43 +115,30 @@ class SegNet_Conv2D_Block(tf.keras.Sequential):
 
         super(SegNet_Conv2D_Block, self).__init__(**kwargs)
 
-        self.num_channels = num_channels
-        self.num_conv_layers = num_conv_layers
-        self.kernel_size = kernel_size
-        self.nonlinearity = nonlinearity
-        self.use_batchnorm = use_batchnorm
-        self.use_bias = use_bias
-        self.use_dropout = use_dropout
-        self.dropout_rate = dropout_rate
-        self.use_spatial_dropout = use_spatial_dropout
-        self.data_format = data_format
-
-        for _ in range(self.num_conv_layers):
-            self.add(tfkl.Conv2D(self.num_channels,
-                                 self.kernel_size,
+        for _ in range(num_conv_layers):
+            self.add(tfkl.Conv2D(num_channels,
+                                 kernel_size,
                                  padding='same',
-                                 use_bias=self.use_bias,
-                                 data_format=self.data_format))
-            if self.use_batchnorm:
+                                 use_bias=use_bias,
+                                 data_format=data_format))
+            if use_batchnorm:
                 self.add(tfkl.BatchNormalization(axis=-1,
                                                  momentum=0.95,
                                                  epsilon=0.001))
-            self.add(tfkl.Activation(self.nonlinearity))
+            self.add(tfkl.Activation(nonlinearity))
 
-        if self.use_dropout:
-            if self.use_spatial_dropout:
-                self.add(tfkl.SpatialDropout2D(rate=self.dropout_rate))
+        if use_dropout:
+            if use_spatial_dropout:
+                self.add(tfkl.SpatialDropout2D(rate=dropout_rate))
             else:
-                self.add(tfkl.Dropout(rate=self.dropout_rate))
+                self.add(tfkl.Dropout(rate=dropout_rate))
 
-        self.add(tfkl.MaxPool2D(self.pool_size))
+        self.add(tfkl.MaxPool2D(pool_size))
 
     def call(self, x, training=False):
 
         output = super(SegNet_Conv2D_Block, self).call(x, training=training)
         return output
-
-
 
 
 class segnet_Up_Conv2D_block(tf.keras.Sequential):
@@ -178,15 +162,15 @@ class segnet_Up_Conv2D_block(tf.keras.Sequential):
 
         for _ in range(num_conv_layers):
             if use_transpose:
-                self.add(tfkl.Conv2DTranspose(self.num_channels,
-                                                         kernel_size,
-                                                         padding='same',
-                                                         strides=strides,
-                                                         data_format=data_format))
+                self.add(tfkl.Conv2DTranspose(num_channels,
+                                              kernel_size,
+                                              padding='same',
+                                              strides=strides,
+                                              data_format=data_format))
             else:
                 self.add(tfkl.UpSampling2D(size=strides))
             
-            if self.use_batchnorm:
+            if use_batchnorm:
                 self.add(tfkl.BatchNormalization(axis=-1,
                                                  momentum=0.95,
                                                  epsilon=0.001))
@@ -197,5 +181,3 @@ class segnet_Up_Conv2D_block(tf.keras.Sequential):
         output = super(SegNet_Conv2D_Block, self).call(x, training=training)
         return output
 
-            
-            
