@@ -206,6 +206,5 @@ def main(argv):
                 visualise_multi_class(label, pred)
 
 if __name__ == '__main__':
-  app.run(main)
-
+    app.run(main)
     
