@@ -21,7 +21,7 @@ class SegNet (tf.keras.Model):
                  data_format='channels_last',
                  **kwargs):
 
-        super(UNet, self).__init__(**kwargs)
+        super(SegNet, self).__init__(**kwargs)
 
         self.num_classes = num_classes
         self.num_channels = num_channels
