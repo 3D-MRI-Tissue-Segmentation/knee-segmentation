@@ -21,7 +21,7 @@ class SegNet (tf.keras.Model):
                  data_format='channels_last',
                  **kwargs):
 
-        super(UNet, self).__init__(**kwargs)
+        super(SegNet, self).__init__(**kwargs)
 
         self.num_classes = num_classes
         self.num_channels = num_channels
@@ -58,7 +58,6 @@ class SegNet (tf.keras.Model):
                                                    self.data_format))
 
         self.up_conv_list = tf.keras.Sequential()
-
         n = len(self.num_channels) - 1
 
         for j in range(n, -1, -1):
