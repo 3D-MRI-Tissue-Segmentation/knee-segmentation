@@ -10,7 +10,7 @@ class SegNet (tf.keras.Model):
                  num_classes,
                  backbone='default',
                  kernel_size=(3, 3),
-                 pool_size=(2,2),
+                 pool_size=(2, 2),
                  nonlinearity='relu',
                  use_batchnorm=True,
                  use_bias=True,
@@ -63,14 +63,14 @@ class SegNet (tf.keras.Model):
 
         for j in range(n, -1, -1):
             output = self.num_channels[j]
-            if j in [n, n-1, n-2]:
+            if j in [n, n - 1, n - 2]:
                 num_conv = 3
             else:
                 num_conv = 2
             self.up_conv_list.add(segnet_Up_Conv2D_block(output,
                                                          num_conv_layers=num_conv,
                                                          kernel_size=(2, 2),
-                                                         upsampling_size=(2,2),
+                                                         upsampling_size=(2, 2),
                                                          nonlinearity=self.nonlinearity,
                                                          use_batchnorm=self.use_batchnorm,
                                                          use_transpose=self.use_transpose,
@@ -78,13 +78,13 @@ class SegNet (tf.keras.Model):
                                                          strides=(2, 2),
                                                          data_format=self.data_format))
 
-        self.conv_1x1 =  tfkl.Conv2D(num_classes,
-                                     (1, 1),
-                                     activation='linear',
-                                     padding='same',
-                                     data_format=data_format)
+        self.conv_1x1 = tfkl.Conv2D(num_classes,
+                                    (1, 1),
+                                    activation='linear',
+                                    padding='same',
+                                    data_format=data_format)
 
-    def call(x, training=False):
+    def call(self, x, training=False):
 
         encoded = self.conv_list(x, training=training)
         decoded = self.up_conv_list(encoded, training=training)
@@ -103,7 +103,7 @@ class SegNet_Conv2D_Block(tf.keras.Sequential):
                  num_channels,
                  num_conv_layers=2,
                  kernel_size=(3, 3),
-                 pool_size=(2,2),
+                 pool_size=(2, 2),
                  nonlinearity='relu',
                  use_batchnorm=True,
                  use_bias=True,
@@ -147,7 +147,7 @@ class segnet_Up_Conv2D_block(tf.keras.Sequential):
                  num_channels,
                  num_conv_layers,
                  kernel_size=(3, 3),
-                 upsampling_size=(2,2),
+                 upsampling_size=(2, 2),
                  nonlinearity='relu',
                  use_batchnorm=True,
                  use_transpose=False,
@@ -156,28 +156,29 @@ class segnet_Up_Conv2D_block(tf.keras.Sequential):
                  data_format='channels_last',
                  **kwargs):
 
-        super(Up_Conv2D, self).__init__(**kwargs)
+        super(segnet_Up_Conv2D_block, self).__init__(**kwargs)
 
-        self.add(tf.keras.layers.UpSampling2D(size=upsampling_size))
+        if use_transpose:
+            self.add(tfkl.Conv2DTranspose(num_channels,
+                                          kernel_size,
+                                          padding='same',
+                                          strides=strides,
+                                          data_format=data_format))
+        else:
+            self.add(tf.keras.layers.UpSampling2D(size=upsampling_size))
 
         for _ in range(num_conv_layers):
-            if use_transpose:
-                self.add(tfkl.Conv2DTranspose(num_channels,
-                                              kernel_size,
-                                              padding='same',
-                                              strides=strides,
-                                              data_format=data_format))
-            else:
-                self.add(tfkl.UpSampling2D(size=strides))
-            
+            self.add(tfkl.Conv2D(num_channels,
+                                 kernel_size,
+                                 padding='same',
+                                 data_format=data_format))
             if use_batchnorm:
                 self.add(tfkl.BatchNormalization(axis=-1,
                                                  momentum=0.95,
                                                  epsilon=0.001))
             self.add(tfkl.Activation(nonlinearity))
-        
+
     def call(self, x, training=False):
 
         output = super(SegNet_Conv2D_Block, self).call(x, training=training)
         return output
-
