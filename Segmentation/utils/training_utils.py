@@ -10,13 +10,13 @@ def Mean_IOU(y_true, y_pred):
     true_pixels = K.argmax(y_true, axis=-1)
     pred_pixels = K.argmax(y_pred, axis=-1)
     void_labels = K.equal(K.sum(y_true, axis=-1), 0)
-    for i in range(0, nb_classes): # exclude first label (background) and last label (void)
+    for i in range(0, nb_classes):  # exclude first label (background) and last label (void)
         true_labels = K.equal(true_pixels, i) & ~void_labels
         pred_labels = K.equal(pred_pixels, i) & ~void_labels
         inter = tf.cast((true_labels & pred_labels), tf.int32)
         union = tf.cast((true_labels | pred_labels), tf.int32)
-        legal_batches = K.sum(tf.cast(true_labels, tf.int32), axis=1)>0
-        ious = K.sum(inter, axis=1)/K.sum(union, axis=1)
+        legal_batches = K.sum(tf.cast(true_labels, tf.int32), axis=1) > 0
+        ious = K.sum(inter, axis=1) / K.sum(union, axis=1)
         iou.append(K.mean(ious[legal_batches]))
     iou = tf.stack(iou)
     legal_labels = ~tf.math.is_nan(iou)
@@ -24,9 +24,9 @@ def Mean_IOU(y_true, y_pred):
     return K.mean(iou)
 
 def dice_coef_loss(y_true, y_pred):
-    return 1.-dice_coef(y_true, y_pred)
+    return 1. - dice_coef(y_true, y_pred)
 
-def dice_coef(y_true, y_pred,smooth=1):
+def dice_coef(y_true, y_pred, smooth=1):
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
 
@@ -76,11 +76,11 @@ def iou_loss_core(y_true, y_pred, smooth=1):
     y_true = K.flatten(y_true)
     y_pred = K.flatten(y_pred)
     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
-    iou = (intersection + smooth) / ( union + smooth)
+    union = K.sum(y_true, -1) + K.sum(y_pred, -1) - intersection
+    iou = (intersection + smooth) / (union + smooth)
 
     return iou
-  
+
 def plot_train_history_loss(history, multi_class=True):
     # summarize history for loss
     fig, ax = plt.subplots(2, 1)
@@ -93,7 +93,6 @@ def plot_train_history_loss(history, multi_class=True):
         ax[0].set(xlabel='epoch', ylabel='loss')
         ax[0].legend(['train_dice', 'val_dice', 'train_cce', 'val_cce'], loc='upper right')
         ax[0].legend(['train_tversky', 'val_tversky', 'train_cce', 'val_cce'], loc='upper right')
-
     else:
         ax[0].plot(history.history['dice_coef'])
         ax[0].plot(history.history['val_dice_coef'])
@@ -112,8 +111,8 @@ def plot_train_history_loss(history, multi_class=True):
 
 def visualise_binary(y_true, y_pred):
 
-    y_true = np.expand_dims(y_true,axis=3)
-    y_pred = np.expand_dims(y_pred,axis=3)
+    y_true = np.expand_dims(y_true, axis=3)
+    y_pred = np.expand_dims(y_pred, axis=3)
     batch_size = y_true.shape[0]
 
     for i in range(batch_size):
@@ -131,13 +130,13 @@ def visualise_multi_class(y_true, y_pred):
     batch_size = y_true.shape[0]
 
     for i in range(batch_size):
-        
+
         grd_truth = y_true[i,:,:,:]
         pred = y_pred[i,:,:,:]
 
         length = int(math.sqrt(y_true.shape[1]))
         channel = y_true.shape[3]
- 
+
         pred_max = np.argmax(pred, axis=2)
         pred_img_color = label2color(pred_max)
         y_max = np.argmax(grd_truth, axis=2)

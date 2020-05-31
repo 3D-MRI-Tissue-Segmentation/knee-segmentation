@@ -12,8 +12,6 @@ class VNet(tf.keras.Model):
                  nonlinearity='relu',
                  use_batchnorm=True,
                  noise=0.0,
-                 # dropout_rate=0.25,
-                 # use_spatial_dropout=True,
                  data_format='channels_last',
                  name="vnet"):
         self.params = str(inspect.currentframe().f_locals)
