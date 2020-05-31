@@ -90,7 +90,7 @@ def main(argv):
         
         batch_size = FLAGS.batch_size*FLAGS.num_cores
         steps_per_epoch = 19200 // batch_size
-        validation_steps = 4480 // batch_size 
+        validation_steps = 4480 // batch_size
 
         train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
                                  batch_size=batch_size,
@@ -113,7 +113,7 @@ def main(argv):
 
     # set model architecture
     with strategy.scope():
-        
+
         if FLAGS.model_architecture == 'unet':
             model = UNet(FLAGS.num_filters,
                             num_classes,
@@ -124,7 +124,7 @@ def main(argv):
                             FLAGS.dropout_rate,
                             FLAGS.use_spatial,
                             FLAGS.channel_order)
-        
+
         elif FLAGS.model_architecture == 'multires_unet':
             model = MultiResUnet(FLAGS.num_filters,
                                     num_classes,
@@ -151,18 +151,18 @@ def main(argv):
         else:
             print('The model architecture {} does not exist or is not supported. Please try again'.format(FLAGS.model_architecutre))
             exit()
-        
+
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
         else:
-            lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs+1,FLAGS.train_epochs))
-            
+            lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs+1, FLAGS.train_epochs))
+
         lr_rate = LearningRateSchedule(steps_per_epoch, FLAGS.base_learning_rate, FLAGS.lr_drop_ratio, lr_decay_epochs, FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
 
         model.compile(optimizer=optimiser,
-                        loss=tversky_loss,
-                        metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
+                      loss=tversky_loss,
+                      metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
 
     if FLAGS.train:
 

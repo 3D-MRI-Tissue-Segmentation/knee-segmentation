@@ -44,13 +44,13 @@ class VNet(tf.keras.Model):
         x2, x2_before = self.conv_2(x1, training)
         x3, x3_before = self.conv_3(x2, training)
         x4, x4_before = self.conv_4(x3, training)
-        
+
         # decoder blocks
         u4 = self.upconv_4([x4, x4_before], training)
         u3 = self.upconv_3([u4, x3_before], training)
-        u2 = self.upconv_2([u3, x2_before], training)        
+        u2 = self.upconv_2([u3, x2_before], training)
         u1 = self.upconv_1([u2, x1_before], training)
-        
+
         output = self.conv_output(u1)
         output = self.conv_1x1(output)
 
