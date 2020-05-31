@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import math
 from functools import partial
 import tensorflow as tf
+from glob import glob
 
 from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
     translate_randomly_image_pair_2d
@@ -13,7 +14,7 @@ from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_
 def get_multiclass(label):
 
     # label shape
-    # (batch_size, height,width,channels)
+    # (batch_size, height, width, channels)
 
     batch_size = label.shape[0]
     height = label.shape[1]
@@ -47,96 +48,83 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
     if not os.path.exists(tfrecord_directory):
         os.mkdir(tfrecord_directory)
 
-    start = 1
-    if get_train:
-        end = 61
-    else:
-        end = 15
+    train_val = 'train' if get_train else 'valid'
+    files = glob(os.path.join(data_folder, f'*.im'))
 
-    count = 1
-    num_shards = (end - 1) * 2
+    for idx, f in enumerate(files):
+        f_name = f.split("/")[-1]
+        f_name = f_name.split(".")[0]
 
-    for i in range(start, end):
-        for j in range(2):
-            if i <= 9:
-                if get_train:
-                    fname_img = 'train_00{}_V0{}.im'.format(i, j)
-                    fname_seg = 'train_00{}_V0{}.seg'.format(i, j)
-                else:
-                    fname_img = 'valid_00{}_V0{}.im'.format(i, j)
-                    fname_seg = 'valid_00{}_V0{}.seg'.format(i, j)
-            else:
-                if get_train:
-                    fname_img = 'train_0{}_V0{}.im'.format(i, j)
-                    fname_seg = 'train_0{}_V0{}.seg'.format(i, j)
-                else:
-                    fname_img = 'valid_0{}_V0{}.im'.format(i, j)
-                    fname_seg = 'valid_0{}_V0{}.seg'.format(i, j)
+        fname_img = f'{f_name}.im'
+        fname_seg = f'{f_name}.seg'
 
-            img_filepath = os.path.join(data_folder, fname_img)
-            seg_filepath = os.path.join(data_folder, fname_seg)
+        img_filepath = os.path.join(data_folder, fname_img)
+        seg_filepath = os.path.join(data_folder, fname_seg)
 
-            with h5py.File(img_filepath, 'r') as hf:
-                img = np.array(hf['data'])
-            with h5py.File(seg_filepath, 'r') as hf:
-                seg = np.array(hf['data'])
+        assert os.path.exists(seg_filepath), f"Seg file does not exist: {seg_filepath}"
 
-            img = np.rollaxis(img, 2, 0)
-            seg = np.rollaxis(seg, 2, 0)
+        with h5py.File(img_filepath, 'r') as hf:
+            img = np.array(hf['data'])
+        with h5py.File(seg_filepath, 'r') as hf:
+            seg = np.array(hf['data'])
 
-            img = img[:, 48:336, 48:336]
-            seg = seg[:, 48:336, 48:336, :]
+        img = np.rollaxis(img, 2, 0)
+        seg = np.rollaxis(seg, 2, 0)
 
-            seg_temp = np.zeros((160, 288, 288, 1), dtype=np.int8)
-            seg_sum = np.sum(seg, axis=3)
-            seg_temp[seg_sum == 0] = 1
-            seg = np.concatenate([seg_temp, seg], axis=3)
-            img = np.expand_dims(img, axis=3)
+        img = img[:, 48:336, 48:336]
+        seg = seg[:, 48:336, 48:336, :]
 
-            shard_dir = '{0:03}-of-{1}.tfrecords'.format(count, num_shards)
-            tfrecord_filename = os.path.join(tfrecord_directory, shard_dir)
+        seg_temp = np.zeros((160, 288, 288, 1), dtype=np.int8)
+        seg_sum = np.sum(seg, axis=3)
+        seg_temp[seg_sum == 0] = 1
+        seg = np.concatenate([seg_temp, seg], axis=3)
+        img = np.expand_dims(img, axis=3)
 
-            with tf.io.TFRecordWriter(tfrecord_filename) as writer:
-                if use_2d:
-                    for k in range(len(img)):
-                        img_slice = img[k, :, :, :]
-                        seg_slice = seg[k, :, :, :]
+        shard_dir = f'{idx:03d}-of-{len(files) - 1:03d}.tfrecords'
+        tfrecord_filename = os.path.join(tfrecord_directory, shard_dir)
 
-                        img_raw = img_slice.tostring()
-                        seg_raw = seg_slice.tostring()
+        with tf.io.TFRecordWriter(tfrecord_filename) as writer:
+            if use_2d:
+                for k in range(len(img)):
+                    img_slice = img[k, :, :, :]
+                    seg_slice = seg[k, :, :, :]
 
-                        height = img_slice.shape[0]
-                        width = img_slice.shape[1]
-                        num_channels = seg_slice.shape[-1]
+                    img_raw = img_slice.tostring()
+                    seg_raw = seg_slice.tostring()
 
-                        feature = {
-                            'height': _int64_feature(height),
-                            'width': _int64_feature(width),
-                            'num_channels': _int64_feature(num_channels),
-                            'image_raw': _bytes_feature(img_raw),
-                            'label_raw': _bytes_feature(seg_raw)
-                        }
-                        example = tf.train.Example(features=tf.train.Features(feature=feature))
-                        writer.write(example.SerializeToString())
-                else:
-                    height = img.shape[0]
-                    width = img.shape[1]
-                    depth = img.shape[2]
-                    num_channels = seg.shape[-1]
-
-                    img_raw = img.tostring()
-                    seg_raw = seg.tostring()
+                    height = img_slice.shape[0]
+                    width = img_slice.shape[1]
+                    num_channels = seg_slice.shape[-1]
 
                     feature = {
                         'height': _int64_feature(height),
                         'width': _int64_feature(width),
-                        'depth': _int64_feature(depth),
                         'num_channels': _int64_feature(num_channels),
                         'image_raw': _bytes_feature(img_raw),
                         'label_raw': _bytes_feature(seg_raw)
                     }
-            count += 1
-        print('{} out of {} datasets have been processed'.format(i, end - 1))
+                    example = tf.train.Example(features=tf.train.Features(feature=feature))
+                    writer.write(example.SerializeToString())
+            else:
+                height = img.shape[0]
+                width = img.shape[1]
+                depth = img.shape[2]
+                num_channels = seg.shape[-1]
+
+                img_raw = img.tostring()
+                seg_raw = seg.tostring()
+
+                feature = {
+                    'height': _int64_feature(height),
+                    'width': _int64_feature(width),
+                    'depth': _int64_feature(depth),
+                    'num_channels': _int64_feature(num_channels),
+                    'image_raw': _bytes_feature(img_raw),
+                    'label_raw': _bytes_feature(seg_raw)
+                }
+                example = tf.train.Example(features=tf.train.Features(feature=feature))
+                writer.write(example.SerializeToString())
+        print(f'{idx} out of {len(files) - 1} datasets have been processed')
 
 def parse_fn_2d(example_proto, training, multi_class=True):
 

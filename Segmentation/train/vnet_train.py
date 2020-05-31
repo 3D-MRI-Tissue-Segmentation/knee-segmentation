@@ -7,10 +7,7 @@ def train_model(model):
     print(model.name)
 
 
-
-
 if __name__ == "__main__":
-
     sys.path.insert(0, os.getcwd())
 
     from Segmentation.train.utils import setup_gpu
