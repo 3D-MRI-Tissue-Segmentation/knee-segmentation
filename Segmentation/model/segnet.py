@@ -180,5 +180,5 @@ class segnet_Up_Conv2D_block(tf.keras.Sequential):
 
     def call(self, x, training=False):
 
-        output = super(SegNet_Conv2D_Block, self).call(x, training=training)
+        output = super(segnet_Up_Conv2D_block, self).call(x, training=training)
         return output

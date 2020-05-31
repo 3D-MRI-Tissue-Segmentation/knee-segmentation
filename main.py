@@ -8,7 +8,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from Segmentation.model.unet import UNet, R2_UNet
+from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
@@ -28,7 +28,7 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++')
 flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
@@ -156,6 +156,33 @@ def main(argv):
                             FLAGS.use_bias,
                             FLAGS.channel_order)
 
+        elif FLAGS.model_architecture == 'segnet':
+
+            model = SegNet(FLAGS.num_filters,
+                           num_classes,
+                           FLAGS.backbone_architecture,
+                           FLAGS.kernel_size,
+                           (2, 2),
+                           FLAGS.activation,
+                           FLAGS.use_batchnorm,
+                           FLAGS.use_bias,
+                           FLAGS.use_transpose,
+                           FLAGS.use_dropout,
+                           FLAGS.dropout_rate,
+                           FLAGS.use_spatial,
+                           FLAGS.channel_order)
+
+        elif FLAGS.model_architecture == 'unet++':
+
+            model = Nested_UNet(FLAGS.num_filters,
+                                num_classes,
+                                FLAGS.num_conv,
+                                FLAGS.kernel_size,
+                                FLAGS.activation,
+                                FLAGS.use_batchnorm,
+                                FLAGS.use_bias,
+                                FLAGS.channel_order)
+
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
 
@@ -171,9 +198,9 @@ def main(argv):
                                        FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
         if FLAGS.backbone_architecture == 'default':
-            model.build((FLAGS.batch_size, 288, 288, 1))
+            model.build((None, None, None, 1))
         else:
-            model.build((FLAGS.batch_size, 288, 288, 3))
+            model.build((None, None, None, 3))
         model.summary()
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,

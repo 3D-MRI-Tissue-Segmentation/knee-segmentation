@@ -270,6 +270,29 @@ class Nested_UNet(tf.keras.Model):
 
     def call(self, x, training=False):
 
+        block_list = []
+        x = self.conv_block_lists[0][0](x, training=training)
+        block_list.append(x)
+
+        for sum_idx in range(1, len(self.conv_block_lists)):
+            left_idx = sum_idx
+            right_idx = 0
+            layer_list = []
+
+            while right_idx <= sum_idx:
+
+                if left_idx == sum_idx:
+                    x = self.conv_block_lists[left_idx][right_idx](self.pool(x), training=training)
+                else:
+                    x = self.conv_block_lists[left_idx][right_idx](tfkl.concatenate([self.up(x), block_list[left_idx]]))
+
+                left_idx -= 1
+                right_idx += 1
+                layer_list.append(x)
+
+            block_list.append(layer_list)
+
+        # TODO(Pietro/Lapo) Turn this into a nested loop?
         # i + j = 0
         x0_0 = self.conv_block_lists[0][0](x, training=training)
 
@@ -295,7 +318,7 @@ class Nested_UNet(tf.keras.Model):
         x1_3 = self.conv_block_lists[1][3](tfkl.concatenate([x1_0, x1_1, x1_2, self.up(x2_2)]), training=training)
         x0_4 = self.conv_block_lists[0][4](tfkl.concatenate([x0_0, x0_1, x0_2, x0_3, self.up(x1_3)]), training=training)
 
-        output = self.conv1x1(x0_4)
+        output = self.conv_1x1(x0_4)
 
         if self.num_classes == 1:
             output = tfkl.Activation('sigmoid')(output)
