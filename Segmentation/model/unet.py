@@ -268,7 +268,35 @@ class Nested_UNet(tf.keras.Model):
                                     padding='same',
                                     data_format=data_format)
 
-    def call(self, x, training=False):
+    def call(self, input, training=False):
+
+        x = dict()
+        use_x = list()
+        x['0_0'] = self.conv_block_lists[0][0](input, training=training)
+        last_0_name = '0_0'
+
+        for sum in range(1,len(self.conv_block_lists)):
+            i, j = sum, 0
+            while j <= sum:
+
+                name = str(i) + '_' + str(j)
+
+                if i==sum:
+                    x[name] = self.conv_block_lists[i][j](self.pool(x[last_0_name]), training=training)
+                    last_0_name = name
+
+                else:
+                    for temp_right in range(0, j):
+                        string = str(i) + '_' + str(temp_right)
+                        use_x.add(x[string])
+                    
+                    x[name] = self.conv_block_lists[i][j](tfkl.concatenate([use_x, self.up(last_name)]), training=training)
+
+                use_x.clear()
+                last = (i,j)
+                last_name = name
+                i = i-1
+                j = j+1
 
         # i + j = 0
         x0_0 = self.conv_block_lists[0][0](x, training=training)
