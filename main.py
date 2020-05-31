@@ -197,11 +197,13 @@ def main(argv):
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+        """
         if FLAGS.backbone_architecture == 'default':
             model.build((None, None, None, 1))
         else:
             model.build((None, None, None, 3))
         model.summary()
+        """
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
