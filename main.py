@@ -85,9 +85,9 @@ def main(argv):
         tf.tpu.experimental.initialize_tpu_system(resolver)
         strategy = tf.distribute.experimental.TPUStrategy(resolver)
 
-    # set dataset configuration 
+    # set dataset configuration
     if FLAGS.dataset == 'oai_challenge':
-        
+
         batch_size = FLAGS.batch_size*FLAGS.num_cores
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size

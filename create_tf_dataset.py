@@ -1,6 +1,6 @@
 from Segmentation.utils.data_loader import create_OAI_dataset
 
-if __name__=="__main__":
+if __name__ == "__main__":
     folder = 'valid'
     use_2d = True
 
