@@ -3,16 +3,15 @@ import tensorflow.keras.layers as tfkl
 
 class Deeplabv3(tf.keras.Model):
     """ Tensorflow 2 Implementation of """
-
     def __init__(self,
                  num_classes,
                  kernel_size_initial_conv,
-                 num_channels_atrous
-                 num_channels_DCNN=(256,512,1024),
+                 num_channels_atrous,
+                 num_channels_DCNN=(256, 512, 1024),
                  num_channels_ASPP=256,
                  kernel_size_atrous=3,
-                 kernel_size_DCNN=(1,3),
-                 kernel_size_ASPP=(1,3,3,3),
+                 kernel_size_DCNN=(1, 3),
+                 kernel_size_ASPP=(1, 3, 3, 3),
                  padding='same',
                  nonlinearity='relu',
                  use_batchnorm=True,
@@ -22,25 +21,23 @@ class Deeplabv3(tf.keras.Model):
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
-                 MultiGrid=(1,2,4),
-                 rate_ASPP=(1,6,12,18),
-                 output_stride=16, #Not adapted code for any other out stride
+                 MultiGrid=(1, 2, 4),
+                 rate_ASPP=(1, 6, 12, 18),
+                 output_stride=16,
+                 # Not adapted code for any other out stride
                  **kwargs):
-    
-    """ Arguments:
+        """ Arguments:
             kernel_size_initial_conv: the size of the kernel for the
                                       first convolution
-            num_channels_DCNN: touple with the number of channels for the 
-                               first three blocks of the DCNN  
+            num_channels_DCNN: touple with the number of channels for the
+                               first three blocks of the DCNN
             kernel_size_DCNN: two element touple with the kernel size of the
                               first and last convolution of the resnet_block
                               (First element) and the middle convolution
                               of the resnet_block (Second element)  """
-        
+
         super(Deeplabv3, self).__init__(**kwargs)
-
         self.steps = tf.keras.Sequential()
-
         self.steps.add(ResNet_Backbone(kernel_size_initial_conv,
                                        num_channels_DCNN,
                                        kernel_size_DCNN,
@@ -72,9 +69,9 @@ class Deeplabv3(tf.keras.Model):
                                                       use_bias,
                                                       data_format))
 
-        self.steps.add(aspp_block(kernel_size=1,
-                                  rate=1,
-                                  num_channels=num_classes,
+        self.steps.add(aspp_block(1,
+                                  1,
+                                  num_classes,
                                   padding,
                                   use_batchnorm,
                                   use_nonlinearity,
@@ -92,20 +89,17 @@ class Deeplabv3(tf.keras.Model):
 
         out = self.steps(x, training=training)
 
-        #Upsample to same size as the input
+        # Upsample to same size as the input
         input_size = tf.shape(x)[1:3]
         out = tf.image.resize(out, input_size)
 
         return out
 
-######################## DCNN ########################
-# DCNN portion using a ResNet
 class ResNet_Backbone():
-    
     def __init__(self,
                  kernel_size_initial_conv,
-                 num_channels=(256,512,1024),
-                 kernel_size_blocks=(1,3),
+                 num_channels=(256, 512, 1024),
+                 kernel_size_blocks=(1, 3),
                  padding='same',
                  nonlinearity='relu',
                  use_batchnorm=True,
@@ -114,15 +108,15 @@ class ResNet_Backbone():
                  data_format='channels_last',
                  **kwargs):
 
-        self.first_conv = tfkl.Conv2D(num_channels[0]//4,
+        self.first_conv = tfkl.Conv2D(num_channels[0] // 4,
                                       kernel_size_initial_conv,
                                       strides=2,
                                       padding=padding,
                                       use_bias=use_bias,
-                                      data_format=data_format))
-
-        self.max_pool = tfkl.MaxPool2D(pool_size=(2,2),
-                                       pading='valid')
+                                      data_format=data_format)
+        
+        self.max_pool = tfkl.MaxPool2D(pool_size=(2, 2),
+                                       padding='valid')
 
         self.block1 = resnet_block(False,
                                    num_channels[0],
@@ -133,7 +127,6 @@ class ResNet_Backbone():
                                    use_nonlinearity,
                                    use_bias,
                                    data_format)
-
         self.block2 = resnet_block(True,
                                    num_channels[1],
                                    kernel_size_blocks,
@@ -156,12 +149,12 @@ class ResNet_Backbone():
 
     def call(self, x, training=False):
 
-        x = self.first_conv(x, training=training) #output stride 2
-        x = self.max_pool(x) #output stride 4
+        x = self.first_conv(x, training=training)  # output stride 2
+        x = self.max_pool(x)  # output stride 4
 
-        x = self.block1(x, training=training) #output stride 4
-        x = self.block2(x, training=training) #output stride 8
-        x = self.block3(x, training=training) #output stride 16
+        x = self.block1(x, training=training)  # output stride 4
+        x = self.block2(x, training=training)  # output stride 8
+        x = self.block3(x, training=training)  # output stride 16
         return x
 
 
@@ -171,7 +164,7 @@ class resnet_block():
     def __init__(self,
                  use_stride,
                  num_channels,
-                 kernel_size=(1,3),
+                 kernel_size=(1, 3),
                  padding='same',
                  nonlinearity='relu',
                  use_batchnorm=True,
@@ -185,8 +178,8 @@ class resnet_block():
 
         if use_stride:
             self.input_conv = basic_conv_block(num_channels,
-                                               kernel_size=1,
-                                               stride=2,
+                                               1,
+                                               2,
                                                padding,
                                                nonlinearity,
                                                use_batchnorm,
@@ -194,13 +187,13 @@ class resnet_block():
                                                use_bias,
                                                data_format)
             stride = 2
-        
+
         else:
             stride = 1
 
         self.first_conv = basic_conv_block(inner_num_channels,
                                            kernel_size[0],
-                                           stride=stride,
+                                           stride,
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
@@ -276,13 +269,13 @@ class basic_conv_block(tf.keras.Sequential):
         output = super(basic_conv_block, self).call(x, training=training)
         return output
 
-######################## Atrous Convolution ########################
-class Atrous_conv():
+# ####################### Atrous Convolution ####################### #
+class Atrous_conv(tf.keras.Model):
 
     def __init__(self,
                  num_channels,
                  kernel_size=3,
-                 MultiGrid=(1,2,4),
+                 MultiGrid=(1, 2, 4),
                  padding='same',
                  use_batchnorm=True,
                  use_nonlinearity=False,
@@ -292,23 +285,24 @@ class Atrous_conv():
                  output_stride=16,
                  **kwargs):
 
-        if output_stride==16:
+        super(Atrous_conv, self).__init__(**kwargs)
+
+        if output_stride == 16:
             multiplier = 2
         else:
             multiplier = 1
         
-        self.first_conv = basic_conv_block(inner_num_channels,
+        self.first_conv = basic_conv_block(num_channels,
                                            kernel_size,
-                                           stride=stride,
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
                                            use_nonlinearity,
                                            use_bias,
                                            data_format,
-                                           dilation_rate=multiplier*MultiGrid[0])
+                                           dilation_rate=multiplier * MultiGrid[0])
 
-        self.second_conv = basic_conv_block(inner_num_channels,
+        self.second_conv = basic_conv_block(num_channels,
                                             kernel_size,
                                             padding,
                                             nonlinearity,
@@ -316,8 +310,8 @@ class Atrous_conv():
                                             use_nonlinearity,
                                             use_bias,
                                             data_format,
-                                            dilation_rate=multiplier*MultiGrid[1])
-                                    
+                                            dilation_rate=multiplier * MultiGrid[1])
+
         self.third_conv = basic_conv_block(num_channels,
                                            kernel_size,
                                            padding,
@@ -326,7 +320,7 @@ class Atrous_conv():
                                            use_nonlinearity,
                                            use_bias,
                                            data_format,
-                                           dilation_rate=multiplier*MultiGrid[2])
+                                           dilation_rate=multiplier * MultiGrid[2])
 
     def call(self, x, training=False):
 
@@ -336,13 +330,13 @@ class Atrous_conv():
         return x
 
 
-######################## ASPP ########################
+# ####################### ASPP ####################### #
 class atrous_spatial_pyramid_pooling():
 
     def __init__(self,
                  num_channels=256,
-                 kernel_size=(1,3,3,3),
-                 rate=(1,6,12,18),
+                 kernel_size=(1, 3, 3, 3),
+                 rate=(1, 6, 12, 18),
                  padding='same',
                  use_batchnorm=True,
                  use_nonlinearity=False,
@@ -373,16 +367,16 @@ class atrous_spatial_pyramid_pooling():
         feature_map_size = tf.shape(x)
         output_list = []
 
-        #Non diluted convolution
-        y = tf.math.reduce_mean(x, axis=[1,2], keepdims=True) # ~ Average Pooling
+        # Non diluted convolution
+        y = tf.math.reduce_mean(x, axis=[1, 2], keepdims=True)  # ~ Average Pooling
         y = self.basic_conv(y, training=training)
-        output_list.append(tf.image.resize(y, (feature_map_size[1], feature_map_size[2]))) # ~ Upsampling
+        output_list.append(tf.image.resize(y, (feature_map_size[1], feature_map_size[2])))  # ~ Upsampling
 
-        #Series of diluted convolutions with rates (1, 6, 12, 18)
+        # Series of diluted convolutions with rates (1, 6, 12, 18)
         for i, block in enumerate(self.block_list):
             output_list.append(block(x, training=training))
 
-        #concatenate all outputs
+        # concatenate all outputs
         out = tf.concat(output_list, axis=3)
         out = self.basic_conv(out, training=training)
         return out

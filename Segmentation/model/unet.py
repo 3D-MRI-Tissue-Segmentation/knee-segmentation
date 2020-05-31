@@ -270,37 +270,6 @@ class Nested_UNet(tf.keras.Model):
 
     def call(self, input, training=False):
 
-        # x = dict()
-        # use_x = list()
-        # x['0_0'] = self.conv_block_lists[0][0](input, training=training)
-        # last_0_name = '0_0'
-        # last_name = last_0_name
-
-        # for sum in range(1,len(self.conv_block_lists)):
-        #     i, j = sum, 0
-        #     while j <= sum:
-
-        #         name = str(i) + '_' + str(j)
-
-        #         if i==sum:
-        #             x[name] = self.conv_block_lists[i][j](self.pool(x[last_0_name]), training=training)
-        #             last_0_name = name
-
-        #         else:
-        #             for temp_right in range(0, j):
-        #                 string = str(i) + '_' + str(temp_right)
-        #                 use_x.add(x[string])
-                    
-        #             x[name] = self.conv_block_lists[i][j](tfkl.concatenate([use_x, self.up(last_name)]), training=training)
-
-        #         use_x.clear()
-        #         last = (i,j)
-        #         last_name = name
-        #         i = i-1
-        #         j = j+1
-
-        # output = self.conv1x1(x[last_name])
-        
         x = dict()
         use_x = list()
         x['0_0'] = self.conv_block_lists[0][0](input, training=training)
@@ -321,7 +290,7 @@ class Nested_UNet(tf.keras.Model):
                     for temp_right in range(0, j):
                         string = str(i) + '_' + str(temp_right)
                         use_x.append(x[string])
-                    
+
                     use_x.append(self.up(x[last_name]))
                     x[name] = self.conv_block_lists[i][j](tfkl.concatenate(use_x), training=training)
 
@@ -333,6 +302,7 @@ class Nested_UNet(tf.keras.Model):
 
         output = self.conv1x1(x[last_name])
         
+        '''
         # i + j = 0
         x0_0 = self.conv_block_lists[0][0](x, training=training)
 
@@ -359,8 +329,8 @@ class Nested_UNet(tf.keras.Model):
         x0_4 = self.conv_block_lists[0][4](tfkl.concatenate([x0_0, x0_1, x0_2, x0_3, self.up(x1_3)]), training=training)
 
         output = self.conv1x1(x0_4)
-        '''
-
+        
+        
         block_list = []
         x = self.conv_block_lists[0][0](input, training=training)
         block_list.append(x)
