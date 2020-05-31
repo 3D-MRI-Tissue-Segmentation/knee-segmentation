@@ -9,6 +9,7 @@ from absl import flags
 from absl import logging
 
 from Segmentation.model.unet import UNet, R2_UNet
+from Segmentation.model.segnet import SegNet
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
@@ -27,7 +28,7 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet')
 flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
@@ -175,7 +176,7 @@ def main(argv):
             model.build((FLAGS.batch_size, 288, 288, 3))
         model.summary()
         model.compile(optimizer=optimiser,
-                      loss=tversky_loss_v2,
+                      loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
 
     if FLAGS.train:
