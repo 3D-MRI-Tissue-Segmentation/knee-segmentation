@@ -1,4 +1,5 @@
 import tensorflow as tf
+from glob import glob
 
 def setup_gpu():
     gpus = tf.config.experimental.list_physical_devices('GPU')

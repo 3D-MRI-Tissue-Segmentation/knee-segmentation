@@ -169,7 +169,7 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     # Parse the input tf.Example proto using the dictionary above.
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
-    image = tf.reshape(image_raw, [image_features['height'], image_features['width'], image_features['depth']])
+    image = tf.reshape(image_raw, [image_features['height'], image_features['width'], image_features['depth'], 1])
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
     seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
@@ -179,15 +179,17 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     if not multi_class:
         seg = tf.math.reduce_sum(seg, axis=-1)
 
-    return (image, seg, image_features['height'], image_features['width'], image_features['depth'], image_features['num_channels'])
+    return (image, seg)
 
 def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d, multi_class=True, is_training=False):
 
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
-    shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
+    if is_training:
+        shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
     shards = shards.repeat()
-    dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length=8, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length=4, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
 

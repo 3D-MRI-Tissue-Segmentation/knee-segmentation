@@ -1,6 +1,7 @@
 import sys
 import os
 import tensorflow as tf
+from glob import glob
 
 
 def train_model(model):
@@ -15,10 +16,10 @@ if __name__ == "__main__":
 
     setup_gpu()
 
-    num_channels = 16
+    num_channels = 1
     num_classes = 1  # binary segmentation problem
-    buffer_size = 3
-    batch_size = 2
+    buffer_size = 4
+    batch_size = 1
     tfrec_dir = './Data/tfrecords/'
 
     from Segmentation.model.vnet import VNet
@@ -39,7 +40,7 @@ if __name__ == "__main__":
                              buffer_size=buffer_size,
                              parse_fn=parse_fn_3d,
                              multi_class=False,
-                             is_training=True)
+                             is_training=False)
     valid_ds = read_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
                              batch_size=batch_size,
                              buffer_size=buffer_size,
@@ -47,21 +48,12 @@ if __name__ == "__main__":
                              multi_class=False,
                              is_training=False)
 
-    # history = model.fit(train_ds,
-    #                     steps_per_epoch=20,
-    #                     epochs=10,
-    #                     validation_data=valid_ds,
-    #                     validation_steps=10)
+    train_size = len(glob(os.path.join(tfrec_dir, 'train_3d/*')))
+    valid_size = len(glob(os.path.join(tfrec_dir, 'valid_3d/*')))
 
-    import matplotlib.pyplot as plt
-
-    for idx, i in enumerate(train_ds):
-        print(type(i), idx)
-        print(i[0].shape)
-        print(i[1].shape)
-        print(i[2])
-        print(i[3])
-        print(i[4])
-        print(i[5])
-        print("==========")
-        break
+    history = model.fit(train_ds,
+                        steps_per_epoch=train_size // batch_size,
+                        epochs=3,
+                        validation_data=valid_ds,
+                        validation_steps=valid_size // batch_size,
+                        verbose=1)
