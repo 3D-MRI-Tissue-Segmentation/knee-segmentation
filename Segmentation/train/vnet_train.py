@@ -40,7 +40,7 @@ if __name__ == "__main__":
                              buffer_size=buffer_size,
                              parse_fn=parse_fn_3d,
                              multi_class=False,
-                             is_training=False)
+                             is_training=True)
     valid_ds = read_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
                              batch_size=batch_size,
                              buffer_size=buffer_size,
