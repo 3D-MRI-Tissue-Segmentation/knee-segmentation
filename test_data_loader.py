@@ -11,7 +11,7 @@ train_ds = read_tfrecord(tfrecords_dir='gs://oai-challenge-dataset/tfrecords/tra
 
 start = time.process_time()
 for image, label in train_ds:
-    #visualise_multi_class(label, label) 
+    # visualise_multi_class(label, label)
     print(image.shape)
     print(label.shape)
     print(time.process_time() - start)

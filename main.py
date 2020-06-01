@@ -34,7 +34,7 @@ flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size',5000, 'shuffle buffer size (default: 5000)')
+flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size (default: 5000)')
 flags.DEFINE_integer('respath_length', 2, 'residual path length')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
@@ -57,13 +57,13 @@ FLAGS = flags.FLAGS
 def main(argv):
 
     del argv  # unused arg
-    #tf.random.set_seed(FLAGS.seed)
+    # tf.random.set_seed(FLAGS.seed)
 
     # set whether to train on GPU or TPU
     if FLAGS.use_gpu:
         logging.info('Using GPU...')
         # strategy requires: export TF_FORCE_GPU_ALLOW_GROWTH=true to be wrote in cmd
-        strategy = tf.distribute.MirroredStrategy() # works 
+        strategy = tf.distribute.MirroredStrategy()  # works
         # strategy = tf.distribute.MirroredStrategy(cross_device_ops=tf.distribute.HierarchicalCopyAllReduce())  # works
         # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()   # works
         gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -88,7 +88,7 @@ def main(argv):
     # set dataset configuration
     if FLAGS.dataset == 'oai_challenge':
 
-        batch_size = FLAGS.batch_size*FLAGS.num_cores
+        batch_size = FLAGS.batch_size * FLAGS.num_cores
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size
 
@@ -116,27 +116,27 @@ def main(argv):
 
         if FLAGS.model_architecture == 'unet':
             model = UNet(FLAGS.num_filters,
-                            num_classes,
-                            FLAGS.num_conv,
-                            FLAGS.kernel_size,
-                            FLAGS.activation,
-                            FLAGS.batchnorm,
-                            FLAGS.dropout_rate,
-                            FLAGS.use_spatial,
-                            FLAGS.channel_order)
+                         num_classes,
+                         FLAGS.num_conv,
+                         FLAGS.kernel_size,
+                         FLAGS.activation,
+                         FLAGS.batchnorm,
+                         FLAGS.dropout_rate,
+                         FLAGS.use_spatial,
+                         FLAGS.channel_order)
 
         elif FLAGS.model_architecture == 'multires_unet':
             model = MultiResUnet(FLAGS.num_filters,
-                                    num_classes,
-                                    FLAGS.respath_length,
-                                    FLAGS.num_conv,
-                                    FLAGS.kernel_size,
-                                    use_bias=False,
-                                    padding='same',
-                                    nonlinearity=FLAGS.activation,
-                                    use_batchnorm=FLAGS.batchnorm,
-                                    use_transpose=True,
-                                    data_format=FLAGS.channel_order)
+                                 num_classes,
+                                 FLAGS.respath_length,
+                                 FLAGS.num_conv,
+                                 FLAGS.kernel_size,
+                                 use_bias=False,
+                                 padding='same',
+                                 nonlinearity=FLAGS.activation,
+                                 use_batchnorm=FLAGS.batchnorm,
+                                 use_transpose=True,
+                                 data_format=FLAGS.channel_order)
 
         elif FLAGS.model_architecture == 'attention_unet_v1':
             model = AttentionUNet_v1(FLAGS.num_filters,
@@ -155,7 +155,7 @@ def main(argv):
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
         else:
-            lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs+1, FLAGS.train_epochs))
+            lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs + 1, FLAGS.train_epochs))
 
         lr_rate = LearningRateSchedule(steps_per_epoch, FLAGS.base_learning_rate, FLAGS.lr_drop_ratio, lr_decay_epochs, FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
