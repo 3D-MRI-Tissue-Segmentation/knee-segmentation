@@ -292,9 +292,8 @@ class Atrous_conv(tf.keras.Model):
         else:
             multiplier = 1
         
-        self.first_conv = basic_conv_block(inner_num_channels,
+        self.first_conv = basic_conv_block(num_channels,
                                            kernel_size,
-                                           stride,
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
@@ -303,7 +302,7 @@ class Atrous_conv(tf.keras.Model):
                                            data_format,
                                            dilation_rate=multiplier * MultiGrid[0])
 
-        self.second_conv = basic_conv_block(inner_num_channels,
+        self.second_conv = basic_conv_block(num_channels,
                                             kernel_size,
                                             padding,
                                             nonlinearity,
