@@ -6,12 +6,12 @@ class Conv3d_ResBlock(tf.keras.layers.Layer):
                  num_channels,
                  kernel_size=(3, 3, 3),
                  res_activation="selu",
-                 name="convolution_res_block",
+                 name="conv_res_block",
                  **kwargs):
         super(Conv3d_ResBlock, self).__init__(name=name)
 
         self.conv_block = Conv3D_Block(num_channels=num_channels, kernel_size=kernel_size, **kwargs)
-        self.conv_stride = tf.keras.layers.Conv3D(num_channels*2, kernel_size=kernel_size, strides=2, activation=res_activation, padding="same")
+        self.conv_stride = tf.keras.layers.Conv3D(num_channels * 2, kernel_size=kernel_size, strides=2, activation=res_activation, padding="same")
 
     def call(self, inputs, training):
         x = inputs
@@ -25,8 +25,7 @@ class Up_ResBlock(tf.keras.layers.Layer):
     def __init__(self,
                  num_channels,
                  kernel_size=(3, 3, 3),
-                 res_activation="selu",
-                 name="upsampling_convolution_res_block",
+                 name="upsampling_conv_res_block",
                  **kwargs):
         super(Up_ResBlock, self).__init__(name=name)
 
@@ -54,7 +53,8 @@ class Conv3D_Block(tf.keras.layers.Layer):
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
-                 name="convolution_block"):
+                 name="convolution_block",
+                 **kwargs):
 
         super(Conv3D_Block, self).__init__(name=name)
 
@@ -99,7 +99,8 @@ class Up_Conv3D(tf.keras.layers.Layer):
                  strides=(2, 2, 2),
                  upsample_size=(2, 2, 2),
                  data_format='channels_last',
-                 name="upsampling_convolution_block"):
+                 name="upsampling_conv_block",
+                 **kwargs):
 
         super(Up_Conv3D, self).__init__(name=name)
 

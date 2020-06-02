@@ -8,29 +8,48 @@ class VNet(tf.keras.Model):
                  num_channels,
                  num_classes,
                  num_conv_layers=2,
-                 kernel_size=(3, 3, 3),
+                 kernel_size=(2, 2, 2),
                  nonlinearity='relu',
                  use_batchnorm=True,
                  noise=0.0,
+                 dropout_rate=0.25,
+                 use_spatial_dropout=True,
+                 use_slice=False,
+                 slice_format=None,
                  data_format='channels_last',
                  name="vnet"):
+
         self.params = str(inspect.currentframe().f_locals)
         super(VNet, self).__init__(name=name)
         self.noise = noise
+        self.use_slice = use_slice
+        if self.use_slice:
+            assert kernel_size[-1] == 1
+        self.slice_format = slice_format
 
-        self.conv_1 = Conv3d_ResBlock(num_channels=num_channels,num_conv_layers=num_conv_layers,kernel_size=kernel_size,nonlinearity=nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.conv_2 = Conv3d_ResBlock(num_channels=num_channels*2,num_conv_layers=num_conv_layers,kernel_size=kernel_size,nonlinearity=nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.conv_3 = Conv3d_ResBlock(num_channels=num_channels*4,num_conv_layers=num_conv_layers,kernel_size=kernel_size,nonlinearity=nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.conv_4 = Conv3d_ResBlock(num_channels=num_channels*8,num_conv_layers=num_conv_layers,kernel_size=kernel_size,nonlinearity=nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
+        block_args = {
+            'num_conv_layers': num_conv_layers,
+            'kernel_size': kernel_size,
+            'nonlinearity': nonlinearity,
+            'use_batchnorm': use_batchnorm,
+            'dropout_rate': dropout_rate,
+            'use_spatial_dropout': use_spatial_dropout,
+            'data_format': data_format,
+        }
 
-        self.upconv_4 = Up_ResBlock(num_channels=num_channels*8,kernel_size=(2,2,2),nonlinearity=nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.upconv_3 = Up_ResBlock(num_channels=num_channels*4,kernel_size=(2,2,2),nonlinearity=nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.upconv_2 = Up_ResBlock(num_channels=num_channels*2,kernel_size=(2,2,2),nonlinearity=nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.upconv_1 = Up_ResBlock(num_channels=num_channels,kernel_size=(2,2,2),nonlinearity=nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
+        self.conv_1 = Conv3d_ResBlock(num_channels=num_channels, **block_args)
+        self.conv_2 = Conv3d_ResBlock(num_channels=num_channels * 2, **block_args)
+        self.conv_3 = Conv3d_ResBlock(num_channels=num_channels * 4, **block_args)
+        self.conv_4 = Conv3d_ResBlock(num_channels=num_channels * 8, **block_args)
+
+        self.upconv_4 = Up_ResBlock(num_channels=num_channels * 8, **block_args)
+        self.upconv_3 = Up_ResBlock(num_channels=num_channels * 4, **block_args)
+        self.upconv_2 = Up_ResBlock(num_channels=num_channels * 2, **block_args)
+        self.upconv_1 = Up_ResBlock(num_channels=num_channels, **block_args)
 
         # convolution num_channels at the output
         self.conv_output = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation=nonlinearity, padding='same', data_format=data_format)
-        self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation="sigmoid", padding='same', data_format=data_format)
+        self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), activation="sigmoid", padding='same', data_format=data_format)
 
     def call(self, inputs, training):
 
@@ -52,4 +71,7 @@ class VNet(tf.keras.Model):
         output = self.conv_output(u1)
         output = self.conv_1x1(output)
 
+        if self.use_slice:
+            if self.slice_format == "mean":
+                output = tf.reduce_mean(output, -2)
         return output

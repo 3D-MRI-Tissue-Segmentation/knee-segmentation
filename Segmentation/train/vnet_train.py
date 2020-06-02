@@ -1,8 +1,8 @@
 import sys
 import os
-import tensorflow as tf
 from glob import glob
-
+import datetime
+import tensorflow as tf
 
 def train_model(model):
     print(model.name)
@@ -51,9 +51,13 @@ if __name__ == "__main__":
     train_size = len(glob(os.path.join(tfrec_dir, 'train_3d/*')))
     valid_size = len(glob(os.path.join(tfrec_dir, 'valid_3d/*')))
 
+    log_dir = "logs/vnet/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+
     history = model.fit(train_ds,
                         steps_per_epoch=train_size // batch_size,
                         epochs=3,
                         validation_data=valid_ds,
                         validation_steps=valid_size // batch_size,
+                        callbacks=[tensorboard_callback],
                         verbose=1)
