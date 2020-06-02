@@ -2,8 +2,8 @@ import tensorflow as tf
 import tensorflow.keras.layers as tfkl
 from Segmentation.model.unet_build_blocks import Conv2D_Block, Up_Conv2D
 from Segmentation.model.unet_build_blocks import Attention_Gate
-from Segmentation.model.unet_build_blocks import ResPath, MultiResBlock
-from Segmentation.model.backbone import VGG16_Encoder
+from Segmentation.model.unet_build_blocks import Recurrent_ResConv_block
+from Segmentation.model.backbone import Encoder
 
 
 class UNet(tf.keras.Model):
@@ -14,11 +14,10 @@ class UNet(tf.keras.Model):
                  num_channels,
                  num_classes,
                  backbone='default',
-                 backbone_weights=None,
-                 freeze_backbone=True,
                  num_conv_layers=2,
                  kernel_size=(3, 3),
                  nonlinearity='relu',
+                 use_attention=False,
                  use_batchnorm=True,
                  use_bias=True,
                  use_dropout=False,
@@ -30,548 +29,341 @@ class UNet(tf.keras.Model):
         super(UNet, self).__init__(**kwargs)
 
         self.num_classes = num_classes
+        self.num_channels = num_channels
+        self.backbone = backbone
+        self.num_conv_layers = num_conv_layers
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
+        self.use_attention = use_attention
+        self.use_batchnorm = use_batchnorm
+        self.use_bias = use_bias
+        self.use_dropout = use_dropout
+        self.dropout_rate = dropout_rate
+        self.use_spatial_dropout = use_spatial_dropout
+        self.data_format = data_format
 
-        # encoding blocks
-        if backbone in ('vgg16', 'VGG16'):
-            self.encoder = VGG16_Encoder(weights_init=backbone_weights)
-            if freeze_backbone:
-                self.encoder.freeze_pretrained_layers()
-            # TODO(Joonsu): This code is really ugly...
-            # let's find a more elegant way to implement this.
-            self.conv_1 = self.encoder.conv_1
-            self.conv_2 = self.encoder.conv_2
-            self.conv_3 = self.encoder.conv_3
-            self.conv_4 = self.encoder.conv_4
-            self.conv_5 = self.encoder.conv_5
+        self.contracting_path = []
 
-            del self.encoder
+        if self.backbone == 'default':
+            for i in range(len(self.num_channels)):
+                output = self.num_channels[i]
+                self.contracting_path.append(Conv2D_Block(output,
+                                                          self.num_conv_layers,
+                                                          self.kernel_size,
+                                                          self.nonlinearity,
+                                                          self.use_batchnorm,
+                                                          self.use_bias,
+                                                          self.use_dropout,
+                                                          self.dropout_rate,
+                                                          self.use_spatial_dropout,
+                                                          self.data_format))
+                if i != len(self.num_channels) - 1:
+                    self.contracting_path.append(tfkl.MaxPooling2D())
+        else:
+            encoder = Encoder(weights_init='imagenet', model_architecture=self.backbone)
+            encoder.freeze_pretrained_layers()
+            for j in len(encoder.conv_list):
+                self.contracting_path.append(encoder.get_conv_block(j))
+                if self.backbone in ['vgg16', 'vgg19']:
+                    if j != len(encoder.conv_list) - 1:
+                        self.contracting_path.append(tfkl.MaxPooling2D())
+                elif self.backbone in ['resnet50']:
+                    if j == 0:
+                        self.contracting_path.append(tfkl.MaxPooling2D())
 
-        elif backbone == 'default':
-            self.conv_1 = Conv2D_Block(num_channels=num_channels,
-                                       num_conv_layers=num_conv_layers,
-                                       kernel_size=kernel_size,
-                                       nonlinearity=nonlinearity,
-                                       use_batchnorm=use_batchnorm,
-                                       use_bias=use_bias,
-                                       data_format=data_format)
-            self.conv_2 = Conv2D_Block(num_channels=num_channels * 2,
-                                       num_conv_layers=num_conv_layers,
-                                       kernel_size=kernel_size,
-                                       nonlinearity=nonlinearity,
-                                       use_batchnorm=use_batchnorm,
-                                       use_bias=use_bias,
-                                       data_format=data_format)
-            self.conv_3 = Conv2D_Block(num_channels=num_channels * 4,
-                                       num_conv_layers=num_conv_layers,
-                                       kernel_size=kernel_size,
-                                       nonlinearity=nonlinearity,
-                                       use_batchnorm=use_batchnorm,
-                                       use_bias=use_bias,
-                                       data_format=data_format)
-            self.conv_4 = Conv2D_Block(num_channels=num_channels * 8,
-                                       num_conv_layers=num_conv_layers,
-                                       kernel_size=kernel_size,
-                                       nonlinearity=nonlinearity,
-                                       use_batchnorm=use_batchnorm,
-                                       use_bias=use_bias,
-                                       use_dropout=use_dropout,
-                                       dropout_rate=dropout_rate,
-                                       use_spatial_dropout=use_spatial_dropout,
-                                       data_format=data_format)
-            self.conv_5 = Conv2D_Block(num_channels=num_channels * 16,
-                                       num_conv_layers=num_conv_layers,
-                                       kernel_size=kernel_size,
-                                       nonlinearity=nonlinearity,
-                                       use_batchnorm=use_batchnorm,
-                                       use_bias=use_bias,
-                                       use_dropout=use_dropout,
-                                       dropout_rate=dropout_rate,
-                                       use_spatial_dropout=use_spatial_dropout,
-                                       data_format=data_format)
+        self.upsampling_path = []
 
-        # decoding blocks
-        self.up_5 = Up_Conv2D(num_channels * 8,
-                              (2, 2),
-                              nonlinearity,
-                              use_batchnorm=use_batchnorm,
-                              data_format=data_format)
-        self.up_conv5 = Conv2D_Block(num_channels * 8,
-                                     num_conv_layers,
-                                     kernel_size,
-                                     nonlinearity,
-                                     use_batchnorm=use_batchnorm,
-                                     use_bias=use_bias,
-                                     data_format=data_format)
+        n = len(self.num_channels) - 2
+        for i in range(n, -1, -1):
+            output = self.num_channels[i]
+            self.upsampling_path.append(Up_Conv2D(output,
+                                                  kernel_size=(2, 2),
+                                                  nonlinearity=self.nonlinearity,
+                                                  use_attention=self.use_attention,
+                                                  use_batchnorm=self.use_batchnorm,
+                                                  use_transpose=False,
+                                                  use_bias=self.use_bias,
+                                                  strides=(2, 2),
+                                                  data_format=self.data_format))
 
-        self.up_4 = Up_Conv2D(num_channels * 4,
-                              (2, 2),
-                              nonlinearity,
-                              use_batchnorm=use_batchnorm,
-                              data_format=data_format)
-        self.up_conv4 = Conv2D_Block(num_channels * 4,
-                                     num_conv_layers,
-                                     kernel_size,
-                                     nonlinearity,
-                                     use_batchnorm=use_batchnorm,
-                                     use_bias=use_bias,
-                                     data_format=data_format)
-
-        self.up_3 = Up_Conv2D(num_channels * 2,
-                              (2, 2),
-                              nonlinearity,
-                              use_batchnorm=use_batchnorm,
-                              data_format=data_format)
-        self.up_conv3 = Conv2D_Block(num_channels * 2,
-                                     num_conv_layers,
-                                     kernel_size,
-                                     nonlinearity,
-                                     use_batchnorm=use_batchnorm,
-                                     use_bias=use_bias,
-                                     data_format=data_format)
-
-        self.up_2 = Up_Conv2D(num_channels,
-                              (2, 2),
-                              nonlinearity,
-                              use_batchnorm=use_batchnorm,
-                              data_format=data_format)
-        self.up_conv2 = Conv2D_Block(num_channels,
-                                     num_conv_layers,
-                                     kernel_size,
-                                     nonlinearity,
-                                     use_batchnorm=use_batchnorm,
-                                     use_bias=use_bias,
-                                     data_format=data_format)
-
-        # convolution num_channels at the output
         self.conv_1x1 = tfkl.Conv2D(num_classes,
                                     (1, 1),
                                     activation='linear',
                                     padding='same',
                                     data_format=data_format)
 
-    def call(self, inputs, training=False):
+    def call(self, x, training=False):
+        blocks = []
+        for i, down in enumerate(self.contracting_path):
+            x = down(x, training=training)
+            if i != len(self.contracting_path) - 1:
+                blocks.append(x)
 
-        # encoder blocks
-        # 1->64
-        x1 = self.conv_1(inputs, training=training)
+        for j, up in enumerate(self.upsampling_path):
+            if self.backbone in ['default', 'vgg16', 'vgg19']:
+                x = up(x, blocks[-2 * j - 2], training=training)
+            elif self.backbone in ['resnet50']:
+                if j != 2:
+                    x = up(x, blocks[-j - 2], training=training)
+                else:
+                    x = up(x, blocks[-j - 3], training=training)
 
-        # 64->128
-        x2 = tfkl.MaxPooling2D(pool_size=(2, 2))(x1)
-        x2 = self.conv_2(x2, training=training)
+        del blocks
 
-        # 128->256
-        x3 = tfkl.MaxPooling2D(pool_size=(2, 2))(x2)
-        x3 = self.conv_3(x3, training=training)
-
-        # 256->512
-        x4 = tfkl.MaxPooling2D(pool_size=(2, 2))(x3)
-        x4 = self.conv_4(x4, training=training)
-
-        # 512->1024
-        x5 = tfkl.MaxPooling2D(pool_size=(2, 2))(x4)
-        x5 = self.conv_5(x5, training=training)
-
-        # decoder blocks
-        # 1024->512
-        u5 = self.up_5(x5, training=training)
-        u5 = tfkl.concatenate([x4, u5], axis=3)
-        u5 = self.up_conv5(u5, training=training)
-
-        # 512->256
-        u6 = self.up_4(u5, training=training)
-        u6 = tfkl.concatenate([x3, u6], axis=3)
-        u6 = self.up_conv4(u6, training=training)
-
-        # 256->128
-        u7 = self.up_3(u6, training=training)
-        u7 = tfkl.concatenate([x2, u7], axis=3)
-        u7 = self.up_conv2(u7, training=training)
-
-        # 128->64
-        u8 = self.up_2(u7, training=training)
-        u8 = tfkl.concatenate([x1, u8], axis=3)
-        u8 = self.up_conv2(u8, training=training)
-
-        # logits
-        u9 = self.conv_1x1(u8)
-
+        x = self.conv_1x1(x)
         if self.num_classes == 1:
-            output = tfkl.Activation('sigmoid')(u9)
-
+            output = tfkl.Activation('sigmoid')(x)
         else:
-            output = tfkl.Activation('softmax')(u9)
-
+            output = tfkl.Activation('softmax')(x)
         return output
 
-
-class AttentionUNet(tf.keras.Model):
-    "Tensorflow 2 Implementation of Attention UNet"
+class R2_UNet(tf.keras.Model):
+    """ Tensorflow 2 Implementation of 'Recurrent Residual Convolutional
+    Neural Network based on U-Net (R2U-Net) for Medical Image Segmentation'
+    https://arxiv.org/ftp/arxiv/papers/1802/1802.06955.pdf."""
 
     def __init__(self,
                  num_channels,
                  num_classes,
                  num_conv_layers=2,
                  kernel_size=(3, 3),
-                 strides=(1, 1),
-                 pool_size=(2, 2),
-                 use_bias=True,
-                 padding='same',
                  nonlinearity='relu',
+                 t=2,
+                 use_attention=False,
                  use_batchnorm=True,
-                 use_transpose=True,
+                 use_bias=True,
                  data_format='channels_last',
                  **kwargs):
 
-        super(AttentionUNet, self).__init__(**kwargs)
+        super(R2_UNet, self).__init__(**kwargs)
 
         self.num_classes = num_classes
+        self.num_channels = num_channels
+        self.num_conv_layers = num_conv_layers
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
+        self.t = t
+        self.use_attention = use_attention
+        self.use_batchnorm = use_batchnorm
+        self.use_bias = use_bias
+        self.data_format = data_format
 
-        self.conv_1 = Conv2D_Block(num_channels,
-                                   num_conv_layers,
-                                   kernel_size,
-                                   nonlinearity,
-                                   use_batchnorm=use_batchnorm,
-                                   data_format=data_format)
-        self.conv_2 = Conv2D_Block(num_channels * 2,
-                                   num_conv_layers,
-                                   kernel_size,
-                                   nonlinearity,
-                                   use_batchnorm=use_batchnorm,
-                                   data_format=data_format)
-        self.conv_3 = Conv2D_Block(num_channels * 4,
-                                   num_conv_layers,
-                                   kernel_size,
-                                   nonlinearity,
-                                   use_batchnorm=use_batchnorm,
-                                   data_format=data_format)
-        self.conv_4 = Conv2D_Block(num_channels * 8,
-                                   num_conv_layers,
-                                   kernel_size,
-                                   nonlinearity,
-                                   use_batchnorm=use_batchnorm,
-                                   data_format=data_format)
-        self.conv_5 = Conv2D_Block(num_channels * 16,
-                                   num_conv_layers,
-                                   kernel_size,
-                                   nonlinearity,
-                                   use_batchnorm=use_batchnorm,
-                                   data_format=data_format)
+        self.contracting_path = []
 
-        self.up_conv_1 = Up_Conv2D(num_channels * 8,
-                                   (3, 3),
-                                   nonlinearity,
-                                   use_batchnorm=use_batchnorm,
-                                   use_transpose=use_transpose,
-                                   data_format=data_format)
-        self.up_conv_2 = Up_Conv2D(num_channels * 4,
-                                   (3, 3),
-                                   nonlinearity,
-                                   use_batchnorm=use_batchnorm,
-                                   use_transpose=use_transpose,
-                                   data_format=data_format)
-        self.up_conv_3 = Up_Conv2D(num_channels * 2,
-                                   (3, 3),
-                                   nonlinearity,
-                                   use_batchnorm=use_batchnorm,
-                                   use_transpose=use_transpose,
-                                   data_format=data_format)
-        self.up_conv_4 = Up_Conv2D(num_channels,
-                                   (3, 3),
-                                   nonlinearity,
-                                   use_batchnorm=use_batchnorm,
-                                   use_transpose=use_transpose,
-                                   data_format=data_format)
+        for i in range(len(self.num_channels)):
+            output = self.num_channels[i]
+            self.contracting_path.append(Recurrent_ResConv_block(output,
+                                                                 self.kernel_size,
+                                                                 self.nonlinearity,
+                                                                 'same',
+                                                                 (1, 1),
+                                                                 self.t,
+                                                                 self.use_batchnorm,
+                                                                 self.data_format))
+            if i != len(self.num_channels) - 1:
+                self.contracting_path.append(tfkl.MaxPooling2D())
 
-        self.a1 = Attention_Gate(num_channels * 8,
-                                 (1, 1),
-                                 nonlinearity,
-                                 padding,
-                                 strides,
-                                 use_bias,
-                                 data_format)
-        self.a2 = Attention_Gate(num_channels * 4,
-                                 (1, 1),
-                                 nonlinearity,
-                                 padding,
-                                 strides,
-                                 use_bias,
-                                 data_format)
-        self.a3 = Attention_Gate(num_channels * 2,
-                                 (1, 1),
-                                 nonlinearity,
-                                 padding,
-                                 strides,
-                                 use_bias,
-                                 data_format)
-        self.a4 = Attention_Gate(num_channels,
-                                 (1, 1),
-                                 nonlinearity,
-                                 padding,
-                                 strides,
-                                 use_bias,
-                                 data_format)
+        self.upsampling_path = []
 
-        self.u1 = Conv2D_Block(num_channels * 8,
-                               num_conv_layers,
-                               kernel_size,
-                               nonlinearity,
-                               use_batchnorm=use_batchnorm,
-                               data_format=data_format)
-        self.u2 = Conv2D_Block(num_channels * 4,
-                               num_conv_layers,
-                               kernel_size,
-                               nonlinearity,
-                               use_batchnorm=use_batchnorm,
-                               data_format=data_format)
-        self.u3 = Conv2D_Block(num_channels * 2,
-                               num_conv_layers,
-                               kernel_size,
-                               nonlinearity,
-                               use_batchnorm=True,
-                               data_format=data_format)
-        self.u4 = Conv2D_Block(num_channels,
-                               num_conv_layers,
-                               kernel_size,
-                               nonlinearity,
-                               use_batchnorm=use_batchnorm,
-                               data_format=data_format)
+        n = len(self.num_channels) - 2
+        for i in range(n, -1, -1):
+            output = self.num_channels[i]
+            up_conv = Up_Conv2D(output,
+                                kernel_size=(2, 2),
+                                nonlinearity=self.nonlinearity,
+                                use_attention=self.use_attention,
+                                use_batchnorm=self.use_batchnorm,
+                                use_transpose=False,
+                                use_bias=self.use_bias,
+                                strides=(2, 2),
+                                data_format=self.data_format)
 
-        self.conv_1x1 = tfkl.Conv2D(num_classes,
+            # override default conv block with recurrent-residual conv block
+            up_conv.conv_block = Recurrent_ResConv_block(output,
+                                                         self.kernel_size,
+                                                         self.nonlinearity,
+                                                         'same',
+                                                         (1, 1),
+                                                         self.t,
+                                                         self.use_batchnorm,
+                                                         self.data_format)
+
+            self.upsampling_path.append(up_conv)
+
+        self.conv_1x1 = tfkl.Conv2D(self.num_classes,
                                     (1, 1),
                                     activation='linear',
                                     padding='same',
                                     data_format=data_format)
 
-    def call(self, inputs, training=False):
+    def call(self, x, training=False):
+        blocks = []
+        for i, down in enumerate(self.contracting_path):
+            x = down(x, training=training)
+            if i != len(self.contracting_path) - 1:
+                blocks.append(x)
 
-        # ENCODER PATH
-        x1 = self.conv_1(inputs)
+        for j, up in enumerate(self.upsampling_path):
+            x = up(x, blocks[-2 * j - 2], training=training)
 
-        pool1 = tfkl.MaxPooling2D(pool_size=(2, 2))(x1)
-        x2 = self.conv_2(pool1, training=training)
+        del blocks
 
-        pool2 = tfkl.MaxPooling2D(pool_size=(2, 2))(x2)
-        x3 = self.conv_3(pool2, training=training)
-
-        pool3 = tfkl.MaxPooling2D(pool_size=(2, 2))(x3)
-        x4 = self.conv_4(pool3, training=training)
-
-        pool4 = tfkl.MaxPooling2D(pool_size=(2, 2))(x4)
-        x5 = self.conv_5(pool4, training=training)
-
-        # DECODER PATH
-        up4 = self.up_conv_1(x5, training=training)
-        a1 = self.a1(x4, up4, training=training)
-        y1 = tfkl.concatenate([a1, up4])
-        y1 = self.u1(y1, training=training)
-
-        up5 = self.up_conv_2(y1, training=training)
-        a2 = self.a2(x3, up5, training=training)
-        y2 = tfkl.concatenate([a2, up5])
-        y2 = self.u2(y2, training=training)
-
-        up6 = self.up_conv_3(y2, training=training)
-        a3 = self.a3(x2, up6, training=training)
-        y3 = tfkl.concatenate([a3, up6])
-        y3 = self.u3(y3, training=training)
-
-        up7 = self.up_conv_4(y3, training=training)
-        a4 = self.a4(x1, up7, training=training)
-        y4 = tfkl.concatenate([a4, up7])
-        y4 = self.u4(y4, training=training)
-        y5 = self.conv_1x1(y4)
-
+        x = self.conv_1x1(x)
         if self.num_classes == 1:
-            output = tfkl.Activation('sigmoid')(y5)
+            output = tfkl.Activation('sigmoid')(x)
         else:
-            output = tfkl.Activation('softmax')(y5)
+            output = tfkl.Activation('softmax')(x)
 
         return output
 
-
-class MultiResUnet(tf.keras.Model):
-    "Tensorflow 2 Implementation of Multires UNet"
+class Nested_UNet(tf.keras.Model):
 
     def __init__(self,
                  num_channels,
                  num_classes,
-                 res_path_length,
-                 num_conv_layers=1,
+                 num_conv_layers=2,
                  kernel_size=(3, 3),
-                 strides=(1, 1),
-                 pool_size=(2, 2),
-                 use_bias=False,
-                 padding='same',
                  nonlinearity='relu',
                  use_batchnorm=True,
-                 use_transpose=True,
+                 use_bias=True,
                  data_format='channels_last',
                  **kwargs):
 
-        super(MultiResUnet, self).__init__(**kwargs)
+        super(Nested_UNet, self).__init__(**kwargs)
 
-        # ENCODING BLOCKS
-        self.mresblock_1 = MultiResBlock(num_channels,
-                                         kernel_size,
-                                         nonlinearity,
-                                         padding='same',
-                                         strides=(1, 1),
-                                         data_format='channels_last')
-        self.mresblock_2 = MultiResBlock(num_channels * 2,
-                                         kernel_size,
-                                         nonlinearity,
-                                         padding='same',
-                                         strides=(1, 1),
-                                         data_format='channels_last')
-        self.mresblock_3 = MultiResBlock(num_channels * 4,
-                                         kernel_size,
-                                         nonlinearity,
-                                         padding='same',
-                                         strides=(1, 1),
-                                         data_format='channels_last')
-        self.mresblock_4 = MultiResBlock(num_channels * 8,
-                                         kernel_size,
-                                         nonlinearity,
-                                         padding='same',
-                                         strides=(1, 1),
-                                         data_format='channels_last')
-        self.mresblock_5 = MultiResBlock(num_channels * 16,
-                                         kernel_size,
-                                         nonlinearity,
-                                         padding='same',
-                                         strides=(1, 1),
-                                         data_format='channels_last')
+        self.num_classes = num_classes
+        self.num_channels = num_channels
+        self.num_conv_layers = num_conv_layers
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
+        self.use_batchnorm = use_batchnorm
+        self.use_bias = use_bias
+        self.data_format = data_format
 
-        # DECODING BLOCKS
-        self.mresblock_6 = MultiResBlock(num_channels,
-                                         kernel_size,
-                                         nonlinearity,
-                                         padding='same',
-                                         strides=(1, 1),
-                                         data_format='channels_last')
-        self.mresblock_7 = MultiResBlock(num_channels * 2,
-                                         kernel_size,
-                                         nonlinearity,
-                                         padding='same',
-                                         strides=(1, 1),
-                                         data_format='channels_last')
-        self.mresblock_8 = MultiResBlock(num_channels * 4,
-                                         kernel_size,
-                                         nonlinearity,
-                                         padding='same',
-                                         strides=(1, 1),
-                                         data_format='channels_last')
-        self.mresblock_9 = MultiResBlock(num_channels * 8,
-                                         kernel_size,
-                                         nonlinearity,
-                                         padding='same',
-                                         strides=(1, 1),
-                                         data_format='channels_last')
+        self.conv_block_lists = []
 
-        self.pool_1 = tfkl.MaxPooling2D(pool_size=(2, 2))
-        self.pool_2 = tfkl.MaxPooling2D(pool_size=(2, 2))
-        self.pool_3 = tfkl.MaxPooling2D(pool_size=(2, 2))
-        self.pool_4 = tfkl.MaxPooling2D(pool_size=(2, 2))
+        for i in range(len(self.num_channels)):
+            output_ch = self.num_channels[i]
+            conv_layer_lists = []
+            num_conv_blocks = len(self.num_channels) - i
 
-        self.up_1 = Up_Conv2D(num_channels * 8,
-                              kernel_size=(3, 3),
-                              nonlinearity='relu',
-                              use_batchnorm=True,
-                              use_transpose=True,
-                              strides=(2, 2),
-                              data_format='channels_last')
-        self.up_2 = Up_Conv2D(num_channels * 4,
-                              kernel_size=(3, 3),
-                              nonlinearity='relu',
-                              use_batchnorm=True,
-                              use_transpose=True,
-                              strides=(2, 2),
-                              data_format='channels_last')
-        self.up_3 = Up_Conv2D(num_channels * 2,
-                              kernel_size=(3, 3),
-                              nonlinearity='relu',
-                              use_batchnorm=True,
-                              use_transpose=True,
-                              strides=(2, 2),
-                              data_format='channels_last')
-        self.up_4 = Up_Conv2D(num_channels,
-                              kernel_size=(3, 3),
-                              nonlinearity='relu',
-                              use_batchnorm=True,
-                              use_transpose=True,
-                              strides=(2, 2),
-                              data_format='channels_last')
+            for _ in range(num_conv_blocks):
 
-        self.respath_1 = ResPath(res_path_length,
-                                 num_channels,
-                                 kernel_size=(1, 1),
-                                 nonlinearity='relu',
-                                 padding='same',
-                                 strides=(1, 1),
-                                 data_format='channels_last')
-        self.respath_2 = ResPath(res_path_length,
-                                 num_channels * 2,
-                                 kernel_size=(1, 1),
-                                 nonlinearity='relu',
-                                 padding='same',
-                                 strides=(1, 1),
-                                 data_format='channels_last')
-        self.respath_3 = ResPath(res_path_length,
-                                 num_channels * 4,
-                                 kernel_size=(1, 1),
-                                 nonlinearity='relu',
-                                 padding='same',
-                                 strides=(1, 1),
-                                 data_format='channels_last')
-        self.respath_4 = ResPath(res_path_length,
-                                 num_channels * 8,
-                                 kernel_size=(1, 1),
-                                 nonlinearity='relu',
-                                 padding='same',
-                                 strides=(1, 1),
-                                 data_format='channels_last')
+                conv_layer_lists.append(Conv2D_Block(output_ch,
+                                                     self.num_conv_layers,
+                                                     self.kernel_size,
+                                                     self.nonlinearity,
+                                                     self.use_batchnorm,
+                                                     self.use_bias,
+                                                     self.data_format))
 
-        self.conv_1x1 = Conv2D_Block(num_classes,
-                                     num_conv_layers,
-                                     (1, 1),
-                                     'softmax',
-                                     use_batchnorm=False,
-                                     data_format=data_format)
+            self.conv_block_lists.append(conv_layer_lists)
 
-    def call(self, x, training=False):
+        self.pool = tfkl.MaxPooling2D()
+        self.up = tfkl.UpSampling2D()
 
-        # ENCODER PATH
+        self.conv_1x1 = tfkl.Conv2D(self.num_classes,
+                                    (1, 1),
+                                    activation='linear',
+                                    padding='same',
+                                    data_format=data_format)
 
-        x1 = self.mresblock_1(x, training=training)
-        pool_1 = self.pool_1(x1)
-        res_1 = self.respath_1(x1, training=training)
+    def call(self, input, training=False):
 
-        x2 = self.mresblock_2(pool_1, training=training)
-        pool_2 = self.pool_2(x2)
-        res_2 = self.respath_2(x2, training=training)
+        x = dict()
+        use_x = list()
+        x['0_0'] = self.conv_block_lists[0][0](input, training=training)
+        last_0_name = '0_0'
+        last_name = last_0_name
 
-        x3 = self.mresblock_3(pool_2, training=training)
-        pool_3 = self.pool_3(x3)
-        res_3 = self.respath_3(x3, training=training)
+        for sum in range(1,len(self.conv_block_lists)):
+            i, j = sum, 0
+            while j <= sum:
 
-        x4 = self.mresblock_4(pool_3, training=training)
-        pool_4 = self.pool_4(x4)
-        res_4 = self.respath_4(x4, training=training)
+                name = str(i) + '_' + str(j)
 
-        x5 = self.mresblock_5(pool_4, training=training)
+                if i==sum:
+                    x[name] = self.conv_block_lists[i][j](self.pool(x[last_0_name]), training=training)
+                    last_0_name = name
 
-        up6 = tf.keras.layers.concatenate([self.up_1(x5), res_4])
-        x6 = self.mresblock_6(up6, training=training)
+                else:
+                    for temp_right in range(0, j):
+                        string = str(i) + '_' + str(temp_right)
+                        use_x.append(x[string])
 
-        up7 = tf.keras.layers.concatenate([self.up_2(x6), res_3])
-        x7 = self.mresblock_7(up7, training=training)
+                    use_x.append(self.up(x[last_name]))
+                    x[name] = self.conv_block_lists[i][j](tfkl.concatenate(use_x), training=training)
 
-        up8 = tf.keras.layers.concatenate([self.up_3(x7), res_2])
-        x8 = self.mresblock_8(up8, training=training)
+                use_x.clear()
+                last = (i,j)
+                last_name = name
+                i = i-1
+                j = j+1
 
-        up9 = tf.keras.layers.concatenate([self.up_4(x8), res_1])
-        x9 = self.mresblock_9(up9, training=training)
+        output = self.conv1x1(x[last_name])
+        
+        '''
+        # i + j = 0
+        x0_0 = self.conv_block_lists[0][0](x, training=training)
 
-        output = self.conv_1x1(x9, training=training)
+        # i + j = 1
+        x1_0 = self.conv_block_lists[1][0](self.pool(x0_0), training=training)
+        x0_1 = self.conv_block_lists[0][1](tfkl.concatenate([x0_0, self.up(x1_0)]), training=training)
+
+        # i + j = 2
+        x2_0 = self.conv_block_lists[2][0](self.pool(x1_0), training=training)
+        x1_1 = self.conv_block_lists[1][1](tfkl.concatenate([x1_0, self.up(x2_0)]), training=training)
+        x0_2 = self.conv_block_lists[0][2](tfkl.concatenate([x0_0, x0_1, self.up(x1_1)]), training=training)
+
+        # i + j = 3
+        x3_0 = self.conv_block_lists[3][0](self.pool(x2_0), training=training)
+        x2_1 = self.conv_block_lists[2][1](tfkl.concatenate([x2_0, self.up(x3_0)]), training=training)
+        x1_2 = self.conv_block_lists[1][2](tfkl.concatenate([x1_0, x1_1, self.up(x2_1)]), training=training)
+        x0_3 = self.conv_block_lists[0][3](tfkl.concatenate([x0_0, x0_1, x0_2, self.up(x1_2)]), training=training)
+
+        # i + j = 4
+        x4_0 = self.conv_block_lists[4][0](self.pool(x3_0), training=training)
+        x3_1 = self.conv_block_lists[3][1](tfkl.concatenate([x3_0, self.up(x4_0)]), training=training)
+        x2_2 = self.conv_block_lists[2][2](tfkl.concatenate([x2_0, x2_1, self.up(x3_1)]), training=training)
+        x1_3 = self.conv_block_lists[1][3](tfkl.concatenate([x1_0, x1_1, x1_2, self.up(x2_2)]), training=training)
+        x0_4 = self.conv_block_lists[0][4](tfkl.concatenate([x0_0, x0_1, x0_2, x0_3, self.up(x1_3)]), training=training)
+
+        output = self.conv1x1(x0_4)
+        
+        
+        block_list = []
+        x = self.conv_block_lists[0][0](input, training=training)
+        block_list.append(x)
+
+        for sum_idx in range(1, len(self.conv_block_lists)):
+            left_idx = sum_idx
+            right_idx = 0
+            layer_list = []
+
+            while right_idx <= sum_idx:
+
+                print(left_idx)
+                print(right_idx)
+
+                if left_idx == sum_idx:
+                    x = self.conv_block_lists[left_idx][right_idx](self.pool(x), training=training)
+                else:
+                    
+                    x = self.conv_block_lists[left_idx][right_idx](tfkl.concatenate([self.up(x), block_list[left_idx]]), training=training)
+                
+                print(x.get_shape())
+                left_idx -= 1
+                right_idx += 1
+                layer_list.append(x)
+
+            block_list.append(layer_list)
+
+        output = self.conv_1x1(x)
+        '''
+
+        if self.num_classes == 1:
+            output = tfkl.Activation('sigmoid')(output)
+        else:
+            output = tfkl.Activation('softmax')(output)
 
         return output

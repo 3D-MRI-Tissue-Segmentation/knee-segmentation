@@ -6,12 +6,14 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 
 ### 2D Models Implemented
 
+- [x] SegNet 
 - [x] Vanilla UNet 
 - [x] Attention UNet
-- [x] Multi-res UNet
+- [x] <del> Multi-res UNet </del>
 - [x] R2_UNet
 - [x] R2_Attention UNet
-- [ ] 100-layer Tiramisu
+- [x] UNet++
+- [x] 100-layer Tiramisu
 - [ ] DeepLabv3+ 
 
 ### 3D Models Implemented
