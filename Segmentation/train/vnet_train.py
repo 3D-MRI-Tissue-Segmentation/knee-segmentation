@@ -26,27 +26,27 @@ def load_datasets(batch_size, buffer_size,
     return train_ds, valid_ds
 
 
-def build_model(num_channels, num_classes, lr=1e-4):
+def build_model(num_channels, num_classes):
     """
     Builds standard vnet for 3D
     """
     from Segmentation.model.vnet import VNet
-    from Segmentation.utils.losses import dice_loss
 
     model = VNet(num_channels, num_classes)
 
-    optimiser = tf.keras.optimizers.Adam(learning_rate=lr)
-
-    model.compile(optimizer=optimiser,
-                  loss=dice_loss,
-                  metrics=['binary_crossentropy', 'acc'])
     return model
 
-def train_model(model, train_ds, valid_ds, epochs, batch_size,
-                tfrec_dir='./Data/tfrecords/'):
+
+def train_model_keras(model, train_ds, valid_ds, epochs, batch_size,
+                      loss_func, optimizer, tfrec_dir='./Data/tfrecords/'):
     """
     Trains 3D model with keras fit
     """
+
+    model.compile(optimizer=optimizer,
+                  loss=loss_func,
+                  metrics=['binary_crossentropy', 'acc'])
+
     train_size = len(glob(os.path.join(tfrec_dir, 'train_3d/*')))
     valid_size = len(glob(os.path.join(tfrec_dir, 'valid_3d/*')))
 
@@ -62,6 +62,28 @@ def train_model(model, train_ds, valid_ds, epochs, batch_size,
                         verbose=1)
 
 
+def train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
+                     loss_func, optimizer, tfrec_dir='./Data/tfrecords/'):
+    """
+    Trains 3D model with custom tf loop
+    """
+
+    train_size = len(glob(os.path.join(tfrec_dir, 'train_3d/*')))
+    valid_size = len(glob(os.path.join(tfrec_dir, 'valid_3d/*')))
+
+    log_dir = "logs/vnet/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, profile_batch=0)
+
+    from Segmentation.train.utils import train_step, test_step
+
+    for e in range(epochs):
+        for (x_train, y_train) in train_ds:
+            train_step(model, loss_func, optimizer, x_train, y_train)
+
+        for (x_valid, y_valid) in valid_ds:
+            test_step(model, loss_func, x_valid, y_valid)
+
+
 if __name__ == "__main__":
     sys.path.insert(0, os.getcwd())
 
@@ -74,8 +96,14 @@ if __name__ == "__main__":
     buffer_size = 4
     epochs = 3
     batch_size = 1
+    lr = 1e-4
     tfrec_dir = './Data/tfrecords/'
 
     model = build_model(num_channels, num_classes)
     train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir)
-    train_model(model, train_ds, valid_ds, tfrec_dir, epochs, batch_size)
+
+    from Segmentation.utils.losses import dice_loss
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+
+    train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
+                     dice_loss, optimizer, tfrec_dir)
