@@ -181,13 +181,15 @@ def parse_fn_3d(example_proto, training, multi_class=True):
 
     return (image, seg)
 
-def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d, multi_class=True, is_training=False):
+def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
+                  multi_class=True, is_training=False, use_keras_fit=True):
 
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
     if is_training:
         shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
-    #shards = shards.repeat() consider if to keep this
+    if use_keras_fit:
+        shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length=4, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     if is_training:
