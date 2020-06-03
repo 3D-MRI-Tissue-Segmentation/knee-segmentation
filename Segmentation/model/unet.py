@@ -332,6 +332,7 @@ class Nested_UNet(tf.keras.Model):
 
         output = self.conv_1x1(x)
 
+
         """
         # TODO(Pietro/Lapo) Turn this into a nested loop?
         # i + j = 0
@@ -368,3 +369,4 @@ class Nested_UNet(tf.keras.Model):
             output = tfkl.Activation('softmax')(output)
 
         return output
+    
