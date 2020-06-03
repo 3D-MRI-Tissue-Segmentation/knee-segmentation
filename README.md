@@ -154,3 +154,13 @@ Unit-Testing and Unit-Test Converage
 
 python -m pytest --cov-report term-missing:skip-covered --cov=Segmentation && coverage html && open ./htmlcov.index.html
 ```
+
+``` Bash
+Start tensorboard on Pompeii
+
+On pompeii: tensorboard --logdir logs
+
+On your local machine: ssh -L 16006:127.0.0.1:6006 username@ip
+
+Go to localhost: http://localhost:16006/
+```

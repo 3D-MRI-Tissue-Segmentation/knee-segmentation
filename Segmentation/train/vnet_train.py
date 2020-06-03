@@ -16,13 +16,13 @@ if __name__ == "__main__":
 
     setup_gpu()
 
-    num_channels = 1
+    num_channels = 4
     num_classes = 1  # binary segmentation problem
     buffer_size = 4
     batch_size = 1
     tfrec_dir = './Data/tfrecords/'
 
-    for i in range(3):
+    for i in range(4):
 
         from Segmentation.model.vnet import VNet
         model = VNet(num_channels, num_classes)
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
         model.compile(optimizer=optimiser,
                       loss=dice_loss,
-                      metrics=['binary_crossentropy', 'acc'])
+                      metrics=['binary_crossentropy'])
 
         train_model(model)
 
@@ -54,11 +54,11 @@ if __name__ == "__main__":
         valid_size = len(glob(os.path.join(tfrec_dir, 'valid_3d/*')))
 
         log_dir = "logs/vnet/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, profile_batch=0)
 
         history = model.fit(train_ds,
                             steps_per_epoch=train_size // batch_size,
-                            epochs=20,
+                            epochs=25,
                             validation_data=valid_ds,
                             validation_steps=valid_size // batch_size,
                             callbacks=[tensorboard_callback],
