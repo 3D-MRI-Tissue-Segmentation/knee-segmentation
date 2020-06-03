@@ -3,6 +3,7 @@ import os
 from glob import glob
 import datetime
 import tensorflow as tf
+from time import time
 
 
 def load_datasets(batch_size, buffer_size,
@@ -31,9 +32,7 @@ def build_model(num_channels, num_classes):
     Builds standard vnet for 3D
     """
     from Segmentation.model.vnet import VNet
-
     model = VNet(num_channels, num_classes)
-
     return model
 
 
@@ -50,7 +49,7 @@ def train_model_keras(model, train_ds, valid_ds, epochs, batch_size,
     train_size = len(glob(os.path.join(tfrec_dir, 'train_3d/*')))
     valid_size = len(glob(os.path.join(tfrec_dir, 'valid_3d/*')))
 
-    log_dir = "logs/vnet/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "logs/vnet/keras/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, profile_batch=0)
 
     history = model.fit(train_ds,
@@ -71,18 +70,29 @@ def train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
     train_size = len(glob(os.path.join(tfrec_dir, 'train_3d/*')))
     valid_size = len(glob(os.path.join(tfrec_dir, 'valid_3d/*')))
 
-    log_dir = "logs/vnet/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, profile_batch=0)
+    log_dir = "logs/vnet/gradient_tape/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    train_summary_writer = tf.summary.create_file_writer(log_dir + '/train')
+    test_summary_writer = tf.summary.create_file_writer(log_dir + '/test')
+
+    train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
+    test_loss = tf.keras.metrics.Mean('test_loss', dtype=tf.float32)
 
     from Segmentation.train.utils import train_step, test_step
 
     for e in range(epochs):
         for (x_train, y_train) in train_ds:
-            train_step(model, loss_func, optimizer, x_train, y_train)
+            train_step(model, loss_func, optimizer, x_train, y_train, train_loss)
+        with train_summary_writer.as_default():
+            tf.summary.scalar('loss', train_loss.result(), step=e)
 
         for (x_valid, y_valid) in valid_ds:
-            test_step(model, loss_func, x_valid, y_valid)
+            test_step(model, loss_func, x_valid, y_valid, test_loss)
+        with test_summary_writer.as_default():
+            tf.summary.scalar('loss', test_loss.result(), step=e)
 
+        train_loss.reset_states()
+        test_loss.reset_states()
 
 if __name__ == "__main__":
     sys.path.insert(0, os.getcwd())
@@ -105,5 +115,14 @@ if __name__ == "__main__":
     from Segmentation.utils.losses import dice_loss
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
-    train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
-                     dice_loss, optimizer, tfrec_dir)
+    t0 = time()
+
+    # train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
+    #                  dice_loss, optimizer, tfrec_dir)
+
+    train_model_keras(model, train_ds, valid_ds, epochs, batch_size,
+                      dice_loss, optimizer, tfrec_dir)
+
+    print(time() - t0)
+
+    

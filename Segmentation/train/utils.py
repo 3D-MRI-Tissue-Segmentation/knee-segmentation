@@ -1,6 +1,7 @@
 import tensorflow as tf
 from glob import glob
 
+
 def setup_gpu():
     gpus = tf.config.experimental.list_physical_devices('GPU')
     print(gpus)
@@ -16,15 +17,18 @@ def setup_gpu():
             print(e)
 
 
-def train_step(model, loss_func, optimizer, x_train, y_train):
+@tf.function
+def train_step(model, loss_func, optimizer, x_train, y_train, train_loss):
     with tf.GradientTape() as tape:
         predictions = model(x_train, training=True)
         loss = loss_func(y_train, predictions)
     grads = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(grads, model.trainable_variables))
-    print("train", loss)
+    train_loss(loss)
 
-def test_step(model, loss_func, x_test, y_test):
-    predictions = model(x_test)
+
+@tf.function
+def test_step(model, loss_func, x_test, y_test, test_loss):
+    predictions = model(x_test, training=False)
     loss = loss_func(y_test, predictions)
-    print("test", loss)
+    test_loss(loss)
