@@ -34,7 +34,8 @@ class Hundread_Layer_Tiramisu(tf.keras.Model):
         self.conv_3x3 = tfkl.Conv2D(num_channels, kernel_size)
         self.dense_block_list = []
         self.up_transition_list = []   
-        self.conv_1x1 = tfkl.Conv2D(num_channels, kernel_size=(1, 1))
+        self.conv_1x1 = tfkl.Conv2D(num_channels=num_classes, 
+                                    kernel_size=(1, 1))
 
         for idx in range(len(self.layers_per_block)):
             num_conv_layers = layers_per_block[idx]
