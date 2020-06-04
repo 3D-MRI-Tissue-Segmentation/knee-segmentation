@@ -114,7 +114,7 @@ class ResNet_Backbone():
                                       padding=padding,
                                       use_bias=use_bias,
                                       data_format=data_format)
-        
+
         self.max_pool = tfkl.MaxPool2D(pool_size=(2, 2),
                                        padding='valid')
 
@@ -209,7 +209,7 @@ class resnet_block():
                                             use_nonlinearity,
                                             use_bias,
                                             data_format)
-                                    
+                             
         self.third_conv = basic_conv_block(num_channels,
                                            kernel_size[0],
                                            padding,

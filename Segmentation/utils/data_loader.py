@@ -196,11 +196,6 @@ def parse_fn_3d(example_proto, training, multi_class=True):
                                image_features['depth'], image_features['num_channels']])
     seg = tf.cast(seg, tf.float32)
 
-    # if training:
-    #     image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
-    #     image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
-    #     image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
-
     if not multi_class:
         seg = tf.math.reduce_sum(seg, axis=-1)
 
@@ -217,19 +212,20 @@ def read_tfrecord(tfrecords_dir,
 
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
-    shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
+    if is_training:
+        shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
-                                cycle_length=8,
+                                cycle_length=4,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
 
     parser = partial(parse_fn,
-                     training=True if is_training else False,
-                     multi_class=True if multi_class else False,
-                     use_bfloat16=True if use_bfloat16 else False,
-                     use_RGB=True if use_RGB else False)
+                     training=is_training,
+                     multi_class=multi_class,
+                     use_bfloat16=use_bfloat16,
+                     use_RGB=use_RGB)
     dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
