@@ -4,7 +4,7 @@ import tensorflow.keras.layers as tfkl
 '''The implementation of the 100 layer Tiramisu Network follows
 directly from the publication found at https://arxiv.org/pdf/1611.09326.pdf'''
 
-class Hundread_Layer_Tiramisu(tf.keras.Model):
+class Hundred_Layer_Tiramisu(tf.keras.Model):
     def __init__(self,
                  growth_rate,
                  layers_per_block,
@@ -18,7 +18,7 @@ class Hundread_Layer_Tiramisu(tf.keras.Model):
                  padding='same',
                  **kwargs):
 
-        super(Hundread_Layer_Tiramisu, self).__init__(**kwargs)
+        super(Hundred_Layer_Tiramisu, self).__init__(**kwargs)
 
         self.growth_rate = growth_rate
         self.layers_per_block = layers_per_block

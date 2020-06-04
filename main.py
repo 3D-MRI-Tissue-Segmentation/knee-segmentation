@@ -10,7 +10,7 @@ from absl import logging
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
-from Segmentation.model.Hundread_Layer_Tiramisu import Hundread_Layer_Tiramisu
+from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
@@ -29,13 +29,8 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-<<<<<<< HEAD
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu')
 flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
-=======
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++', '100-Layer-Tiramisu')
-flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50')
->>>>>>> d949a9bc05cb8c631b810655f90b50dd3b3fc49d
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
@@ -196,17 +191,16 @@ def main(argv):
         
         elif FLAGS.model_architecture == '100-Layer-Tiramisu':
 
-            model = Hundread_Layer_Tiramisu(FLAGS.growth_rate
-                                            FLAGS.layers_per_block
-                                            FLAGS.num_channels,
-                                            num_classes
-                                            FLAGS.kernel_size,
-                                            FLAGS.pool_size
-                                            FLAGS.activation
-                                            FLAGS.dropout_rate
-                                            FLAGS.strides
-                                            FLAGS.padding
-                                            )
+            model = Hundred_Layer_Tiramisu(FLAGS.growth_rate,
+                                           FLAGS.layers_per_block,
+                                           FLAGS.num_channels,
+                                           num_classes,
+                                           FLAGS.kernel_size,
+                                           FLAGS.pool_size,
+                                           FLAGS.activation,
+                                           FLAGS.dropout_rate,
+                                           FLAGS.strides,
+                                           FLAGS.padding)
 
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
@@ -234,9 +228,10 @@ def main(argv):
     if FLAGS.train:
 
         # define checkpoints
-        logdir = os.path.join(FLAGS.logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        logdir = os.path.join(logdir, FLAGS.tpu)
+        logdir = os.path.join(logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
-        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.hdf5',
+        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
