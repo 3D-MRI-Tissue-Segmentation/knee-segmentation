@@ -224,12 +224,12 @@ class up_transition(tf.keras.Model):
                                        kernel_size,
                                        strides,
                                        padding)
-        
-    def call(self, inputs, bridge, training=False):
 
+    def call(self, inputs, bridge, training=False):
+        
         up = self.up_conv(inputs)
-        c_up = tfkl.concatanate([up, bridge], axis=3)
+        c_up = tfkl.concatenate([up, bridge], axis=3)
         db_up = self.dense_block(c_up)
 
-        return db_up 
+        return db_up
 

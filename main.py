@@ -188,7 +188,7 @@ def main(argv):
                                 FLAGS.use_batchnorm,
                                 FLAGS.use_bias,
                                 FLAGS.channel_order)
-        
+
         elif FLAGS.model_architecture == '100-Layer-Tiramisu':
 
             model = Hundred_Layer_Tiramisu(FLAGS.growth_rate,
@@ -228,7 +228,7 @@ def main(argv):
     if FLAGS.train:
 
         # define checkpoints
-        logdir = os.path.join(logdir, FLAGS.tpu)
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         logdir = os.path.join(logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
