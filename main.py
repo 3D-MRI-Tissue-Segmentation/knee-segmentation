@@ -228,10 +228,11 @@ def main(argv):
 
     if FLAGS.train:
 
-        # define checkpoints
-        logdir = os.path.join(FLAGS.logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        # define checkpoint
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
+        logdir = os.path.join(logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
-        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.hdf5',
+        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
@@ -242,7 +243,7 @@ def main(argv):
                             validation_data=valid_ds,
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
-        FLAGS.append_flags_into_file(logdir_arch + '_test_flags.cfg')
+        # FLAGS.append_flags_into_file(logdir_arch + '_test_flags.cfg')
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
 
     else:
