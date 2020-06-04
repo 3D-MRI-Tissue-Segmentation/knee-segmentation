@@ -11,6 +11,8 @@ from glob import glob
 from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
     translate_randomly_image_pair_2d
 
+from Segmentation.plotting.voxels import plot_slice
+
 def get_multiclass(label):
 
     # label shape
@@ -68,17 +70,21 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
         with h5py.File(seg_filepath, 'r') as hf:
             seg = np.array(hf['data'])
 
+        img = img[48:336, 48:336, :]
+        seg = seg[48:336, 48:336, :, :]
+
         img = np.rollaxis(img, 2, 0)
         seg = np.rollaxis(seg, 2, 0)
-
-        img = img[:, 48:336, 48:336]
-        seg = seg[:, 48:336, 48:336, :]
-
         seg_temp = np.zeros((160, 288, 288, 1), dtype=np.int8)
-        seg_sum = np.sum(seg, axis=3)
+        assert img.shape == (160, 288, 288)
+        assert seg.shape == (160, 288, 288, 6)
+
+        seg_sum = np.sum(seg, axis=-1)
         seg_temp[seg_sum == 0] = 1
-        seg = np.concatenate([seg_temp, seg], axis=3)
-        img = np.expand_dims(img, axis=3)
+        seg = np.concatenate([seg_temp, seg], axis=-1)  # adds additional channel for no class
+        img = np.expand_dims(img, axis=-1)
+        assert img.shape[-1] == 1
+        assert seg.shape[-1] == 7
 
         shard_dir = f'{idx:03d}-of-{len(files) - 1:03d}.tfrecords'
         tfrecord_filename = os.path.join(tfrecord_directory, shard_dir)
@@ -177,8 +183,11 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     seg = tf.cast(seg, tf.float32)
 
     if not multi_class:
-        seg = tf.math.reduce_sum(seg, axis=-1)
-
+        #seg_background = tf.slice(seg, [0, 0, 0, 0], [-1, -1, -1, 1])
+        seg_cartilage = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])
+        seg_cartilage = tf.math.reduce_sum(seg_cartilage, axis=-1)
+        seg_cartilage = tf.expand_dims(seg_cartilage, axis=-1)
+        seg = tf.clip_by_value(seg_cartilage, 0, 1)
     return (image, seg)
 
 def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,

@@ -1,10 +1,7 @@
 from Segmentation.utils.data_loader import create_OAI_dataset
 import os
 
-if __name__ == "__main__":
-    folder = 'valid'
-    use_2d = False
-
+def create_tfrecords(folder="train", use_2d=False):
     train = (folder == 'train')
     str_dim = "" if use_2d else "_3d"
 
@@ -17,3 +14,7 @@ if __name__ == "__main__":
                        tfrecord_directory="./Data/tfrecords/" + folder + str_dim,
                        get_train=train,
                        use_2d=use_2d)
+    
+if __name__ == "__main__":
+    create_tfrecords("train")
+    create_tfrecords("valid")

@@ -99,24 +99,31 @@ def train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
                 print("x", x_train.shape)
                 print("y", y_train.shape)
                 print("p", pred[0].shape)
-                r = 20
-                print("p", pred[0, (80 - r):(80 + r), (30 - r):(30 + r), (30 - r):(30 + r)].shape)
+                r = 60
+                print("p", pred[0, (80 - r):(80 + r), (144 - r):(144 + r), (144 - r):(144 + r)].shape)
 
-                sample = pred[0, (80 - r):(80 + r), (30 - r):(30 + r), (30 - r):(30 + r)]
+                sample = pred[0, (80 - r):(80 + r), (144 - r):(144 + r), (144 - r):(144 + r)]
                 sample = np.squeeze(sample, -1)
                 sample = np.stack((sample,) * 3, axis=-1)
 
-                true_sample = y_train[0, (20 - r):(20 + r), (30 - r):(30 + r), (30 - r):(30 + r)]
+                true_sample = y_train[0, (80 - r):(80 + r), (144 - r):(144 + r), (144 - r):(144 + r)]
+                true_sample = np.squeeze(true_sample, -1)
                 true_sample = np.stack((true_sample,) * 3, axis=-1)
+
+                print(true_sample.shape)
+                print(sample.shape)
 
                 plot_volume(true_sample, show=True)
                 plot_volume(sample, show=True)
 
-                plot_slice(y_train[0, 120, :, :])
-                plot_slice(pred[0, 120, :, :, 0])
-
-                print(np.sum(y_train))
-                print(y_train.shape)
+                print("y", y_train.shape)
+                plot_slice(y_train[0, 80, :, :, 0])
+                print("max", np.max(y_train))
+                print("min", np.min(y_train))
+                plot_slice(pred[0, 80, :, :, 0])
+                print("-----------")
+                print("sum", np.sum(y_train))
+                print("y shape", y_train.shape)
                 print("image done")
 
         with train_summary_writer.as_default():
@@ -133,8 +140,8 @@ def train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
                 print("y", y_valid.shape)
                 print("p", pred.shape)
                 print("===============")
-                #plot_volume(y_valid[0], show=True)
-                #'plot_volume(pred[0])
+                # plot_volume(y_valid[0], show=True)
+                # plot_volume(pred[0])
 
         with test_summary_writer.as_default():
             tf.summary.scalar('epoch_loss', test_loss.result(), step=e)
@@ -154,7 +161,7 @@ if __name__ == "__main__":
     num_channels = 1
     num_classes = 1  # binary segmentation problem
     buffer_size = 4
-    epochs = 5
+    epochs = 25
     batch_size = 1
     lr = 1e-4
     tfrec_dir = './Data/tfrecords/'
@@ -169,7 +176,7 @@ if __name__ == "__main__":
 
     if not use_keras_fit:
         train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
-                         dice_loss, optimizer, tfrec_dir, num_to_visualise=5)
+                         dice_loss, optimizer, tfrec_dir, num_to_visualise=0)
     else:
         train_model_keras(model, train_ds, valid_ds, epochs, batch_size,
                           dice_loss, optimizer, tfrec_dir)
