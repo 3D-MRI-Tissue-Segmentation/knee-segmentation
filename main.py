@@ -10,6 +10,7 @@ from absl import logging
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
+from Segmentation.model.Hundread_Layer_Tiramisu import Hundread_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
@@ -28,8 +29,13 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
+<<<<<<< HEAD
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++')
 flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
+=======
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++', '100-Layer-Tiramisu')
+flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50')
+>>>>>>> d949a9bc05cb8c631b810655f90b50dd3b3fc49d
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
@@ -44,6 +50,11 @@ flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
+flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block' )
+flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after each convolution')
+flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
+flags.DEFINE_integer('strides', 2, 'strides size to be used')
+flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -182,6 +193,20 @@ def main(argv):
                                 FLAGS.use_batchnorm,
                                 FLAGS.use_bias,
                                 FLAGS.channel_order)
+        
+        elif FLAGS.model_architecture == '100-Layer-Tiramisu':
+
+            model = Hundread_Layer_Tiramisu(FLAGS.growth_rate
+                                            FLAGS.layers_per_block
+                                            FLAGS.num_channels,
+                                            num_classes
+                                            FLAGS.kernel_size,
+                                            FLAGS.pool_size
+                                            FLAGS.activation
+                                            FLAGS.dropout_rate
+                                            FLAGS.strides
+                                            FLAGS.padding
+                                            )
 
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
