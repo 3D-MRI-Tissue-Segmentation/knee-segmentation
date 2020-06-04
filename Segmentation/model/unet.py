@@ -300,7 +300,7 @@ class Nested_UNet(tf.keras.Model):
                 i = i-1
                 j = j+1
 
-        output = self.conv1x1(x[last_name])
+        output = self.conv_1x1(x[last_name])
         
         '''
         # i + j = 0

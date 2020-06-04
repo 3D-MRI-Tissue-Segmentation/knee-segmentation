@@ -30,6 +30,8 @@ htmlcov/
 *.hdf5
 *.csv
 *.tfrecords
+*.cfg
+*.sh
 
 # IDE
 .vscode/
