@@ -62,7 +62,7 @@ class UNet(tf.keras.Model):
         else:
             encoder = Encoder(weights_init='imagenet', model_architecture=self.backbone)
             encoder.freeze_pretrained_layers()
-            for j in len(encoder.conv_list):
+            for j in range(len(encoder.conv_list)):
                 self.contracting_path.append(encoder.get_conv_block(j))
                 if self.backbone in ['vgg16', 'vgg19']:
                     if j != len(encoder.conv_list) - 1:

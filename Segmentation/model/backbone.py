@@ -10,6 +10,7 @@ class Encoder(object):
         self.weights_init = weights_init
         if model_architecture == 'vgg16':
             self.model = VGG16(weights=self.weights_init, include_top=False)
+            self.layer_list = dict([(layer.name, layer) for layer in self.model.layers])
             self.conv_1 = self.construct_conv_block([self.layer_list['block1_conv1'],
                                                      self.layer_list['block1_conv2']])
             self.conv_2 = self.construct_conv_block([self.layer_list['block2_conv1'],
@@ -26,6 +27,7 @@ class Encoder(object):
 
         elif model_architecture == 'vgg19':
             self.model = VGG19(weights=self.weights_init, include_top=False)
+            self.layer_list = dict([(layer.name, layer) for layer in self.model.layers])
             self.conv_1 = self.construct_conv_block([self.layer_list['block1_conv1'],
                                                      self.layer_list['block1_conv2']])
             self.conv_2 = self.construct_conv_block([self.layer_list['block2_conv1'],
@@ -45,6 +47,7 @@ class Encoder(object):
 
         elif model_architecture == 'resnet50':
             self.model = ResNet50(weights=self.weights_init, include_top=False)
+            self.layer_list = dict([(layer.name, layer) for layer in self.model.layers])
             self.conv_1 = self.construct_conv_block(self.model.layers[1:6])
             self.conv_2 = self.construct_conv_block(self.model.layers[7:39])
             self.conv_3 = self.construct_conv_block(self.model.layers[39:81])
