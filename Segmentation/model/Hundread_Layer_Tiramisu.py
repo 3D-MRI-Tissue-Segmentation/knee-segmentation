@@ -2,7 +2,7 @@ import tensorflow as tf
 import tensorflow.keras.layers as tfkl
 
 '''The implementation of the 100 layer Tiramisu Network follows
-directly from the publication found at https://arxiv.org/pdf/1611.09326.pdf''''
+directly from the publication found at https://arxiv.org/pdf/1611.09326.pdf'''
 
 class Hundread_Layer_Tiramisu(tf.keras.Model):
     def __init__(self,
@@ -39,26 +39,26 @@ class Hundread_Layer_Tiramisu(tf.keras.Model):
 
         for idx in range(len(self.layers_per_block)):
             num_conv_layers = layers_per_block[idx]
-            dense_block_list.append(dense_layer(num_conv_layers,
-                                                growth_rate,
-                                                num_channels,
-                                                kernel_size,
-                                                dropout_rate,
-                                                nonlinearity))
+            self.dense_block_list.append(dense_layer(num_conv_layers,
+                                                     growth_rate,
+                                                     num_channels,
+                                                     kernel_size,
+                                                     dropout_rate,
+                                                     nonlinearity))
 
-            dense_block_list.append(down_transition(num_channels=self.output_channels,
-                                                    kernel_size=(1, 1),
-                                                    pool_size=(2, 2),
-                                                    dropout_rate=0.2,
-                                                    nonlinearity='relu'))
+            self.dense_block_list.append(down_transition(num_channels=self.output_channels,
+                                                         kernel_size=(1, 1),
+                                                         pool_size=(2, 2),
+                                                         dropout_rate=0.2,
+                                                         nonlinearity='relu'))
             
-        for idx in range(len(self.layers_per_block)-1:0:-1):
+        for idx in range(len(self.layers_per_block)-1, 0, -1):
             num_conv_layers = layers_per_block[idx]
-            up_transition_list.append(up_transition(num_conv_layers,
-                                                    num_channels,
-                                                    kernel_size,
-                                                    strides,
-                                                    padding))
+            self.up_transition_list.append(up_transition(num_conv_layers,
+                                                         num_channels,
+                                                         kernel_size,
+                                                         strides,
+                                                         padding))
 
     def call(self, inputs, training=False):
         
@@ -122,7 +122,7 @@ class conv_layer(tf.keras.Sequential):
 class dense_layer(tf.keras.Sequential):
 
     def __init__(self,
-                 num_conv_layers
+                 num_conv_layers,
                  growth_rate,
                  num_channels,
                  kernel_size=(3, 3),
@@ -174,7 +174,7 @@ class down_transition(tf.keras.Sequential):
                  nonlinearity='relu',
                  **kwargs):
 
-        super(down_transition, self)__init__(**kwargs)
+        super(down_transition, self).__init__(**kwargs)
 
         self.kernel_size = kernel_size
         self.pool_size = pool_size
@@ -207,7 +207,7 @@ class up_transition(tf.keras.Model):
                  padding='same',
                  **kwargs):
         
-        super(up_transition, self)__init__(**kwargs)
+        super(up_transition, self).__init__(**kwargs)
 
         self.num_conv_layers = num_conv_layers
         self.num_channels = num_channels
@@ -225,11 +225,11 @@ class up_transition(tf.keras.Model):
                                        strides,
                                        padding)
         
-    def call(self, inputs, bridge, training=False):
+   def call(self, inputs, bridge, training=False):
 
-        up = up_conv(inputs)
+        up = self.up_conv(inputs)
         c_up = tfkl.concatanate([up, bridge], axis=3)
-        db_up = dense_block(c_up)
+        db_up = self.dense_block(c_up)
 
         return db_up 
 

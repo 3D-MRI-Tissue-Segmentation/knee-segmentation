@@ -29,13 +29,8 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-<<<<<<< HEAD
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu')
 flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
-=======
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++', '100-Layer-Tiramisu')
-flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50')
->>>>>>> d949a9bc05cb8c631b810655f90b50dd3b3fc49d
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
@@ -196,15 +191,15 @@ def main(argv):
         
         elif FLAGS.model_architecture == '100-Layer-Tiramisu':
 
-            model = Hundread_Layer_Tiramisu(FLAGS.growth_rate
-                                            FLAGS.layers_per_block
+            model = Hundread_Layer_Tiramisu(FLAGS.growth_rate,
+                                            FLAGS.layers_per_block,
                                             FLAGS.num_channels,
-                                            num_classes
+                                            num_classes,
                                             FLAGS.kernel_size,
-                                            FLAGS.pool_size
-                                            FLAGS.activation
-                                            FLAGS.dropout_rate
-                                            FLAGS.strides
+                                            FLAGS.pool_size,
+                                            FLAGS.activation,
+                                            FLAGS.dropout_rate,
+                                            FLAGS.strides,
                                             FLAGS.padding
                                             )
 
