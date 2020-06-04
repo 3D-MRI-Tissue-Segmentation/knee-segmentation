@@ -10,6 +10,7 @@ from absl import logging
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
+from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
@@ -29,7 +30,7 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
 flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
@@ -39,6 +40,7 @@ flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
 flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
 flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
+flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
@@ -50,6 +52,19 @@ flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after e
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
+
+# Deeplab parameters
+# flags.DEFINE_int('kernel_size_initial_conv', , 'kernel size for the first convolution')
+# flags.DEFINE_int('num_filters_atrous', , '')
+# flags.DEFINE_list('num_filters_DCNN', [256, 512, 1024], 'number of filters for the first three blocks of the DCNN')
+# flags.DEFINE_int('num_filters_ASPP', 256, 'number of filters for the ASPP term')
+# flags.DEFINE_int('kernel_size_atrous', 3, 'number of filters for the ASPP term')
+# flags.DEFINE_list('kernel_size_DCNN', [1, 3], 'number of filters for the ASPP term')
+# flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'number of filters for the ASPP term')
+# flags.DEFINE_list('MultiGrid', [1, 2, 4], '')
+# flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], '')
+# flags.DEFINE_int('output_stride', 16, '')
+
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -200,8 +215,29 @@ def main(argv):
                                             FLAGS.activation,
                                             FLAGS.dropout_rate,
                                             FLAGS.strides,
-                                            FLAGS.padding
-                                            )
+                                            FLAGS.padding)
+
+        # elif FLAGS.model_architecture == 'deeplabv3':
+
+        #     model = Deeplabv3(num_classes,
+        #                       FLAGS.kernel_size_initial_conv,
+        #                       FLAGS.num_filters_atrous,
+        #                       FLAGS.num_filters_DCNN,
+        #                       FLAGS.num_filter_ASPP,
+        #                       FLAGS.kernel_size_atrous,
+        #                       FLAGS.kernel_size_DCNN,
+        #                       FLAGS.kernel_size_ASPP,
+        #                       'same'
+        #                       FLAGS.activation,
+        #                       FLAGS.use_batchnorm,
+        #                       FLAGS.use_bias,
+        #                       FLAGS.use_dropout,
+        #                       FLAGS.dropout_rate,
+        #                       FLAGS.use_spatial,
+        #                       'channels_last',
+        #                       FLAGS.MultiGrid,
+        #                       FLAGS.rate_ASPP,
+        #                       FLAGS.output_stride)
 
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
