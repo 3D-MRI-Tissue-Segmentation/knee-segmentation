@@ -3,6 +3,7 @@ import os
 from glob import glob
 import datetime
 import tensorflow as tf
+import numpy as np
 from time import time
 
 
@@ -84,7 +85,7 @@ def train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
 
     from Segmentation.train.utils import train_step, test_step
     if num_to_visualise > 0:
-        from Segmentation.plotting.voxels import plot_volume
+        from Segmentation.plotting.voxels import plot_volume, plot_slice
 
     for e in range(epochs):
         print(f"Epoch {e+1}/{epochs}", end="")
@@ -98,9 +99,24 @@ def train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
                 print("x", x_train.shape)
                 print("y", y_train.shape)
                 print("p", pred[0].shape)
-                print("===============")
-                #plot_volume(y_train[0], show=True)
-                plot_volume(pred[0])
+                r = 20
+                print("p", pred[0, (80 - r):(80 + r), (30 - r):(30 + r), (30 - r):(30 + r)].shape)
+
+                sample = pred[0, (80 - r):(80 + r), (30 - r):(30 + r), (30 - r):(30 + r)]
+                sample = np.squeeze(sample, -1)
+                sample = np.stack((sample,) * 3, axis=-1)
+
+                true_sample = y_train[0, (20 - r):(20 + r), (30 - r):(30 + r), (30 - r):(30 + r)]
+                true_sample = np.stack((true_sample,) * 3, axis=-1)
+
+                plot_volume(true_sample, show=True)
+                plot_volume(sample, show=True)
+
+                plot_slice(y_train[0, 120, :, :])
+                plot_slice(pred[0, 120, :, :, 0])
+
+                print(np.sum(y_train))
+                print(y_train.shape)
                 print("image done")
 
         with train_summary_writer.as_default():
@@ -118,7 +134,7 @@ def train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
                 print("p", pred.shape)
                 print("===============")
                 #plot_volume(y_valid[0], show=True)
-                plot_volume(pred[0])
+                #'plot_volume(pred[0])
 
         with test_summary_writer.as_default():
             tf.summary.scalar('epoch_loss', test_loss.result(), step=e)
@@ -153,11 +169,9 @@ if __name__ == "__main__":
 
     if not use_keras_fit:
         train_model_loop(model, train_ds, valid_ds, epochs, batch_size,
-                        dice_loss, optimizer, tfrec_dir, num_to_visualise=2)
-    else: 
+                         dice_loss, optimizer, tfrec_dir, num_to_visualise=5)
+    else:
         train_model_keras(model, train_ds, valid_ds, epochs, batch_size,
                           dice_loss, optimizer, tfrec_dir)
 
     print(f"{time() - t0:.02f}")
-
-    

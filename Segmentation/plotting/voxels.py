@@ -11,3 +11,8 @@ def plot_volume(volume, show=False):
     else:
         plt.savefig(f"test")
         plt.close('all')
+
+def plot_slice(vol_slice):
+    fig = plt.figure()
+    plt.imshow(vol_slice, cmap="gray")
+    plt.show()
