@@ -4,7 +4,7 @@ import tensorflow.keras.layers as tfkl
 '''The implementation of the 100 layer Tiramisu Network follows
 directly from the publication found at https://arxiv.org/pdf/1611.09326.pdf'''
 
-class Hundread_Layer_Tiramisu(tf.keras.Model):
+class Hundred_Layer_Tiramisu(tf.keras.Model):
     def __init__(self,
                  growth_rate,
                  layers_per_block,
@@ -18,7 +18,7 @@ class Hundread_Layer_Tiramisu(tf.keras.Model):
                  padding='same',
                  **kwargs):
 
-        super(Hundread_Layer_Tiramisu, self).__init__(**kwargs)
+        super(Hundred_Layer_Tiramisu, self).__init__(**kwargs)
 
         self.growth_rate = growth_rate
         self.layers_per_block = layers_per_block
@@ -51,8 +51,8 @@ class Hundread_Layer_Tiramisu(tf.keras.Model):
                                                          pool_size=(2, 2),
                                                          dropout_rate=0.2,
                                                          nonlinearity='relu'))
-            
-        for idx in range(len(self.layers_per_block)-1, 0, -1):
+
+        for idx in range(len(self.layers_per_block) - 1, 0, -1):
             num_conv_layers = layers_per_block[idx]
             self.up_transition_list.append(up_transition(num_conv_layers,
                                                          num_channels,
@@ -61,14 +61,14 @@ class Hundread_Layer_Tiramisu(tf.keras.Model):
                                                          padding))
 
     def call(self, inputs, training=False):
-        
+
         blocks = []
         x = self.conv_3x3(inputs)
         for i, down in enumerate(self.dense_block_list):
             x = down(x, training=training)
-            if i%2 == 0 and i != len(self.dense_block_list):
+            if i % 2 == 0 and i != len(self.dense_block_list):
                 blocks.append(x)
-        
+
         for i, up in enumerate(self.up_transition_list):
             x = up(x, blocks[i], training=training)
 
@@ -189,7 +189,7 @@ class down_transition(tf.keras.Sequential):
         self.add(tfkl.Dropout(rate=self.dropout_rate))
         self.add(tfkl.MaxPooling2D(pool_size))
     
-     def call(self, inputs, training=False):
+    def call(self, inputs, training=False):
 
         outputs = super(down_transition, self).call(inputs, training=training)
 
@@ -224,12 +224,12 @@ class up_transition(tf.keras.Model):
                                        kernel_size,
                                        strides,
                                        padding)
-        
-   def call(self, inputs, bridge, training=False):
 
+    def call(self, inputs, bridge, training=False):
+        
         up = self.up_conv(inputs)
-        c_up = tfkl.concatanate([up, bridge], axis=3)
+        c_up = tfkl.concatenate([up, bridge], axis=3)
         db_up = self.dense_block(c_up)
 
-        return db_up 
+        return db_up
 

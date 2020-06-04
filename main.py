@@ -10,7 +10,7 @@ from absl import logging
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
-from Segmentation.model.Hundread_Layer_Tiramisu import Hundread_Layer_Tiramisu
+from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
@@ -229,9 +229,10 @@ def main(argv):
     if FLAGS.train:
 
         # define checkpoints
-        logdir = os.path.join(FLAGS.logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
+        logdir = os.path.join(logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
-        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.hdf5',
+        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
