@@ -1,6 +1,8 @@
 import tensorflow as tf
-from tensorflow.keras.applications import VGG16, VGG19, ResNet50
-
+import tensorflow.keras.layers as tfkl
+from tensorflow.keras.applications import VGG16, VGG19
+from tensorflow.keras.applications import ResNet50, ResNet50V2, ResNet101, ResNet101V2, ResNet152, ResNet152V2
+from tensorflow.keras.models import Model
 
 class Encoder(object):
     def __init__(self,
@@ -10,60 +12,45 @@ class Encoder(object):
         self.weights_init = weights_init
         if model_architecture == 'vgg16':
             self.model = VGG16(weights=self.weights_init, include_top=False)
-            self.layer_list = dict([(layer.name, layer) for layer in self.model.layers])
-            self.conv_1 = self.construct_conv_block([self.layer_list['block1_conv1'],
-                                                     self.layer_list['block1_conv2']])
-            self.conv_2 = self.construct_conv_block([self.layer_list['block2_conv1'],
-                                                    self.layer_list['block2_conv2']])
-            self.conv_3 = self.construct_conv_block([self.layer_list['block3_conv1'],
-                                                    self.layer_list['block3_conv2'],
-                                                    self.layer_list['block3_conv3']])
-            self.conv_4 = self.construct_conv_block([self.layer_list['block4_conv1'],
-                                                    self.layer_list['block4_conv2'],
-                                                    self.layer_list['block4_conv3']])
-            self.conv_5 = self.construct_conv_block([self.layer_list['block5_conv1'],
-                                                    self.layer_list['block5_conv2'],
-                                                    self.layer_list['block5_conv3']])
+            self.bridge_list = [2, 5, 9, 13, 17]
 
         elif model_architecture == 'vgg19':
             self.model = VGG19(weights=self.weights_init, include_top=False)
-            self.layer_list = dict([(layer.name, layer) for layer in self.model.layers])            
-            self.conv_1 = self.construct_conv_block([self.layer_list['block1_conv1'],
-                                                     self.layer_list['block1_conv2']])
-            self.conv_2 = self.construct_conv_block([self.layer_list['block2_conv1'],
-                                                    self.layer_list['block2_conv2']])
-            self.conv_3 = self.construct_conv_block([self.layer_list['block3_conv1'],
-                                                     self.layer_list['block3_conv2'],
-                                                     self.layer_list['block3_conv3'],
-                                                     self.layer_list['block3_conv4']])
-            self.conv_4 = self.construct_conv_block([self.layer_list['block4_conv1'],
-                                                     self.layer_list['block4_conv2'],
-                                                     self.layer_list['block4_conv3'],
-                                                     self.layer_list['block4_conv4']])
-            self.conv_5 = self.construct_conv_block([self.layer_list['block5_conv1'],
-                                                     self.layer_list['block5_conv2'],
-                                                     self.layer_list['block5_conv3'],
-                                                     self.layer_list['block5_conv4']])
+            self.bridge_list = [2, 5, 10, 15, 20]
 
         elif model_architecture == 'resnet50':
             self.model = ResNet50(weights=self.weights_init, include_top=False)
-            self.layer_list = dict([(layer.name, layer) for layer in self.model.layers])            
-            self.conv_1 = self.construct_conv_block(self.model.layers[1:6])
-            self.conv_2 = self.construct_conv_block(self.model.layers[7:39])
-            self.conv_3 = self.construct_conv_block(self.model.layers[39:81])
-            self.conv_4 = self.construct_conv_block(self.model.layers[81:143])
-            self.conv_5 = self.construct_conv_block(self.model.layers[143:])
+            self.bridge_list = [4, 38, 80, 142, -1]
 
-        self.conv_list = [self.conv_1, self.conv_2, self.conv_3, self.conv_4, self.conv_5]
+        elif model_architecture == 'resnet50v2':
+            self.model = ResNet50V2(weights=self.weights_init, include_top=False)
+            self.bridge_list = [2, 27, 62, 108, -1] 
 
-    def get_conv_block(self, idx):
-        return self.conv_list[idx]
+        elif model_architecture == 'resnet101':
+            self.model = ResNet101(weghts=self.weights_init, include_top=False)
+            self.bridge_list = [4, 38, 80, 312, -1]
 
-    def construct_conv_block(self, layers):
-        model = tf.keras.Sequential()
-        for i in range(len(layers)):
-            model.add(layers[i])
-        return model
+        elif model_architecture == 'resnet101v2':
+            self.model = ResNet101V2(weights=self.weights_init, include_top=False)
+            self.bridge_list = [2, 27, 62, 328, -1]
+
+        elif model_architecture == 'resnet152':
+            self.model = ResNet152(weights=self.weights_init, include_top=False)
+            self.bridge_list = [4, 38, 120, 482, -1]
+
+        elif model_architecture == 'resnet152v2':
+            self.model = ResNet152V2(weights=self.weights_init, include_top=False)
+            self.bridge_list = [2, 27, 117, 515, -1]
+        
+    def construct_backbone(self):
+        output_list = []
+        for _, layer_idx in enumerate(self.bridge_list):
+            layer_output = self.model.layers[layer_idx].output
+            output_list.append(layer_output)
+
+        backbone = Model(inputs=self.model.input, outputs=output_list)
+
+        return backbone
 
     def freeze_pretrained_layers(self):
         for layer in self.model.layers:

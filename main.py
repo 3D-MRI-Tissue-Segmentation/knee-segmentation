@@ -29,7 +29,7 @@ flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++')
-flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50')
+flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
@@ -208,11 +208,10 @@ def main(argv):
 
     if FLAGS.train:
 
-        # define checkpoint
-        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
-        logdir = os.path.join(logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        # define checkpoints
+        logdir = os.path.join(FLAGS.logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
-        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
+        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.hdf5',
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
@@ -223,7 +222,7 @@ def main(argv):
                             validation_data=valid_ds,
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
-        # FLAGS.append_flags_into_file(logdir_arch + '_test_flags.cfg')
+        FLAGS.append_flags_into_file(logdir_arch + '_test_flags.cfg')
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
 
     else:
