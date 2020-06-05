@@ -162,35 +162,36 @@ def main(epochs = 3,
          enable_function=False,
          tfrec_dir='./Data/tfrecords/',
          multi_class=False,
+         crop_size=144,
          **model_kwargs,
          ):
     t0 = time()
 
     num_classes = 7 if multi_class else 1
-    train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class, crop_size=144)
+    train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class, crop_size=crop_size)
 
-    for x,y in train_ds:
-        print("========== load data =========")
-        print(x.shape)
-        print(y.shape)
-        print("=============")
+    # for x,y in train_ds:
+    #     print("========== load data =========")
+    #     print(x.shape)
+    #     print(y.shape)
+    #     print("=============")
 
-    # strategy = tf.distribute.MirroredStrategy()
-    # with strategy.scope():
-    #     optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-    #     model = build_model(num_channels, num_classes, **model_kwargs)
+    strategy = tf.distribute.MirroredStrategy()
+    with strategy.scope():
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        model = build_model(num_channels, num_classes, **model_kwargs)
 
-    #     trainer = Train(epochs, batch_size, enable_function,
-    #                     model, optimizer, dice_loss)
+        trainer = Train(epochs, batch_size, enable_function,
+                        model, optimizer, dice_loss)
         
-    #     train_ds = strategy.experimental_distribute_dataset(train_ds)
-    #     valid_ds = strategy.experimental_distribute_dataset(valid_ds)
+        train_ds = strategy.experimental_distribute_dataset(train_ds)
+        valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-    # trainer.train_model_loop(train_ds, valid_ds, strategy, num_to_visualise)
-    # print(f"{time() - t0:.02f}")
+    trainer.train_model_loop(train_ds, valid_ds, strategy, num_to_visualise)
+    print(f"{time() - t0:.02f}")
 
 
 if __name__ == "__main__":
     setup_gpu()
-    main(epochs=50, lr=1e-4, dropout_rate=0.0, use_batchnorm=False)
+    main(epochs=5, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=10)
     # main(epochs=50, lr=1e-4, dropout_rate=0.0, noise=1e-4)
