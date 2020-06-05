@@ -70,7 +70,7 @@ flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
 flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
-flags.DEFINE_string('fig_dir', 'checkpoints', 'directory for saved figures')
+flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
 # Accelerator flags
@@ -272,6 +272,12 @@ def main(argv):
         # define checkpoints
         logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
+        training_history_dir = os.path.join(training_history_dir, time)
+        os.mkdir(training_history_dir)
+        flag_name = os.path.join(training_history_dir, 'test_flags.cfg')
+        FLAGS.append_flags_into_file(flag_name)
+
         logdir = os.path.join(logdir, time)
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
@@ -286,8 +292,7 @@ def main(argv):
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
 
-        training_history_dir = os.path.join(FLAGS.fig_dir, time)
-        FLAGS.append_flags_into_file(os.path.join(training_history_dir, 'test_flags.cfg'))
+        
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
 
     else:
