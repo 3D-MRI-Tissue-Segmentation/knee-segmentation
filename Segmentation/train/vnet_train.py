@@ -7,7 +7,7 @@ import numpy as np
 from time import time
 
 from Segmentation.train.utils import setup_gpu
-from Segmentation.utils.data_loader import read_tfrecord, parse_fn_3d
+from Segmentation.utils.data_loader import read_3d_tfrecord, parse_fn_3d
 from Segmentation.utils.losses import dice_loss
 from Segmentation.plotting.voxels import plot_volume, plot_slice
 from Segmentation.model.vnet import VNet
@@ -126,32 +126,34 @@ class Train:
 
 def load_datasets(batch_size, buffer_size,
                   tfrec_dir='./Data/tfrecords/',
-                  multi_class=False):
+                  multi_class=False, crop_size=144):
     """
     Loads tf records datasets for 3D models.
     """
-    train_ds = read_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'train_3d/'),
-                            batch_size=batch_size,
-                            buffer_size=buffer_size,
-                            parse_fn=parse_fn_3d,
-                            multi_class=multi_class,
-                            is_training=True,
-                            use_keras_fit=False)
-    valid_ds = read_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
-                            batch_size=batch_size,
-                            buffer_size=buffer_size,
-                            parse_fn=parse_fn_3d,
-                            multi_class=multi_class,
-                            is_training=False,
-                            use_keras_fit=False)
+    train_ds = read_3d_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'train_3d/'),
+                                batch_size=batch_size,
+                                buffer_size=buffer_size,
+                                parse_fn=parse_fn_3d,
+                                multi_class=multi_class,
+                                is_training=True,
+                                use_keras_fit=False,
+                                crop_size=crop_size)
+    valid_ds = read_3d_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
+                                batch_size=batch_size,
+                                buffer_size=buffer_size,
+                                parse_fn=parse_fn_3d,
+                                multi_class=multi_class,
+                                is_training=False,
+                                use_keras_fit=False,
+                                crop_size=crop_size)
     return train_ds, valid_ds
 
 
-def build_model(num_channels, num_classes):
+def build_model(num_channels, num_classes, **kwargs):
     """
     Builds standard vnet for 3D
     """
-    model = VNet(num_channels, num_classes)
+    model = VNet(num_channels, num_classes, **kwargs)
     return model
 
 
@@ -163,30 +165,35 @@ def main(epochs = 3,
          buffer_size = 2,
          enable_function=True,
          tfrec_dir='./Data/tfrecords/',
-         multi_class=False, 
+         multi_class=False,
+         **model_kwargs,
          ):
     t0 = time()
 
     num_classes = 7 if multi_class else 1
-    train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class)
+    train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class, crop_size=144)
 
-    strategy = tf.distribute.MirroredStrategy()
-    with strategy.scope():
-        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-        model = build_model(num_channels, num_classes)
+    for x,y in train_ds:
+        print(x.shape)
+        print(y.shape)
+        print("=============")
 
-        trainer = Train(epochs, batch_size, enable_function,
-                        model, optimizer, dice_loss)
+    # strategy = tf.distribute.MirroredStrategy()
+    # with strategy.scope():
+    #     optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+    #     model = build_model(num_channels, num_classes, **model_kwargs)
+
+    #     trainer = Train(epochs, batch_size, enable_function,
+    #                     model, optimizer, dice_loss)
         
-        train_ds = strategy.experimental_distribute_dataset(train_ds)
-        valid_ds = strategy.experimental_distribute_dataset(valid_ds)
+    #     train_ds = strategy.experimental_distribute_dataset(train_ds)
+    #     valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-    trainer.train_model_loop(train_ds, valid_ds, strategy, num_to_visualise)
-    print(f"{time() - t0:.02f}")
+    # trainer.train_model_loop(train_ds, valid_ds, strategy, num_to_visualise)
+    # print(f"{time() - t0:.02f}")
 
 
 if __name__ == "__main__":
     setup_gpu()
-    main(epochs=75, lr=1e-3)
-    main(epochs=75, lr=1e-4)
-    main(epochs=75, lr=1e-5)
+    main(epochs=50, lr=1e-4, dropout_rate=0.0, use_batchnorm=False)
+    # main(epochs=50, lr=1e-4, dropout_rate=0.0, noise=1e-4)

@@ -5,7 +5,7 @@ class Conv3d_ResBlock(tf.keras.layers.Layer):
     def __init__(self,
                  num_channels,
                  kernel_size=(3, 3, 3),
-                 res_activation="selu",
+                 res_activation="relu",
                  name="conv_res_block",
                  **kwargs):
         super(Conv3d_ResBlock, self).__init__(name=name)

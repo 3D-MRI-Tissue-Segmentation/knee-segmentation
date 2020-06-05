@@ -45,7 +45,7 @@ def _int64_feature(value):
     """Returns an int64_list from a bool / enum / int / uint."""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
-def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=True):
+def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=True, crop_size=None):
 
     if not os.path.exists(tfrecord_directory):
         os.mkdir(tfrecord_directory)
@@ -70,14 +70,29 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
         with h5py.File(seg_filepath, 'r') as hf:
             seg = np.array(hf['data'])
 
-        img = img[48:336, 48:336, :]
-        seg = seg[48:336, 48:336, :, :]
+        if crop_size is not None:
+
+            img_mid = (int(img.shape[0]/2), int(img.shape[1]/2))
+            seg_mid = (int(seg.shape[0]/2), int(seg.shape[1]/2))
+
+            assert img_mid == seg_mid, "We expect the mid shapes to be the same size"
+
+            seg_total = np.sum(seg)
+
+            img = img[img_mid[0] - crop_size:img_mid[0] + crop_size,
+                    img_mid[1] - crop_size:img_mid[1] + crop_size, :]
+            seg = seg[seg_mid[0] - crop_size:seg_mid[0] + crop_size,
+                    seg_mid[1] - crop_size:seg_mid[1] + crop_size, :, :]
+
+            #assert np.sum(seg) == seg_total, "We are losing information in the initial cropping."
+            assert img.shape == (crop_size * 2, crop_size * 2, 160)
+            assert seg.shape == (crop_size * 2, crop_size * 2, 160, 6)
 
         img = np.rollaxis(img, 2, 0)
         seg = np.rollaxis(seg, 2, 0)
-        seg_temp = np.zeros((160, 288, 288, 1), dtype=np.int8)
-        assert img.shape == (160, 288, 288)
-        assert seg.shape == (160, 288, 288, 6)
+        seg_temp = np.zeros((*seg.shape[0:3], 1), dtype=np.int8)
+
+        assert seg.shape[0:3] == seg_temp.shape[0:3]
 
         seg_sum = np.sum(seg, axis=-1)
         seg_temp[seg_sum == 0] = 1
@@ -132,7 +147,7 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
                 writer.write(example.SerializeToString())
         print(f'{idx} out of {len(files) - 1} datasets have been processed')
 
-def parse_fn_2d(example_proto, training, multi_class=True):
+def parse_fn_2d(example_proto, training, multi_class=True, crop_size=None):
 
     features = {
         'height': tf.io.FixedLenFeature([], tf.int64),
@@ -145,10 +160,10 @@ def parse_fn_2d(example_proto, training, multi_class=True):
     # Parse the input tf.Example proto using the dictionary above.
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
-    image = tf.reshape(image_raw, [288, 288, 1])
+    image = tf.reshape(image_raw, [image_features['height'], image_features['width'], 1])
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
-    seg = tf.reshape(seg_raw, [288, 288, 7])
+    seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'], image_features['num_channels']])
     seg = tf.cast(seg, tf.float32)
 
     #if training:
@@ -156,12 +171,11 @@ def parse_fn_2d(example_proto, training, multi_class=True):
     #    image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
     #    image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
 
-    if not multi_class:
-        seg = tf.math.reduce_sum(seg, axis=-1)
+    # need to add binary option - see below how to
 
     return (image, seg)
 
-def parse_fn_3d(example_proto, training, multi_class=True):
+def parse_fn_3d(example_proto, training, multi_class=True, crop_size=None):
 
     features = {
         'height': tf.io.FixedLenFeature([], tf.int64),
@@ -181,9 +195,8 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
                                image_features['depth'], image_features['num_channels']])
     seg = tf.cast(seg, tf.float32)
-
+    
     if not multi_class:
-        #seg_background = tf.slice(seg, [0, 0, 0, 0], [-1, -1, -1, 1])
         seg_cartilage = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])
         seg_cartilage = tf.math.reduce_sum(seg_cartilage, axis=-1)
         seg_cartilage = tf.expand_dims(seg_cartilage, axis=-1)
@@ -191,7 +204,7 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     return (image, seg)
 
 def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
-                  multi_class=True, is_training=False, use_keras_fit=True):
+                  multi_class=True, is_training=False, use_keras_fit=True, crop_size=None):
 
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
@@ -204,7 +217,7 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
 
-    parser = partial(parse_fn, training=is_training, multi_class=multi_class)
+    parser = partial(parse_fn, training=is_training, multi_class=multi_class, crop_size=crop_size)
     dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
@@ -216,5 +229,21 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
     options.experimental_optimization.map_parallelization = True
     dataset = dataset.with_options(options)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+    return dataset
+
+def read_2d_tfrecord(tfrecords_dir, batch_size, buffer_size, is_training, **kwargs):
+    dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, **kwargs)
+    ## joonsu add your code here
+    return dataset
+
+
+def read_3d_tfrecord(tfrecords_dir, batch_size, buffer_size, is_training, **kwargs):
+    dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, **kwargs)
+
+    if is_training:
+        pass
+    else:
+        pass
 
     return dataset
