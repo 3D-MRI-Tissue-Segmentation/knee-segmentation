@@ -4,65 +4,6 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 
-
-def dice_coef_loss(y_true, y_pred):
-    return 1. - dice_coef(y_true, y_pred)
-
-def dice_coef(y_true, y_pred, smooth=1):
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
-
-    intersection = K.sum(y_true_f * y_pred_f)
-    return (2. * intersection + smooth) / (K.sum(y_true_f * y_true_f) + K.sum(y_pred_f * y_pred_f) + smooth)
-
-def tversky_loss(y_true, y_pred, alpha=0.5, beta=0.5, smooth=1e-10):
-    """ Tversky loss function.
-    Parameters
-    ----------
-    y_true : tensor containing target mask.
-    y_pred : tensor containing predicted mask.
-    alpha : real value, weight of '0' class.
-    beta : real value, weight of '1' class.
-    smooth : small real value used for avoiding division by zero error.
-    Returns
-    -------
-    tensor
-        tensor containing tversky loss.
-    """
-    y_true = K.flatten(y_true)
-    y_pred = K.flatten(y_pred)
-    truepos = K.sum(y_true * y_pred)
-    fp_and_fn = alpha * K.sum(y_pred * (1 - y_true)) + beta * K.sum((1 - y_pred) * y_true)
-    answer = (truepos + smooth) / ((truepos + smooth) + fp_and_fn)
-    return -answer
-
-def tversky_loss_v2(y_true, y_pred, alpha=0.5, beta=0.5, smooth=1e-10):
-
-    y_true = K.flatten(y_true)
-    y_pred = K.flatten(y_pred)
-    truepos = K.sum(y_true * y_pred)
-    fp_and_fn = alpha * K.sum(y_pred * (1 - y_true)) + beta * K.sum((1 - y_pred) * y_true)
-    answer = (truepos + smooth) / ((truepos + smooth) + fp_and_fn)
-
-    return 1 - answer
-
-def tversky_crossentropy(y_true, y_pred):
-
-    tversky = tversky_loss(y_true, y_pred)
-    crossentropy = K.categorical_crossentropy(y_true, y_pred)
-    crossentropy = K.mean(crossentropy)
-
-    return tversky + crossentropy
-
-def iou_loss_core(y_true, y_pred, smooth=1):
-    y_true = K.flatten(y_true)
-    y_pred = K.flatten(y_pred)
-    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    union = K.sum(y_true, -1) + K.sum(y_pred, -1) - intersection
-    iou = (intersection + smooth) / (union + smooth)
-
-    return iou
-
 def plot_train_history_loss(history, multi_class=True, savefig=None):
     # summarize history for loss
     fig, ax = plt.subplots(2, 1)
@@ -92,7 +33,7 @@ def plot_train_history_loss(history, multi_class=True, savefig=None):
     fig.tight_layout()
     plt.show()
 
-    if savefig is not None: 
+    if savefig is not None:
         plt.savefig(savefig)
 
 def visualise_binary(y_true, y_pred):

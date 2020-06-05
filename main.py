@@ -13,7 +13,7 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
+from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 
@@ -295,7 +295,7 @@ def main(argv):
         model.load_weights(FLAGS.weights_dir).expect_partial()
         cm = np.zeros((num_classes, num_classes))
         for step, (image, label) in enumerate(valid_ds):
-            print(step)     
+            print(step)
             pred = model.predict(image, batch_size=16)
             # visualise_multi_class(label, pred)
 
