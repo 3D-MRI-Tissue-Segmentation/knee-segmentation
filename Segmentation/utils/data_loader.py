@@ -344,193 +344,50 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
     return dataset
 
 def apply_random_crop(image_tensor, label_tensor, crop_size):
-    print("==============")
-    print("RANDOM")
+    # print("==============")
+    # print("RANDOM")
     centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32), 
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32))
     hrc = tf.random.normal([], mean=tf.cast(centre[0], tf.float32), stddev=tf.cast(centre[0]/2, tf.float32))
     wrc = tf.random.normal([], mean=tf.cast(centre[1], tf.float32), stddev=tf.cast(centre[1]/2, tf.float32))
-    print(hrc)
-    print(wrc)
-    print(hrc.dtype)
-    print(tf.cast(crop_size, tf.float32).dtype)
+    # print(hrc)
+    # print(wrc)
+    # print(hrc.dtype)
+    # print(tf.cast(crop_size, tf.float32).dtype)
     hh = tf.shape(image_tensor)[2] - crop_size
-    print(hh.dtype)
+    # print(hh.dtype)
     hrc = tf.clip_by_value(hrc, tf.cast(crop_size, tf.float32), tf.cast(tf.shape(image_tensor)[2] - crop_size, tf.float32))
     wrc = tf.clip_by_value(wrc, tf.cast(crop_size, tf.float32), tf.cast(tf.shape(image_tensor)[3] - crop_size, tf.float32))
     hrc = tf.cast(tf.math.round(hrc), tf.int32)
     wrc = tf.cast(tf.math.round(wrc), tf.int32)
-    print(hrc)
-    print(wrc)
+    # print(hrc)
+    # print(wrc)
 
     centre = (hrc, wrc)
-    print(centre)
+    # print(centre)
     image_tensor, label_tensor = crop(image_tensor, label_tensor, crop_size, centre)
     return image_tensor, label_tensor
 
 def apply_centre_crop(image_tensor, label_tensor, crop_size):
-    print("==============")
-    print("CENTRE")
+    # print("==============")
+    # print("CENTRE")
     centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32), 
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32))
     image_tensor, label_tensor = crop(image_tensor, label_tensor, crop_size, centre)
     return image_tensor, label_tensor
 
 def crop(image_tensor, label_tensor, crop_size, centre):
-    tf.print("============= crop ================")
-    tf.print(image_tensor.shape)
-    tf.print(label_tensor.shape)
-    tf.print(centre)
+    # tf.print("============= crop ================")
+    # tf.print(image_tensor.shape)
+    # tf.print(label_tensor.shape)
+    # tf.print(centre)
     hc, wc = centre
     
-    tf.print(hc - crop_size)
-    tf.print(wc - crop_size)
-    tf.print(crop_size * 2)
+    # tf.print(hc - crop_size)
+    # tf.print(wc - crop_size)
+    # tf.print(crop_size * 2)
 
     image_tensor = tf.slice(image_tensor, [0, 0, hc - crop_size, wc - crop_size, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
     label_tensor = tf.slice(label_tensor, [0, 0, hc - crop_size, wc - crop_size, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
     #label_tensor = tf.slice(label_tensor, [0, 0, h_centre - crop_size, w_centre - crop_size, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
     return image_tensor, label_tensor
-
-
-
-# print(image_features['height'])
-    # print(seg.shape)
-
-    # print("========================== p")
-    # if crop_size is not None:
-    #     h_centre = tf.math.divide(image_features['height'], 2)
-    #     w_centre = image_features['width']/2
-
-    #     h_centre = tf.random.normal([1], mean=tf.cast(h_centre, tf.float32), stddev=tf.cast(h_centre/2, tf.float32))
-    #     w_centre = tf.random.normal([1], mean=tf.cast(w_centre, tf.float32), stddev=tf.cast(w_centre/2, tf.float32))
-    #     h_centre = tf.clip_by_value(h_centre, h_centre - crop_size, h_centre + crop_size)
-    #     w_centre = tf.clip_by_value(w_centre, w_centre - crop_size, w_centre + crop_size)
-    #     h_centre = tf.cast(h_centre, tf.int32)
-    #     w_centre = tf.cast(w_centre, tf.int32)
-
-    #     tmp_x = [0, 0, tf.squeeze(h_centre) - crop_size, tf.squeeze(w_centre) - crop_size, 0]
-    #     tmp_y = [-1, -1, crop_size * 2, crop_size * 2, -1]
-
-    #     print(image.shape)
-    #     print(seg.shape)
-
-    #     image = tf.expand_dims(image, axis=0)
-    #     image = tf.slice(image, tmp_x, tmp_y)
-
-    #     seg = tf.expand_dims(seg,axis=0)
-    #     seg = tf.slice(seg, tmp_x, tmp_y)
-
-
-
-
-
-# print(image_features['height'])
-#     print(seg.shape)
-
-#     print("========================== p")
-#     if crop_size is not None:
-#         # height_ = 384
-#         # width_ = 384
-#         # depth_ = 160
-
-#         # h_centre_ = height/2
-#         # w_centre_ = width/2
-#         # d_centre_ = depth/2
-
-#         # hr_centre = h_centre_ - 2
-#         # wr_centre = w_centre_
-#         # dr_centre = d_centre_
-
-#         # print(h_centre_, w_centre_, d_centre_)
-#         # print(hr_centre_, wr_centre_, dr_centre_)
-
-#         # crop_img = 
-
-
-#         h_centre = tf.math.divide(image_features['height'], 2)
-#         w_centre = image_features['width']/2
-
-#         h_centre = tf.random.normal([1], mean=tf.cast(h_centre, tf.float32), stddev=tf.cast(h_centre/2, tf.float32))
-#         w_centre = tf.random.normal([1], mean=tf.cast(w_centre, tf.float32), stddev=tf.cast(w_centre/2, tf.float32))
-#         h_centre = tf.clip_by_value(h_centre, h_centre - crop_size, h_centre + crop_size)
-#         w_centre = tf.clip_by_value(w_centre, w_centre - crop_size, w_centre + crop_size)
-#         h_centre = tf.cast(h_centre, tf.int32)
-#         w_centre = tf.cast(w_centre, tf.int32)
-
-#         tmp_x = [0, 0, tf.squeeze(h_centre), tf.squeeze(w_centre), 0]
-#         tmp_y = [-1, -1, crop_size * 2, crop_size * 2, -1]
-
-#         print(image.shape)
-#         print(seg.shape)
-
-#         image = tf.expand_dims(image, axis=0)
-#         image = tf.slice(image, tmp_x, tmp_y)
-
-#         seg = tf.expand_dims(seg,axis=0)
-#         seg = tf.slice(seg, tmp_x, tmp_y)
-
-
-#         # if training:        
-#         #     h_centre = tf.random.normal([1], mean=tf.cast(h_centre, tf.float32), stddev=tf.cast(h_centre/2, tf.float32))
-#         #     w_centre = tf.random.normal([1], mean=tf.cast(w_centre, tf.float32), stddev=tf.cast(w_centre/2, tf.float32))
-#         #     h_centre = tf.clip_by_value(h_centre, h_centre - crop_size, h_centre + crop_size)
-#         #     w_centre = tf.clip_by_value(w_centre, w_centre - crop_size, w_centre + crop_size)
-#         #     h_centre = tf.cast(h_centre, tf.int32)
-#         #     w_centre = tf.cast(w_centre, tf.int32)
-
-#         #     tmp_x = [0, 0, tf.squeeze(h_centre), tf.squeeze(w_centre), 0]
-#         #     tmp_y = [-1, -1, crop_size * 2, crop_size * 2, -1]
-
-#         #     image = tf.expand_dims(image, axis=0)
-#         #     image = tf.slice(image, tmp_x, tmp_y)
-
-#         #     seg = tf.expand_dims(seg,axis=0)
-#         #     seg = tf.slice(seg, tmp_x, tmp_y)
-#         #     #image = tf.slice(image, [tf.constant([0]), tf.constant([0]), tf.squeeze(h_centre), tf.squeeze(w_centre), tf.constant([0])], [-1, -1, crop_size * 2, crop_size * 2, -1])
-#         #     #seg = tf.slice(seg, [0, 0, h_centre, w_centre, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
-
-#         #     print(image.shape)
-#         #     print("########################## d")
-#         # else:
-#         #     print("not training =========================================")      
-#         #     h_centre = tf.random.normal([1], mean=tf.cast(h_centre, tf.float32), stddev=tf.cast(h_centre/2, tf.float32))
-#         #     w_centre = tf.random.normal([1], mean=tf.cast(w_centre, tf.float32), stddev=tf.cast(w_centre/2, tf.float32))
-#         #     print(h_centre, w_centre)
-#         #     print(h_centre - crop_size, h_centre + crop_size)
-#         #     h_centre = tf.clip_by_value(h_centre, h_centre - crop_size, h_centre + crop_size)
-#         #     w_centre = tf.clip_by_value(w_centre, w_centre - crop_size, w_centre + crop_size)
-#         #     print(h_centre, w_centre)
-#         #     print("------------------------------------- q ")
-
-#         #     print(crop_size * 2)
-#         #     print("------------------------------------- r")
-#         #     print(h_centre.shape)
-#         #     print(tf.squeeze(h_centre).shape)
-#         #     print("------------------------------------- s")
-#         #     h_centre = tf.cast(h_centre, tf.int32)
-#         #     w_centre = tf.cast(w_centre, tf.int32)
-
-#         #     tmp_x = [0, 0, tf.squeeze(h_centre), tf.squeeze(w_centre), 0]
-#         #     tmp_y = [-1, -1, crop_size * 2, crop_size * 2, -1]
-
-#         #     print(tmp_x)
-#         #     print(tmp_y)
-
-#         #     print("########################## a ")
-
-#         #     print(image.shape)
-#         #     print("========================= b")
-
-#         #     image = tf.expand_dims(image, axis=0)
-            
-#         #     print(image.shape)
-#         #     print("========================= c")
-
-#         #     image = tf.slice(image, tmp_x, tmp_y)
-#         #     #image = tf.slice(image, [tf.constant([0]), tf.constant([0]), tf.squeeze(h_centre), tf.squeeze(w_centre), tf.constant([0])], [-1, -1, crop_size * 2, crop_size * 2, -1])
-#         #     #seg = tf.slice(seg, [0, 0, h_centre, w_centre, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
-
-#         #     print(image.shape)
-#         #     print("########################## d")
-#         pass
