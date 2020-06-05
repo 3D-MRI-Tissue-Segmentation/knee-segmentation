@@ -69,9 +69,9 @@ class Train:
                     pred_slice = tf.slice(pred.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
                     y_slice = tf.reshape(y_slice, (y_slice.shape[1:]))
                     pred_slice = tf.reshape(pred_slice, (pred_slice.shape[1:]))
+                    img = tf.concat((y_slice, pred_slice), axis=-2)
                     with writer.as_default():
-                        tf.summary.image("Train - true", y_slice, step=epoch)
-                        tf.summary.image("Train - pred", pred_slice, step=epoch)
+                        tf.summary.image("Train", img, step=epoch)
                 num_train_batch += 1
             return total_loss / num_train_batch
 
@@ -87,9 +87,10 @@ class Train:
                     pred_slice = tf.slice(pred.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
                     y_slice = tf.reshape(y_slice, (y_slice.shape[1:]))
                     pred_slice = tf.reshape(pred_slice, (pred_slice.shape[1:]))
+                    img = tf.concat((y_slice, pred_slice), axis=-2)
                     with writer.as_default():
-                        tf.summary.image("Validation - true", y_slice, step=epoch)
-                        tf.summary.image("Validation - pred", pred_slice, step=epoch)
+                        tf.summary.image("Validation", img, step=epoch)
+                    # working code for plotting a 3D volume
                     # y_subvol = tf.slice(y_valid.values[0], [0, 60, 124, 124, 0], [-1, 40, 40, 40, -1])
                     # y_subvol = tf.reshape(y_subvol, (y_subvol.shape[1:4]))
                     # y_subvol = tf.stack((y_subvol,) * 3, axis=-1)
@@ -186,4 +187,6 @@ def main(epochs = 3,
 
 if __name__ == "__main__":
     setup_gpu()
-    main()
+    main(epochs=75, lr=1e-3)
+    main(epochs=75, lr=1e-4)
+    main(epochs=75, lr=1e-5)
