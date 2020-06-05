@@ -344,6 +344,8 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
     return dataset
 
 def apply_random_crop(image_tensor, label_tensor, crop_size):
+    print("==============")
+    print("RANDOM")
     centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32), 
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32))
     hrc = tf.random.normal([], mean=tf.cast(centre[0], tf.float32), stddev=tf.cast(centre[0]/2, tf.float32))
@@ -358,13 +360,17 @@ def apply_random_crop(image_tensor, label_tensor, crop_size):
     wrc = tf.clip_by_value(wrc, tf.cast(crop_size, tf.float32), tf.cast(tf.shape(image_tensor)[3] - crop_size, tf.float32))
     hrc = tf.cast(tf.math.round(hrc), tf.int32)
     wrc = tf.cast(tf.math.round(wrc), tf.int32)
+    print(hrc)
+    print(wrc)
 
     centre = (hrc, wrc)
-    tf.print(centre)
+    print(centre)
     image_tensor, label_tensor = crop(image_tensor, label_tensor, crop_size, centre)
     return image_tensor, label_tensor
 
 def apply_centre_crop(image_tensor, label_tensor, crop_size):
+    print("==============")
+    print("CENTRE")
     centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32), 
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32))
     image_tensor, label_tensor = crop(image_tensor, label_tensor, crop_size, centre)
