@@ -300,8 +300,8 @@ def main(argv):
 
             if step > validation_steps - 1:
                 break
-        
-        fig_file = 'matrix.png'
+
+        fig_file = FLAGS.model_architecture + '_matrix.png'
         fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
         plot_confusion_matrix(cm, fig_dir, classes=["Background",
                                                     "Femoral",
