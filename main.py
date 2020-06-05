@@ -15,7 +15,7 @@ from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
-from Segmentation.utils.evaluation_metrics import plot_confusion_matrix
+from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -291,24 +291,27 @@ def main(argv):
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         model.load_weights(FLAGS.weights_dir).expect_partial()
+        cm = np.zeros((num_classes, num_classes))
         for step, (image, label) in enumerate(valid_ds):
-            
+
             print(step)
             pred = model.predict(image, batch_size=16)
             # visualise_multi_class(label, pred)
-            
-            fig_file = 'matrix_{}.png'.format(step)
-            fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
-            plot_confusion_matrix(label, pred, fig_dir, classes=["Background",
-                                                             "Femoral",
-                                                             "Medial Tibial",
-                                                             "Lateral Tibial",
-                                                             "Patellar",
-                                                             "Lateral Meniscus",
-                                                             "Medial Meniscus"])
-            
+
+            cm = cm + get_confusion_matrix(label, pred)
+
             if step > validation_steps - 1:
                 break
+
+        fig_file = 'matrix.png'
+        fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
+        plot_confusion_matrix(cm, fig_dir, classes=["Background",
+                                                    "Femoral",
+                                                    "Medial Tibial",
+                                                    "Lateral Tibial",
+                                                    "Patellar",
+                                                    "Lateral Meniscus",
+                                                    "Medial Meniscus"])
 
 if __name__ == '__main__':
     app.run(main)
