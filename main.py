@@ -293,8 +293,7 @@ def main(argv):
         model.load_weights(FLAGS.weights_dir).expect_partial()
         cm = np.zeros((num_classes, num_classes))
         for step, (image, label) in enumerate(valid_ds):
-
-            print(step)
+            print(step)     
             pred = model.predict(image, batch_size=16)
             # visualise_multi_class(label, pred)
 
@@ -302,7 +301,7 @@ def main(argv):
 
             if step > validation_steps - 1:
                 break
-
+        
         fig_file = 'matrix.png'
         fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
         plot_confusion_matrix(cm, fig_dir, classes=["Background",
