@@ -15,6 +15,7 @@ from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
+from Segmentation.utils.evaluation_metrics import plot_confusion_matrix
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -47,7 +48,7 @@ flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
-flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block' )
+flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block')
 flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after each convolution')
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
@@ -64,7 +65,6 @@ flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 # flags.DEFINE_list('MultiGrid', [1, 2, 4], '')
 # flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], '')
 # flags.DEFINE_int('output_stride', 16, '')
-
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -206,7 +206,6 @@ def main(argv):
 
         elif FLAGS.model_architecture == '100-Layer-Tiramisu':
 
-<<<<<<< HEAD
             model = Hundred_Layer_Tiramisu(FLAGS.growth_rate,
                                            FLAGS.layers_per_block,
                                            FLAGS.num_channels,
@@ -217,17 +216,6 @@ def main(argv):
                                            FLAGS.dropout_rate,
                                            FLAGS.strides,
                                            FLAGS.padding)
-=======
-            model = Hundread_Layer_Tiramisu(FLAGS.growth_rate,
-                                            FLAGS.layers_per_block,
-                                            FLAGS.num_channels,
-                                            num_classes,
-                                            FLAGS.kernel_size,
-                                            FLAGS.pool_size,
-                                            FLAGS.activation,
-                                            FLAGS.dropout_rate,
-                                            FLAGS.strides,
-                                            FLAGS.padding)
 
         # elif FLAGS.model_architecture == 'deeplabv3':
 
@@ -250,7 +238,6 @@ def main(argv):
         #                       FLAGS.MultiGrid,
         #                       FLAGS.rate_ASPP,
         #                       FLAGS.output_stride)
->>>>>>> d03d9d308710556b481e760f289e817cfda93b76
 
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
@@ -296,12 +283,18 @@ def main(argv):
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
 
     else:
-        # load the latest checkpoint in the FLAGS.logdir file
-        model.load_weights(FLAGS.weights_dir)
+        # load the checkpoint in the FLAGS.weights_dir file
+        model.load_weights(FLAGS.weights_dir).expect_partial()
+        x_val = []
+        y_true = []
         for step, (image, label) in enumerate(valid_ds):
-            if step >= 80:
-                pred = model(image, training=False)
-                visualise_multi_class(label, pred)
+            x_val.append(image)
+            y_true.append(label)
+        x_val = np.asarray(x_val)
+        y_true = np.asarray(y_true)
+        y_pred = model.predict(x_val, batch_size=FLAGS.batch_size)
+        # visualise_multi_class(label, pred)
+        plot_confusion_matrix(y_true, y_pred)
 
 if __name__ == '__main__':
     app.run(main)
