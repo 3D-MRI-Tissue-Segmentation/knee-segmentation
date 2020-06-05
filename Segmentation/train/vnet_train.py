@@ -7,7 +7,7 @@ import numpy as np
 from time import time
 
 from Segmentation.train.utils import setup_gpu
-from Segmentation.utils.data_loader import read_3d_tfrecord, parse_fn_3d
+from Segmentation.utils.data_loader import read_tfrecord, parse_fn_3d
 from Segmentation.utils.losses import dice_loss
 from Segmentation.plotting.voxels import plot_volume, plot_slice
 from Segmentation.model.vnet import VNet
@@ -130,22 +130,20 @@ def load_datasets(batch_size, buffer_size,
     """
     Loads tf records datasets for 3D models.
     """
-    train_ds = read_3d_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'train_3d/'),
-                                batch_size=batch_size,
-                                buffer_size=buffer_size,
-                                parse_fn=parse_fn_3d,
-                                multi_class=multi_class,
-                                is_training=True,
-                                use_keras_fit=False,
-                                crop_size=crop_size)
-    valid_ds = read_3d_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
-                                batch_size=batch_size,
-                                buffer_size=buffer_size,
-                                parse_fn=parse_fn_3d,
-                                multi_class=multi_class,
-                                is_training=False,
-                                use_keras_fit=False,
-                                crop_size=crop_size)
+    train_ds = read_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'train_3d/'),
+                            batch_size=batch_size,
+                            buffer_size=buffer_size,
+                            parse_fn=parse_fn_3d,
+                            multi_class=multi_class,
+                            is_training=True,
+                            use_keras_fit=False, crop_size=crop_size)
+    valid_ds = read_tfrecord(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
+                            batch_size=batch_size,
+                            buffer_size=buffer_size,
+                            parse_fn=parse_fn_3d,
+                            multi_class=multi_class,
+                            is_training=False,
+                            use_keras_fit=False, crop_size=crop_size)
     return train_ds, valid_ds
 
 
@@ -163,7 +161,7 @@ def main(epochs = 3,
          num_to_visualise = 2,
          num_channels = 4,
          buffer_size = 2,
-         enable_function=True,
+         enable_function=False,
          tfrec_dir='./Data/tfrecords/',
          multi_class=False,
          **model_kwargs,
@@ -174,6 +172,7 @@ def main(epochs = 3,
     train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class, crop_size=144)
 
     for x,y in train_ds:
+        print("========== load data =========")
         print(x.shape)
         print(y.shape)
         print("=============")
