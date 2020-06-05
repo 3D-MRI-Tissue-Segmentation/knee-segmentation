@@ -253,11 +253,15 @@ def main(argv):
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+
+        # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this 
+        """
         if FLAGS.backbone_architecture == 'default':
-            model.build((None, None, None, 1))
+            model.build((FLAGS.batch_size, 288, 288, 1))
         else:
-            model.build((None, None, None, 3))
+            model.build((FLAGS.batch_size, 288, 288, 3))
         model.summary()
+        """
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
@@ -285,16 +289,19 @@ def main(argv):
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         model.load_weights(FLAGS.weights_dir).expect_partial()
-        x_val = []
-        y_true = []
         for step, (image, label) in enumerate(valid_ds):
-            x_val.append(image)
-            y_true.append(label)
-        x_val = np.asarray(x_val)
-        y_true = np.asarray(y_true)
-        y_pred = model.predict(x_val, batch_size=FLAGS.batch_size)
-        # visualise_multi_class(label, pred)
-        plot_confusion_matrix(y_true, y_pred)
+
+            pred = model.predict(image, batch_size=FLAGS.batch_size)
+            # visualise_multi_class(label, pred)
+
+            plot_confusion_matrix(label, pred, classes=["Background",
+                                                        "Femoral",
+                                                        "Medial Tibial",
+                                                        "Lateral Tibial",
+                                                        "Patellar",
+                                                        "Lateral Meniscus",
+                                                        "Medial Meniscus"])
+
 
 if __name__ == '__main__':
     app.run(main)
