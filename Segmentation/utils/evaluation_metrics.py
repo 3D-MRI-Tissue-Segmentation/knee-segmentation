@@ -16,7 +16,7 @@ def get_confusion_matrix(y_true, y_pred):
     return cm
 
 def plot_confusion_matrix(cm, savefig, classes, normalise=True, title='confusion matrix', cmap=plt.cm.Blues):
-    
+
     if normalise:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
@@ -40,4 +40,5 @@ def plot_confusion_matrix(cm, savefig, classes, normalise=True, title='confusion
     plt.tight_layout()
     plt.show()
     if savefig is not None:
-        plt.savefig(savefig)
+        filename = os.path.join(savefig, 'training_history.png')
+        plt.savefig(filename)

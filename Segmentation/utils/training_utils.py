@@ -63,7 +63,7 @@ def iou_loss_core(y_true, y_pred, smooth=1):
 
     return iou
 
-def plot_train_history_loss(history, multi_class=True):
+def plot_train_history_loss(history, multi_class=True, savefig=None):
     # summarize history for loss
     fig, ax = plt.subplots(2, 1)
     if multi_class:
@@ -91,6 +91,9 @@ def plot_train_history_loss(history, multi_class=True):
     ax[1].legend(['train_accuracy', 'val_accuracy'], loc='upper right')
     fig.tight_layout()
     plt.show()
+
+    if savefig is not None: 
+        plt.savefig(savefig)
 
 def visualise_binary(y_true, y_pred):
 
