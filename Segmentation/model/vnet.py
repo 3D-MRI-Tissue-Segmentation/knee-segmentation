@@ -52,6 +52,8 @@ class VNet(tf.keras.Model):
         self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), activation="sigmoid", padding='same', data_format=data_format)
 
     def call(self, inputs, training):
+        
+        tf.print(inputs.shape)
 
         if self.noise and training:
             inputs = tf.keras.layers.GaussianNoise(self.noise)(inputs)

@@ -170,12 +170,6 @@ def main(epochs = 3,
     num_classes = 7 if multi_class else 1
     train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class, crop_size=crop_size)
 
-    # for x,y in train_ds:
-    #     print("========== load data =========")
-    #     print(x.shape)
-    #     print(y.shape)
-    #     print("=============")
-
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
