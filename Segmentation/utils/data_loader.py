@@ -350,8 +350,9 @@ def apply_random_crop(image_tensor, label_tensor, crop_size):
 
 def apply_centre_crop(image_tensor, label_tensor, crop_size):
     centre = (192, 192)
-    centre = (tf.cast(tf.math.divide(image_tensor.shape[2], 2), tf.int32), 
-              tf.cast(tf.math.divide(image_tensor.shape[3], 2), tf.int32))
+    print(tf.shape(image_tensor))
+    centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32), 
+              tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32))
     image_tensor, label_tensor = crop(image_tensor, label_tensor, crop_size, centre)
     return image_tensor, label_tensor
 
