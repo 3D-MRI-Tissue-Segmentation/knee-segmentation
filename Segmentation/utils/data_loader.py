@@ -383,6 +383,10 @@ def crop(image_tensor, label_tensor, crop_size, centre):
     tf.print(centre)
     hc, wc = centre
     
+    print(hc - crop_size)
+    print(wc - crop_size)
+    print(crop_size * 2)
+
     image_tensor = tf.slice(image_tensor, [0, 0, hc - crop_size, wc - crop_size, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
     label_tensor = tf.slice(label_tensor, [0, 0, hc - crop_size, wc - crop_size, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
     #label_tensor = tf.slice(label_tensor, [0, 0, h_centre - crop_size, w_centre - crop_size, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
