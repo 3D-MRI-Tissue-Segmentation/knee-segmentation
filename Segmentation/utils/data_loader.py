@@ -348,6 +348,8 @@ def apply_random_crop(image_tensor, label_tensor, crop_size):
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32))
     hrc = tf.random.normal([], mean=tf.cast(centre[0], tf.float32), stddev=tf.cast(centre[0]/2, tf.float32))
     wrc = tf.random.normal([], mean=tf.cast(centre[1], tf.float32), stddev=tf.cast(centre[1]/2, tf.float32))
+    print(hrc)
+    print(wrc)
     print(hrc.dtype)
     print(tf.cast(crop_size, tf.float32).dtype)
     hh = tf.shape(image_tensor)[2] - crop_size
