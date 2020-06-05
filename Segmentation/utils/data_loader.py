@@ -150,7 +150,7 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
                 writer.write(example.SerializeToString())
         print(f'{idx} out of {len(files) - 1} datasets have been processed')
 
-def parse_fn_2d(example_proto, training, multi_class=True, crop_size=None):
+def parse_fn_2d(example_proto, training, multi_class=True):
 
     features = {
         'height': tf.io.FixedLenFeature([], tf.int64),
@@ -178,7 +178,7 @@ def parse_fn_2d(example_proto, training, multi_class=True, crop_size=None):
 
     return (image, seg)
 
-def parse_fn_3d(example_proto, training, multi_class=True, crop_size=None):
+def parse_fn_3d(example_proto, training, multi_class=True):
 
     features = {
         'height': tf.io.FixedLenFeature([], tf.int64),
@@ -205,38 +205,38 @@ def parse_fn_3d(example_proto, training, multi_class=True, crop_size=None):
         seg_cartilage = tf.expand_dims(seg_cartilage, axis=-1)
         seg = tf.clip_by_value(seg_cartilage, 0, 1)
 
-    print(image_features['height'])
-    print(seg.shape)
+    # print(image_features['height'])
+    # print(seg.shape)
 
-    print("========================== p")
-    if crop_size is not None:
-        h_centre = tf.math.divide(image_features['height'], 2)
-        w_centre = image_features['width']/2
+    # print("========================== p")
+    # if crop_size is not None:
+    #     h_centre = tf.math.divide(image_features['height'], 2)
+    #     w_centre = image_features['width']/2
 
-        h_centre = tf.random.normal([1], mean=tf.cast(h_centre, tf.float32), stddev=tf.cast(h_centre/2, tf.float32))
+    #     h_centre = tf.random.normal([1], mean=tf.cast(h_centre, tf.float32), stddev=tf.cast(h_centre/2, tf.float32))
         
-        w_centre = tf.random.normal([1], mean=tf.cast(w_centre, tf.float32), stddev=tf.cast(w_centre/2, tf.float32))
+    #     w_centre = tf.random.normal([1], mean=tf.cast(w_centre, tf.float32), stddev=tf.cast(w_centre/2, tf.float32))
         
-        h_centre = tf.clip_by_value(h_centre, h_centre - crop_size, h_centre + crop_size)
-        h_centre = tf.clip_by_value(h_centre, tf.cast(0, tf.float32), image_features['height'])
-        w_centre = tf.clip_by_value(w_centre, w_centre - crop_size, w_centre + crop_size)
-        w_centre = tf.clip_by_value(w_centre, tf.cast(0, tf.float32), image_features['width'])
-        h_centre = tf.cast(h_centre, tf.int32)
-        w_centre = tf.cast(w_centre, tf.int32)
+    #     h_centre = tf.clip_by_value(h_centre, h_centre - crop_size, h_centre + crop_size)
+    #     h_centre = tf.clip_by_value(h_centre, tf.cast(0, tf.float32), image_features['height'])
+    #     w_centre = tf.clip_by_value(w_centre, w_centre - crop_size, w_centre + crop_size)
+    #     w_centre = tf.clip_by_value(w_centre, tf.cast(0, tf.float32), image_features['width'])
+    #     h_centre = tf.cast(h_centre, tf.int32)
+    #     w_centre = tf.cast(w_centre, tf.int32)
         
 
-        tmp_x = [0, 0, tf.squeeze(h_centre) - crop_size, tf.squeeze(w_centre) - crop_size, 0]
-        tmp_y = [-1, -1, crop_size * 2, crop_size * 2, -1]
+    #     tmp_x = [0, 0, tf.squeeze(h_centre) - crop_size, tf.squeeze(w_centre) - crop_size, 0]
+    #     tmp_y = [-1, -1, crop_size * 2, crop_size * 2, -1]
 
-        tf.print(tmp_x)
-        tf.print(tmp_y)
+    #     tf.print(tmp_x)
+    #     tf.print(tmp_y)
 
-        tf.print(image.shape)
-        tf.print(seg.shape)
+    #     tf.print(image.shape)
+    #     tf.print(seg.shape)
 
-        image = tf.slice(image, [0, 192 - 144 - 1, 192 - 144 - 1, 0], [-1, 144 * 2, 144 * 2, -1])
+    #     image = tf.slice(image, [0, 192 - 144 - 1, 192 - 144 - 1, 0], [-1, 144 * 2, 144 * 2, -1])
 
-        seg = tf.slice(seg, [0, 192 - 144 - 1, 192 - 144 - 1, 0], [-1, 144 * 2, 144 * 2, -1])
+    #     seg = tf.slice(seg, [0, 192 - 144 - 1, 192 - 144 - 1, 0], [-1, 144 * 2, 144 * 2, -1])
 
 
     #     # if training:        
@@ -302,9 +302,6 @@ def parse_fn_3d(example_proto, training, multi_class=True, crop_size=None):
     #     #     print(image.shape)
     #     #     print("########################## d")
         # pass
-
-
-
     
     return (image, seg)
 
@@ -334,11 +331,14 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
     options.experimental_optimization.map_parallelization = True
     dataset = dataset.with_options(options)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+    return dataset
 
-    # if is_training:
-    #     dataset = dataset.map(apply_random_crop)
-    # else:
-    #     dataset = dataset.map(apply_centre_crop)
+def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_size=None, **kwargs):
+    dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
+    if is_training:
+        dataset = dataset.map(apply_random_crop)
+    else:
+        dataset = dataset.map(apply_centre_crop)
     return dataset
 
 def apply_random_crop(image_tensor, label_tensor):
