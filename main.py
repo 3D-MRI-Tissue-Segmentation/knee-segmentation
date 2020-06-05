@@ -10,10 +10,12 @@ from absl import logging
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
+from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
+from Segmentation.utils.evaluation_metrics import plot_confusion_matrix
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -29,7 +31,7 @@ flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
 flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
@@ -39,17 +41,30 @@ flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
 flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
 flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
+flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
-flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block' )
+flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block')
 flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after each convolution')
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
+
+# Deeplab parameters
+# flags.DEFINE_int('kernel_size_initial_conv', , 'kernel size for the first convolution')
+# flags.DEFINE_int('num_filters_atrous', , '')
+# flags.DEFINE_list('num_filters_DCNN', [256, 512, 1024], 'number of filters for the first three blocks of the DCNN')
+# flags.DEFINE_int('num_filters_ASPP', 256, 'number of filters for the ASPP term')
+# flags.DEFINE_int('kernel_size_atrous', 3, 'number of filters for the ASPP term')
+# flags.DEFINE_list('kernel_size_DCNN', [1, 3], 'number of filters for the ASPP term')
+# flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'number of filters for the ASPP term')
+# flags.DEFINE_list('MultiGrid', [1, 2, 4], '')
+# flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], '')
+# flags.DEFINE_int('output_stride', 16, '')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -188,7 +203,7 @@ def main(argv):
                                 FLAGS.use_batchnorm,
                                 FLAGS.use_bias,
                                 FLAGS.channel_order)
-        
+
         elif FLAGS.model_architecture == '100-Layer-Tiramisu':
 
             model = Hundred_Layer_Tiramisu(FLAGS.growth_rate,
@@ -201,6 +216,28 @@ def main(argv):
                                            FLAGS.dropout_rate,
                                            FLAGS.strides,
                                            FLAGS.padding)
+
+        # elif FLAGS.model_architecture == 'deeplabv3':
+
+        #     model = Deeplabv3(num_classes,
+        #                       FLAGS.kernel_size_initial_conv,
+        #                       FLAGS.num_filters_atrous,
+        #                       FLAGS.num_filters_DCNN,
+        #                       FLAGS.num_filter_ASPP,
+        #                       FLAGS.kernel_size_atrous,
+        #                       FLAGS.kernel_size_DCNN,
+        #                       FLAGS.kernel_size_ASPP,
+        #                       'same'
+        #                       FLAGS.activation,
+        #                       FLAGS.use_batchnorm,
+        #                       FLAGS.use_bias,
+        #                       FLAGS.use_dropout,
+        #                       FLAGS.dropout_rate,
+        #                       FLAGS.use_spatial,
+        #                       'channels_last',
+        #                       FLAGS.MultiGrid,
+        #                       FLAGS.rate_ASPP,
+        #                       FLAGS.output_stride)
 
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
@@ -246,12 +283,18 @@ def main(argv):
         plot_train_history_loss(history, multi_class=FLAGS.multi_class)
 
     else:
-        # load the latest checkpoint in the FLAGS.logdir file
-        model.load_weights(FLAGS.weights_dir)
+        # load the checkpoint in the FLAGS.weights_dir file
+        model.load_weights(FLAGS.weights_dir).expect_partial()
+        x_val = []
+        y_true = []
         for step, (image, label) in enumerate(valid_ds):
-            if step >= 80:
-                pred = model(image, training=False)
-                visualise_multi_class(label, pred)
+            x_val.append(image)
+            y_true.append(label)
+        x_val = np.asarray(x_val)
+        y_true = np.asarray(y_true)
+        y_pred = model.predict(x_val, batch_size=FLAGS.batch_size)
+        # visualise_multi_class(label, pred)
+        plot_confusion_matrix(y_true, y_pred)
 
 if __name__ == '__main__':
     app.run(main)

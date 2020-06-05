@@ -14,7 +14,7 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 - [x] R2_Attention UNet
 - [x] UNet++
 - [x] 100-layer Tiramisu
-- [ ] DeepLabv3+ 
+- [x] DeepLabv3+ 
 
 ### 3D Models Implemented
 
