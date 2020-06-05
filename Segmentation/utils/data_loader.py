@@ -354,6 +354,9 @@ def apply_random_crop(image_tensor, label_tensor, crop_size):
     print(hh.dtype)
     hrc = tf.clip_by_value(hrc, tf.cast(crop_size, tf.float32), tf.cast(tf.shape(image_tensor)[2] - crop_size, tf.float32))
     wrc = tf.clip_by_value(wrc, tf.cast(crop_size, tf.float32), tf.cast(tf.shape(image_tensor)[3] - crop_size, tf.float32))
+    hrc = tf.cast(tf.math.round(hrc), tf.int32)
+    wrc = tf.cast(tf.math.round(wrc), tf.int32)
+
     centre = (hrc, wrc)
     tf.print(centre)
     image_tensor, label_tensor = crop(image_tensor, label_tensor, crop_size, centre)
