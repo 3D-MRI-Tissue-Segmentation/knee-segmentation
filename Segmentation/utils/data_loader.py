@@ -104,6 +104,7 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
         shard_dir = f'{idx:03d}-of-{len(files) - 1:03d}.tfrecords'
         tfrecord_filename = os.path.join(tfrecord_directory, shard_dir)
 
+        target_shape, label_shape = None, None
         with tf.io.TFRecordWriter(tfrecord_filename) as writer:
             if use_2d:
                 for k in range(len(img)):
@@ -116,6 +117,9 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
                     height = img_slice.shape[0]
                     width = img_slice.shape[1]
                     num_channels = seg_slice.shape[-1]
+
+                    target_shape = img_slice.shape
+                    label_shape = seg.shape
 
                     feature = {
                         'height': _int64_feature(height),
@@ -132,8 +136,8 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
                 depth = img.shape[2]
                 num_channels = seg.shape[-1]
 
-                # print(img.shape)
-                # print(seg.shape)
+                target_shape = img.shape
+                label_shape = seg.shape
 
                 img_raw = img.tostring()
                 seg_raw = seg.tostring()
@@ -148,7 +152,7 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
                 }
                 example = tf.train.Example(features=tf.train.Features(feature=feature))
                 writer.write(example.SerializeToString())
-        print(f'{idx} out of {len(files) - 1} datasets have been processed')
+        print(f'{idx} out of {len(files) - 1} datasets have been processed. Target: {target_shape}, Label: {label_shape}')
 
 def parse_fn_2d(example_proto, training, multi_class=True):
 
