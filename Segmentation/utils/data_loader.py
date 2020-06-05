@@ -132,8 +132,8 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
                 depth = img.shape[2]
                 num_channels = seg.shape[-1]
 
-                print(img.shape)
-                print(seg.shape)
+                # print(img.shape)
+                # print(seg.shape)
 
                 img_raw = img.tostring()
                 seg_raw = seg.tostring()
@@ -345,8 +345,8 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
     return dataset
 
 def apply_random_crop(image_tensor, label_tensor, crop_size):
-    print("==============")
-    print("RANDOM")
+    # print("==============")
+    # print("RANDOM")
     centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32), 
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32))
     hrc = tf.random.normal([], mean=tf.cast(centre[0], tf.float32), stddev=tf.cast(centre[0]/2, tf.float32))
@@ -361,18 +361,18 @@ def apply_random_crop(image_tensor, label_tensor, crop_size):
     return image_tensor, label_tensor
 
 def apply_centre_crop(image_tensor, label_tensor, crop_size):
-    print("==============")
-    print("CENTRE")
+    # print("==============")
+    # print("CENTRE")
     centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32), 
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32))
     image_tensor, label_tensor = crop(image_tensor, label_tensor, crop_size, centre)
     return image_tensor, label_tensor
 
 def crop(image_tensor, label_tensor, crop_size, centre):
-    print("============= crop ================")
-    print(image_tensor.shape)
-    print(label_tensor.shape)
-    print(centre)
+    # print("============= crop ================")
+    # print(image_tensor.shape)
+    # print(label_tensor.shape)
+    # print(centre)
     hc, wc = centre
     image_tensor = tf.slice(image_tensor, [0, 0, hc - crop_size, wc - crop_size, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
     label_tensor = tf.slice(label_tensor, [0, 0, hc - crop_size, wc - crop_size, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
