@@ -319,7 +319,7 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
 
-    parser = partial(parse_fn, training=is_training, multi_class=multi_class, crop_size=crop_size)
+    parser = partial(parse_fn, training=is_training, multi_class=multi_class)
     dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
@@ -336,17 +336,21 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
 def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_size=None, **kwargs):
     dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
     if is_training:
-        dataset = dataset.map(apply_random_crop)
+        parse_rnd_crop = partial(apply_random_crop, warg="hi")
+        dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     else:
-        dataset = dataset.map(apply_centre_crop)
+        parse_rnd_crop = partial(apply_centre_crop, warg="bye")
+        dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     return dataset
 
-def apply_random_crop(image_tensor, label_tensor):
+def apply_random_crop(image_tensor, label_tensor, warg):
     image_tensor, label_tensor = crop(image_tensor, label_tensor)
+    print(warg)
     return image_tensor, label_tensor
 
-def apply_centre_crop(image_tensor, label_tensor):
+def apply_centre_crop(image_tensor, label_tensor, warg):
     image_tensor, label_tensor = crop(image_tensor, label_tensor)
+    print(warg)
     return image_tensor, label_tensor
 
 def crop(image_tensor, label_tensor):
