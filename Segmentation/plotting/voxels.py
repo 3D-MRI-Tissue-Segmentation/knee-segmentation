@@ -9,10 +9,14 @@ def plot_volume(volume, show=False):
     if show:
         plt.show()
     else:
-        plt.savefig(f"test")
+        plt.savefig(f"test_vol")
         plt.close('all')
 
-def plot_slice(vol_slice):
+def plot_slice(vol_slice, show=False):
     fig = plt.figure()
     plt.imshow(vol_slice, cmap="gray")
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.savefig(f"test_slice")
+        plt.close('all')

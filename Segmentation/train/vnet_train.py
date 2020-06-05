@@ -15,154 +15,112 @@ from Segmentation.model.vnet import VNet
 
 class Train:
     def __init__(self, epochs, batch_size, enable_function,
-                 model, optimizer, loss_func, strategy, 
+                 model, optimizer, loss_func,
                  tfrec_dir='./Data/tfrecords/', log_dir="logs/vnet/gradient_tape/"):
-
         self.epochs = epochs
         self.batch_size = batch_size
         self.enable_function = enable_function
         self.model = model
         self.optimizer = optimizer
         self.loss_func = loss_func
-        self.strategy = strategy
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
 
-
-    def train_step(self, x_train, y_train):
+    def train_step(self, x_train, y_train, visualise):
         with tf.GradientTape() as tape:
             predictions = self.model(x_train, training=True)
             loss = self.loss_func(y_train, predictions)
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-        return predictions, loss
+        if visualise:
+            return loss, predictions
+        return loss, None
 
-    def test_step(self, x_test, y_test):
+    def test_step(self, x_test, y_test, visualise):
         predictions = self.model(x_test, training=False)
         loss = self.loss_func(y_test, predictions)
-        return predictions, loss
-
-
+        if visualise:
+            return loss, predictions
+        return loss, None
 
     def train_model_loop(self, train_ds, valid_ds, strategy,
                          num_to_visualise=0):
+        """ Trains 3D model with custom tf loop and MirrorStrategy
         """
-        Trains 3D model with custom tf loop
-        """
+        def run_train_strategy(x, y, visualise):
+            total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise, ))
+            return strategy.reduce(
+                tf.distribute.ReduceOp.SUM, total_step_loss, axis=None), pred
 
-        def distributed_train_epoch(train_ds, num_to_visualise):
-            total_loss = 0.0
-            num_train_batch = 0.0
-            for idx, (x_train, y_train) in enumerate(train_ds):
-                visualise = not (idx < num_to_visualise)
-                pred, per_step_loss = self.strategy.run(self.train_step, args=(x_train, y_train,))
-                total_loss += strategy.reduce(
-                    tf.distribute.ReduceOp.SUM, per_step_loss, axis=None)
+        def run_test_strategy(x, y, visualise):
+            total_step_loss, pred = strategy.run(self.test_step, args=(x, y, visualise, ))
+            return strategy.reduce(
+                tf.distribute.ReduceOp.SUM, total_step_loss, axis=None), pred
+
+        def distributed_train_epoch(train_ds, epoch, strategy, num_to_visualise, writer):
+            total_loss, num_train_batch = 0.0, 0.0
+            for x_train, y_train in train_ds:
+                visualise = (num_train_batch < num_to_visualise)
+                loss, pred = run_train_strategy(x_train, y_train, visualise)
+                loss /= strategy.num_replicas_in_sync
+                total_loss += loss
                 if visualise:
-                    print("visual")
+                    y_slice = tf.slice(y_train.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    pred_slice = tf.slice(pred.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    y_slice = tf.reshape(y_slice, (y_slice.shape[1:]))
+                    pred_slice = tf.reshape(pred_slice, (pred_slice.shape[1:]))
+                    with writer.as_default():
+                        tf.summary.image("Train - true", y_slice, step=epoch)
+                        tf.summary.image("Train - pred", pred_slice, step=epoch)
                 num_train_batch += 1
-            return total_loss, num_train_batch
+            return total_loss / num_train_batch
 
-        def distributed_test_epoch(valid_ds, num_to_visualise):
-            total_loss = 0.0
-            num_test_batch = 0.0
-            for idx, (x_valid, y_valid) in enumerate(valid_ds):
-                visualise = not (idx < num_to_visualise)
-                pred, per_step_loss = self.strategy.run(self.test_step, args=(x_valid, y_valid,))
-                total_loss += strategy.reduce(
-                    tf.distribute.ReduceOp.SUM, per_step_loss, axis=None)
+        def distributed_test_epoch(valid_ds, epoch, strategy, num_to_visualise, writer):
+            total_loss, num_test_batch = 0.0, 0.0
+            for x_valid, y_valid in valid_ds:
+                visualise = (num_test_batch < num_to_visualise)
+                loss, pred = run_test_strategy(x_valid, y_valid, visualise)
+                loss /= strategy.num_replicas_in_sync
+                total_loss += loss
                 if visualise:
-                    print("visual")
+                    y_slice = tf.slice(y_valid.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    pred_slice = tf.slice(pred.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    y_slice = tf.reshape(y_slice, (y_slice.shape[1:]))
+                    pred_slice = tf.reshape(pred_slice, (pred_slice.shape[1:]))
+                    with writer.as_default():
+                        tf.summary.image("Validation - true", y_slice, step=epoch)
+                        tf.summary.image("Validation - pred", pred_slice, step=epoch)
+                    # y_subvol = tf.slice(y_valid.values[0], [0, 60, 124, 124, 0], [-1, 40, 40, 40, -1])
+                    # y_subvol = tf.reshape(y_subvol, (y_subvol.shape[1:4]))
+                    # y_subvol = tf.stack((y_subvol,) * 3, axis=-1)
+                    # plot_volume(y_subvol, show=False)
                 num_test_batch += 1
-            return total_loss, num_test_batch
-
+            return total_loss / num_test_batch
 
         if self.enable_function:
-            distributed_train_epoch = tf.function(self.train_step)
-            distributed_test_epoch = tf.function(self.test_step)
+            run_train_strategy = tf.function(run_train_strategy)
+            run_test_strategy = tf.function(run_test_strategy)
 
         log_dir_now = self.log_dir + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
         train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
         test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation')
-
-        train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
-        test_loss = tf.keras.metrics.Mean('test_loss', dtype=tf.float32)
+        train_img_writer = tf.summary.create_file_writer(log_dir_now + '/train/img')
+        test_img_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img')
 
         for e in range(self.epochs):
             print(f"Epoch {e+1}/{self.epochs}", end="")
             et0 = time()
 
-            loss, num_train = distributed_train_epoch(train_ds, num_to_visualise)
+            train_loss = distributed_train_epoch(train_ds, e, strategy, num_to_visualise, train_img_writer)
             with train_summary_writer.as_default():
-                tf.summary.scalar('epoch_loss', loss, step=e)
+                tf.summary.scalar('epoch_loss', train_loss, step=e)
 
-            loss, num_valid = distributed_test_epoch(valid_ds, num_to_visualise)
+            test_loss = distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, test_img_writer)
             with test_summary_writer.as_default():
-                tf.summary.scalar('epoch_loss', loss.result(), step=e)
+                tf.summary.scalar('epoch_loss', test_loss, step=e)
 
-            print(f" - {time() - et0:.0f}s - loss: {train_loss.result():.05f} - val_loss: {test_loss.result():.05f}")
-
-
-
-            # for idx, (x_train, y_train) in enumerate(train_ds):
-            #     visualise = False
-            #     if idx < num_to_visualise:
-            #         visualise = True
-            #     pred = train_step(model, loss_func, optimizer, x_train, y_train, train_loss, visualise=visualise)
-            #     if visualise:
-            #         print("x", x_train.shape)
-            #         print("y", y_train.shape)
-            #         print("p", pred[0].shape)
-            #         r = 60
-            #         print("p", pred[0, (80 - r):(80 + r), (144 - r):(144 + r), (144 - r):(144 + r)].shape)
-
-            #         sample = pred[0, (80 - r):(80 + r), (144 - r):(144 + r), (144 - r):(144 + r)]
-            #         sample = np.squeeze(sample, -1)
-            #         sample = np.stack((sample,) * 3, axis=-1)
-
-            #         true_sample = y_train[0, (80 - r):(80 + r), (144 - r):(144 + r), (144 - r):(144 + r)]
-            #         true_sample = np.squeeze(true_sample, -1)
-            #         true_sample = np.stack((true_sample,) * 3, axis=-1)
-
-            #         print(true_sample.shape)
-            #         print(sample.shape)
-
-            #         plot_volume(true_sample, show=True)
-            #         plot_volume(sample, show=True)
-
-            #         print("y", y_train.shape)
-            #         plot_slice(y_train[0, 80, :, :, 0])
-            #         print("max", np.max(y_train))
-            #         print("min", np.min(y_train))
-            #         plot_slice(pred[0, 80, :, :, 0])
-            #         print("-----------")
-            #         print("sum", np.sum(y_train))
-            #         print("y shape", y_train.shape)
-            #         print("image done")
-
-            # with train_summary_writer.as_default():
-            #     tf.summary.scalar('epoch_loss', train_loss.result(), step=e)
-
-            # for idx, (x_valid, y_valid) in enumerate(valid_ds):
-            #     visualise = False
-            #     if idx < num_to_visualise:
-            #         visualise = True
-            #     pred = test_step(model, loss_func, x_valid, y_valid, test_loss, visualise=visualise)
-            #     if visualise:
-            #         print("val")
-            #         print("x", x_valid.shape)
-            #         print("y", y_valid.shape)
-            #         print("p", pred.shape)
-            #         print("===============")
-            #         # plot_volume(y_valid[0], show=True)
-            #         # plot_volume(pred[0])
-
-            # with test_summary_writer.as_default():
-            #     tf.summary.scalar('epoch_loss', test_loss.result(), step=e)
-            # print(f" - {time() - et0:.0f}s - loss: {train_loss.result():.05f} - val_loss: {test_loss.result():.05f}")
-            # train_loss.reset_states()
-            # test_loss.reset_states()
+            print(f" - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f}")
 
 
 def load_datasets(batch_size, buffer_size,
@@ -196,13 +154,13 @@ def build_model(num_channels, num_classes):
     return model
 
 
-def main(epochs = 75,
-         batch_size = 1,
+def main(epochs = 3,
+         batch_size = 2,
          lr = 1e-3, 
-         num_to_visualise = 0,
+         num_to_visualise = 2,
          num_channels = 4,
-         buffer_size = 4,
-         enable_function=False,
+         buffer_size = 2,
+         enable_function=True,
          tfrec_dir='./Data/tfrecords/',
          multi_class=False, 
          ):
@@ -217,29 +175,15 @@ def main(epochs = 75,
         model = build_model(num_channels, num_classes)
 
         trainer = Train(epochs, batch_size, enable_function,
-                        model, optimizer, dice_loss, strategy)
+                        model, optimizer, dice_loss)
         
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-        trainer.train_model_loop(train_ds, valid_ds, strategy, num_to_visualise)
+    trainer.train_model_loop(train_ds, valid_ds, strategy, num_to_visualise)
     print(f"{time() - t0:.02f}")
 
 
 if __name__ == "__main__":
     setup_gpu()
     main()
-    
-    
-
-    
-
-    
-
-    
-    
-
-    
-    
-
-    
