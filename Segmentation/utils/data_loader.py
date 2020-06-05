@@ -336,30 +336,32 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
 def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_size=None, **kwargs):
     dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
     if is_training:
-        parse_rnd_crop = partial(apply_random_crop, warg="hi")
+        parse_rnd_crop = partial(apply_random_crop, crop_size=crop_size)
         dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     else:
-        parse_rnd_crop = partial(apply_centre_crop, warg="bye")
+        parse_rnd_crop = partial(apply_centre_crop, crop_size=crop_size)
         dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     return dataset
 
-def apply_random_crop(image_tensor, label_tensor, warg):
-    image_tensor, label_tensor = crop(image_tensor, label_tensor)
-    print(warg)
+def apply_random_crop(image_tensor, label_tensor, crop_size):
+    centre = (192, 192)
+    image_tensor, label_tensor = crop(image_tensor, label_tensor, crop_size, centre)
     return image_tensor, label_tensor
 
-def apply_centre_crop(image_tensor, label_tensor, warg):
-    image_tensor, label_tensor = crop(image_tensor, label_tensor)
-    print(warg)
+def apply_centre_crop(image_tensor, label_tensor, crop_size):
+    centre = (192, 192)
+    image_tensor, label_tensor = crop(image_tensor, label_tensor, crop_size, centre)
     return image_tensor, label_tensor
 
-def crop(image_tensor, label_tensor):
+def crop(image_tensor, label_tensor, crop_size, centre):
     print("============= crop ================")
     print(image_tensor.shape)
     print(label_tensor.shape)
+
+    hc, wc = centre
     
-    image_tensor = tf.slice(image_tensor, [0, 0, 192 - 144 - 1, 192 - 144 - 1, 0], [-1, -1, 144 * 2, 144 * 2, -1])
-    label_tensor = tf.slice(label_tensor, [0, 0, 192 - 144 - 1, 192 - 144 - 1, 0], [-1, -1, 144 * 2, 144 * 2, -1])
+    image_tensor = tf.slice(image_tensor, [0, 0, hc - crop_size - 1, wc - crop_size - 1, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
+    label_tensor = tf.slice(label_tensor, [0, 0, hc - crop_size - 1, wc - crop_size - 1, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
     #label_tensor = tf.slice(label_tensor, [0, 0, h_centre - crop_size, w_centre - crop_size, 0], [-1, -1, crop_size * 2, crop_size * 2, -1])
 
     
