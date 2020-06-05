@@ -255,15 +255,14 @@ def main(argv):
                                        FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
 
-        # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this 
+        # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
 
-        """
-        if FLAGS.backbone_architecture == 'default':
-            model.build((FLAGS.batch_size, 288, 288, 1))
-        else:
-            model.build((FLAGS.batch_size, 288, 288, 3))
-        model.summary()
-        """
+        if FLAGS.train:
+            if FLAGS.backbone_architecture == 'default':
+                model.build((FLAGS.batch_size, 288, 288, 1))
+            else:
+                model.build((FLAGS.batch_size, 288, 288, 3))
+            model.summary()
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
