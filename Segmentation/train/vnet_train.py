@@ -186,7 +186,9 @@ def main(epochs = 3,
 
 
 if __name__ == "__main__":
+    
     setup_gpu()
-    main(epochs=15, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=None, enable_function=True)
+    main(epochs=15, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, enable_function=True)
+    main(epochs=15, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=128, enable_function=True)
     main(epochs=15, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=144, enable_function=True)
     # main(epochs=50, lr=1e-4, dropout_rate=0.0, noise=1e-4)
