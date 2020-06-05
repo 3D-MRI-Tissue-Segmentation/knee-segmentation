@@ -335,12 +335,13 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
 
 def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_size=None, **kwargs):
     dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
-    if is_training:
-        parse_rnd_crop = partial(apply_random_crop, crop_size=crop_size)
-        dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    else:
-        parse_rnd_crop = partial(apply_centre_crop, crop_size=crop_size)
-        dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    if crop_size is not None:
+        if is_training:
+            parse_rnd_crop = partial(apply_random_crop, crop_size=crop_size)
+            dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        else:
+            parse_rnd_crop = partial(apply_centre_crop, crop_size=crop_size)
+            dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     return dataset
 
 def apply_random_crop(image_tensor, label_tensor, crop_size):
