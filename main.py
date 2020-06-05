@@ -206,18 +206,6 @@ def main(argv):
 
         elif FLAGS.model_architecture == '100-Layer-Tiramisu':
 
-<<<<<<< HEAD
-            model = Hundred_Layer_Tiramisu(FLAGS.growth_rate,
-                                           FLAGS.layers_per_block,
-                                           FLAGS.num_channels,
-                                           num_classes,
-                                           FLAGS.kernel_size,
-                                           FLAGS.pool_size,
-                                           FLAGS.activation,
-                                           FLAGS.dropout_rate,
-                                           FLAGS.strides,
-                                           FLAGS.padding)
-=======
             model = Hundread_Layer_Tiramisu(FLAGS.growth_rate,
                                             FLAGS.layers_per_block,
                                             FLAGS.num_channels,
@@ -250,7 +238,6 @@ def main(argv):
         #                       FLAGS.MultiGrid,
         #                       FLAGS.rate_ASPP,
         #                       FLAGS.output_stride)
->>>>>>> d03d9d308710556b481e760f289e817cfda93b76
 
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
