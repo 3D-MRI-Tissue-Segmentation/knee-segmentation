@@ -94,11 +94,24 @@ def crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size, centre):
     label_tensor = tf.slice(label_tensor, [0, dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [-1, depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
     return image_tensor, label_tensor
 
-def apply_random_brightness_contrast_3d(image_tensor, label_tensor):
+def apply_random_brightness_3d(image_tensor, label_tensor):
+    do_brightness = tf.random.uniform([]) > 0.25
     norm = tf.math.abs(tf.random.normal([], 0.0, 0.3))
     norm = tf.clip_by_value(norm, 0, 0.999)
-    image_tensor = tf.image.adjust_brightness(image_tensor, norm)
-    image_tensor = tf.image.random_contrast(image_tensor, 0.1, 0.9)
+    image_tensor = tf.cond(do_brightness, lambda: tf.image.adjust_brightness(image_tensor, norm), lambda: image_tensor)
+    return image_tensor, label_tensor
+
+def apply_random_contrast_3d(image_tensor, label_tensor):
+    do_contrast = tf.random.uniform([]) > 0.25
+    contrast = tf.random.uniform([], 0.0, 3.0)
+    image_tensor = tf.cond(do_contrast, lambda: tf.image.adjust_contrast(image_tensor, contrast), lambda: image_tensor)
+    return image_tensor, label_tensor
+
+def apply_random_gamma_3d(image_tensor, label_tensor):
+    do_gamma = tf.random.uniform([]) > 0.25
+    gamma = tf.random.uniform([], 0.5, 1.5)
+    gain = tf.random.uniform([], 0.9, 1.1)
+    image_tensor = tf.cond(do_gamma, lambda: tf.image.adjust_gamma(image_tensor, gamma=gamma, gain=gain), lambda: image_tensor)
     return image_tensor, label_tensor
 
 # def apply_flip_3d(image_tensor, label_tensor):

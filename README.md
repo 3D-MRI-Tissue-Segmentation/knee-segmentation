@@ -158,7 +158,7 @@ python -m pytest --cov-report term-missing:skip-covered --cov=Segmentation && co
 ``` Bash
 Start tensorboard on Pompeii
 
-On pompeii: tensorboard --logdir logs
+On pompeii: tensorboard --logdir logs --samples_per_plugin images=100
 
 On your local machine: ssh -L 16006:127.0.0.1:6006 username@ip
 
