@@ -6,9 +6,9 @@ import tensorflow as tf
 import numpy as np
 from time import time
 
-from Segmentation.train.utils import setup_gpu
+from Segmentation.train.utils import setup_gpu, LearningRateSchedule
 from Segmentation.utils.data_loader import read_tfrecord_3d
-from Segmentation.utils.losses import dice_loss
+from Segmentation.utils.losses import dice_loss, tversky_loss
 from Segmentation.plotting.voxels import plot_volume, plot_slice
 from Segmentation.model.vnet import VNet
 
@@ -65,11 +65,12 @@ class Train:
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    y_slice = tf.slice(y_train.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
-                    pred_slice = tf.slice(pred.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
-                    y_slice = tf.reshape(y_slice, (y_slice.shape[1:]))
-                    pred_slice = tf.reshape(pred_slice, (pred_slice.shape[1:]))
-                    img = tf.concat((y_slice, pred_slice), axis=-2)
+                    mid = tf.cast(tf.divide(tf.shape(y_train.values[0])[1], 2), tf.int32)
+                    x_slice = tf.slice(x_train.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    y_slice = tf.slice(y_train.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    pred_slice = tf.slice(pred.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    img = tf.concat((x_slice, y_slice, pred_slice), axis=-2)
+                    img = tf.reshape(img, (img.shape[1:]))
                     with writer.as_default():
                         tf.summary.image("Train", img, step=epoch)
                 num_train_batch += 1
@@ -83,11 +84,12 @@ class Train:
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    y_slice = tf.slice(y_valid.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
-                    pred_slice = tf.slice(pred.values[0], [0, 80, 0, 0, 0], [-1, 1, -1, -1, -1])
-                    y_slice = tf.reshape(y_slice, (y_slice.shape[1:]))
-                    pred_slice = tf.reshape(pred_slice, (pred_slice.shape[1:]))
-                    img = tf.concat((y_slice, pred_slice), axis=-2)
+                    mid = tf.cast(tf.divide(tf.shape(y_valid.values[0])[1], 2), tf.int32)
+                    x_slice = tf.slice(x_valid.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    y_slice = tf.slice(y_valid.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    pred_slice = tf.slice(pred.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    img = tf.concat((x_slice, y_slice, pred_slice), axis=-2)
+                    img = tf.reshape(img, (img.shape[1:]))
                     with writer.as_default():
                         tf.summary.image("Validation", img, step=epoch)
                     # working code for plotting a 3D volume
@@ -106,6 +108,7 @@ class Train:
 
         train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
         test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation')
+        lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr')
         train_img_writer = tf.summary.create_file_writer(log_dir_now + '/train/img')
         test_img_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img')
 
@@ -120,7 +123,12 @@ class Train:
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
 
-            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f}")
+            # current_lr = self.optimizer.get_config()['learning_rate']['config']['current_learning_rate']
+            # print(self.optimizer.get_config())
+            # with lr_summary_writer.as_default():
+            #     tf.summary.scalar('epoch_lr', current_lr, step=e)
+
+            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f}")# " - lr: {current_lr: .06f}")
 
 
 def load_datasets(batch_size, buffer_size,
@@ -158,9 +166,11 @@ def build_model(num_channels, num_classes, **kwargs):
     return model
 
 
-def main(epochs = 3,
-         batch_size = 2,
-         lr = 1e-3, 
+def main(epochs,
+         batch_size=2,
+         lr=1e-4, 
+         lr_drop=0.9,
+         lr_drop_freq=5,
          num_to_visualise = 2,
          num_channels = 4,
          buffer_size = 2,
@@ -174,16 +184,25 @@ def main(epochs = 3,
     t0 = time()
 
     num_classes = 7 if multi_class else 1
+    loss_func = tversky_loss if multi_class else dice_loss
     train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class,
                                        crop_size=crop_size, depth_crop_size=depth_crop_size)
 
+    num_gpu = len(tf.config.experimental.list_physical_devices('GPU'))
+    steps_per_epoch = len(glob(os.path.join(tfrec_dir, 'train_3d/*'))) / (batch_size)
+
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        # lr_schedule = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
+        #                                    initial_learning_rate=lr,
+        #                                    drop=lr_drop,
+        #                                    drop_freq=lr_drop_freq)
+
+        optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
         model = build_model(num_channels, num_classes, **model_kwargs)
 
         trainer = Train(epochs, batch_size, enable_function,
-                        model, optimizer, dice_loss)
+                        model, optimizer, loss_func)
         
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
@@ -194,5 +213,4 @@ def main(epochs = 3,
 
 if __name__ == "__main__":
     setup_gpu()
-    main(epochs=25, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64)
-    main(epochs=25, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=80)
+    main(epochs=5, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=1)
