@@ -110,7 +110,6 @@ class Train:
         test_img_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img')
 
         for e in range(self.epochs):
-            print(f"Epoch {e+1}/{self.epochs}", end="")
             et0 = time()
 
             train_loss = distributed_train_epoch(train_ds, e, strategy, num_to_visualise, train_img_writer)
@@ -121,12 +120,14 @@ class Train:
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
 
-            print(f" - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f}")
+            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f}")
 
 
 def load_datasets(batch_size, buffer_size,
                   tfrec_dir='./Data/tfrecords/',
-                  multi_class=False, crop_size=144):
+                  multi_class=False,
+                  crop_size=144,
+                  depth_crop_size=80):
     """
     Loads tf records datasets for 3D models.
     """
@@ -135,13 +136,17 @@ def load_datasets(batch_size, buffer_size,
                                 buffer_size=buffer_size,
                                 multi_class=multi_class,
                                 is_training=True,
-                                use_keras_fit=False, crop_size=crop_size)
+                                use_keras_fit=False,
+                                crop_size=crop_size,
+                                depth_crop_size=depth_crop_size)
     valid_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
                                 batch_size=batch_size,
                                 buffer_size=buffer_size,
                                 multi_class=multi_class,
                                 is_training=False,
-                                use_keras_fit=False, crop_size=crop_size)
+                                use_keras_fit=False,
+                                crop_size=crop_size,
+                                depth_crop_size=depth_crop_size)
     return train_ds, valid_ds
 
 
@@ -159,16 +164,18 @@ def main(epochs = 3,
          num_to_visualise = 2,
          num_channels = 4,
          buffer_size = 2,
-         enable_function=False,
+         enable_function=True,
          tfrec_dir='./Data/tfrecords/',
          multi_class=False,
          crop_size=144,
+         depth_crop_size=80,
          **model_kwargs,
          ):
     t0 = time()
 
     num_classes = 7 if multi_class else 1
-    train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class, crop_size=crop_size)
+    train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class,
+                                       crop_size=crop_size, depth_crop_size=depth_crop_size)
 
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
@@ -186,9 +193,5 @@ def main(epochs = 3,
 
 
 if __name__ == "__main__":
-    
     setup_gpu()
-    main(epochs=15, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, enable_function=True)
-    main(epochs=15, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=128, enable_function=True)
-    main(epochs=15, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=144, enable_function=True)
-    # main(epochs=50, lr=1e-4, dropout_rate=0.0, noise=1e-4)
+    main(epochs=5, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=1e-4, crop_size=64, depth_crop_size=64)
