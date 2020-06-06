@@ -13,8 +13,9 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, tversky_loss_v2
+from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
+from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -65,11 +66,11 @@ flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 # flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], '')
 # flags.DEFINE_int('output_stride', 16, '')
 
-
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
 flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
+flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 
 # Accelerator flags
@@ -253,11 +254,15 @@ def main(argv):
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
-        if FLAGS.backbone_architecture == 'default':
-            model.build((None, None, None, 1))
-        else:
-            model.build((None, None, None, 3))
-        model.summary()
+
+        # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
+
+        if FLAGS.train:
+            if FLAGS.backbone_architecture == 'default':
+                model.build((FLAGS.batch_size, 288, 288, 1))
+            else:
+                model.build((FLAGS.batch_size, 288, 288, 3))
+            model.summary()
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
@@ -266,7 +271,14 @@ def main(argv):
 
         # define checkpoints
         logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
-        logdir = os.path.join(logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
+        training_history_dir = os.path.join(training_history_dir, time)
+        os.mkdir(training_history_dir)
+        flag_name = os.path.join(training_history_dir, 'test_flags.cfg')
+        FLAGS.append_flags_into_file(flag_name)
+
+        logdir = os.path.join(logdir, time)
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=False,
@@ -279,16 +291,33 @@ def main(argv):
                             validation_data=valid_ds,
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
-        FLAGS.append_flags_into_file(logdir_arch + '_test_flags.cfg')
-        plot_train_history_loss(history, multi_class=FLAGS.multi_class)
+
+        
+        plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
 
     else:
-        # load the latest checkpoint in the FLAGS.logdir file
-        model.load_weights(FLAGS.weights_dir)
+        # load the checkpoint in the FLAGS.weights_dir file
+        model.load_weights(FLAGS.weights_dir).expect_partial()
+        cm = np.zeros((num_classes, num_classes))
         for step, (image, label) in enumerate(valid_ds):
-            if step >= 80:
-                pred = model(image, training=False)
-                visualise_multi_class(label, pred)
+            print(step)
+            pred = model.predict(image, batch_size=16)
+            # visualise_multi_class(label, pred)
+
+            cm = cm + get_confusion_matrix(label, pred)
+
+            if step > validation_steps - 1:
+                break
+
+        fig_file = FLAGS.model_architecture + '_matrix.png'
+        fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
+        plot_confusion_matrix(cm, fig_dir, classes=["Background",
+                                                    "Femoral",
+                                                    "Medial Tibial",
+                                                    "Lateral Tibial",
+                                                    "Patellar",
+                                                    "Lateral Meniscus",
+                                                    "Medial Meniscus"])
 
 if __name__ == '__main__':
     app.run(main)

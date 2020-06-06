@@ -97,7 +97,7 @@ class UNet(tf.keras.Model):
             blocks.extend([bridge_1, bridge_2, bridge_3, bridge_4])
 
         for j, up in enumerate(self.upsampling_path):
-            if self.backbone in ['default']:
+            if self.backbone_name in ['default']:
                 x = up(x, blocks[-2 * j - 2], training=training)
             else:
                 x = up(x, blocks[-j - 1], training=training)
