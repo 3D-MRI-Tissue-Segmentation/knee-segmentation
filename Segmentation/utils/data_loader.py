@@ -10,7 +10,7 @@ from glob import glob
 
 from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
     translate_randomly_image_pair_2d
-from Segmentation.utils.augmentation import apply_random_crop_3d, apply_centre_crop_3d, apply_random_brightness_3d
+from Segmentation.utils.augmentation import apply_random_crop_3d, apply_centre_crop_3d, apply_random_brightness_contrast_3d
 
 from Segmentation.plotting.voxels import plot_slice
 
@@ -245,7 +245,7 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
         if is_training:
             parse_rnd_crop = partial(apply_random_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size)
             dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-            dataset = dataset.map(apply_random_brightness_3d)
+            dataset = dataset.map(apply_random_brightness_contrast_3d)
         else:
             parse_rnd_crop = partial(apply_centre_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size)
             dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
