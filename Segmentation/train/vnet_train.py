@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 from time import time
 
-from Segmentation.train.utils import setup_gpu, LearningRateSchedule
+from Segmentation.train.utils import setup_gpu, LearningRateUpdate
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.losses import dice_loss, tversky_loss
 from Segmentation.plotting.voxels import plot_volume, plot_slice
@@ -15,7 +15,7 @@ from Segmentation.model.vnet import VNet
 
 class Train:
     def __init__(self, epochs, batch_size, enable_function,
-                 model, optimizer, loss_func,
+                 model, optimizer, loss_func, lr_manager,
                  tfrec_dir='./Data/tfrecords/', log_dir="logs/vnet/gradient_tape/"):
         self.epochs = epochs
         self.batch_size = batch_size
@@ -23,6 +23,7 @@ class Train:
         self.model = model
         self.optimizer = optimizer
         self.loss_func = loss_func
+        self.lr_manager = lr_manager
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
 
@@ -66,9 +67,9 @@ class Train:
                 total_loss += loss
                 if visualise:
                     mid = tf.cast(tf.divide(tf.shape(y_train.values[0])[1], 2), tf.int32)
-                    x_slice = tf.slice(x_train.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
-                    y_slice = tf.slice(y_train.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
-                    pred_slice = tf.slice(pred.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    x_slice = tf.slice(x_train.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+                    y_slice = tf.slice(y_train.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+                    pred_slice = tf.slice(pred.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
                     img = tf.concat((x_slice, y_slice, pred_slice), axis=-2)
                     img = tf.reshape(img, (img.shape[1:]))
                     with writer.as_default():
@@ -85,15 +86,15 @@ class Train:
                 total_loss += loss
                 if visualise:
                     mid = tf.cast(tf.divide(tf.shape(y_valid.values[0])[1], 2), tf.int32)
-                    x_slice = tf.slice(x_valid.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
-                    y_slice = tf.slice(y_valid.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
-                    pred_slice = tf.slice(pred.values[0], [0, mid, 0, 0, 0], [-1, 1, -1, -1, -1])
+                    x_slice = tf.slice(x_valid.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+                    y_slice = tf.slice(y_valid.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+                    pred_slice = tf.slice(pred.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
                     img = tf.concat((x_slice, y_slice, pred_slice), axis=-2)
                     img = tf.reshape(img, (img.shape[1:]))
                     with writer.as_default():
                         tf.summary.image("Validation", img, step=epoch)
                     # working code for plotting a 3D volume
-                    # y_subvol = tf.slice(y_valid.values[0], [0, 60, 124, 124, 0], [-1, 40, 40, 40, -1])
+                    # y_subvol = tf.slice(y_valid.values[0], [0, 60, 124, 124, 0], [1, 40, 40, 40, -1])
                     # y_subvol = tf.reshape(y_subvol, (y_subvol.shape[1:4]))
                     # y_subvol = tf.stack((y_subvol,) * 3, axis=-1)
                     # plot_volume(y_subvol, show=False)
@@ -108,11 +109,13 @@ class Train:
 
         train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
         test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation')
-        lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr')
         train_img_writer = tf.summary.create_file_writer(log_dir_now + '/train/img')
         test_img_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img')
+        lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr')
 
         for e in range(self.epochs):
+            self.optimizer.learning_rate = self.lr_manager.update_lr(e)
+
             et0 = time()
 
             train_loss = distributed_train_epoch(train_ds, e, strategy, num_to_visualise, train_img_writer)
@@ -123,12 +126,10 @@ class Train:
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
 
-            # current_lr = self.optimizer.get_config()['learning_rate']['config']['current_learning_rate']
-            # print(self.optimizer.get_config())
-            # with lr_summary_writer.as_default():
-            #     tf.summary.scalar('epoch_lr', current_lr, step=e)
-
-            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f}")# " - lr: {current_lr: .06f}")
+            current_lr = self.optimizer.get_config()['learning_rate']
+            with lr_summary_writer.as_default():
+                tf.summary.scalar('epoch_lr', current_lr, step=e)
+            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}")
 
 
 def load_datasets(batch_size, buffer_size,
@@ -170,7 +171,8 @@ def main(epochs,
          batch_size=2,
          lr=1e-4, 
          lr_drop=0.9,
-         lr_drop_freq=5,
+         lr_drop_freq=3,
+         lr_warmup=5,
          num_to_visualise = 2,
          num_channels = 4,
          buffer_size = 2,
@@ -193,16 +195,13 @@ def main(epochs,
 
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-        # lr_schedule = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
-        #                                    initial_learning_rate=lr,
-        #                                    drop=lr_drop,
-        #                                    drop_freq=lr_drop_freq)
+        lr_manager = LearningRateUpdate(lr, lr_drop, lr_drop_freq, warmup=lr_warmup)
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         model = build_model(num_channels, num_classes, **model_kwargs)
 
         trainer = Train(epochs, batch_size, enable_function,
-                        model, optimizer, loss_func)
+                        model, optimizer, loss_func, lr_manager)
         
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
@@ -213,4 +212,7 @@ def main(epochs,
 
 if __name__ == "__main__":
     setup_gpu()
-    main(epochs=5, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=1)
+    main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
+    main(epochs=100, lr=1e-4, dropout_rate=0.05, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
+    main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32)
+    main(epochs=100, batch_size=8, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=8)
