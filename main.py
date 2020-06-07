@@ -55,16 +55,16 @@ flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 
 # Deeplab parameters
-# flags.DEFINE_int('kernel_size_initial_conv', , 'kernel size for the first convolution')
-# flags.DEFINE_int('num_filters_atrous', , '')
-# flags.DEFINE_list('num_filters_DCNN', [256, 512, 1024], 'number of filters for the first three blocks of the DCNN')
-# flags.DEFINE_int('num_filters_ASPP', 256, 'number of filters for the ASPP term')
-# flags.DEFINE_int('kernel_size_atrous', 3, 'number of filters for the ASPP term')
-# flags.DEFINE_list('kernel_size_DCNN', [1, 3], 'number of filters for the ASPP term')
-# flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'number of filters for the ASPP term')
-# flags.DEFINE_list('MultiGrid', [1, 2, 4], '')
-# flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], '')
-# flags.DEFINE_int('output_stride', 16, '')
+flags.DEFINE_int('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
+flags.DEFINE_int('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
+flags.DEFINE_list('num_filters_DCNN', [256, 512, 1024], 'number of filters for the first three blocks of the DCNN')
+flags.DEFINE_int('num_filters_ASPP', 256, 'number of filters for the ASPP term')
+flags.DEFINE_int('kernel_size_atrous', 3, 'kernel size for the atrous convolutions')
+flags.DEFINE_list('kernel_size_DCNN', [1, 3], 'kernel sizes for the blocks of the DCNN')
+flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'kernel size for the ASPP term')
+flags.DEFINE_list('MultiGrid', [1, 2, 4], 'relative convolution rates for the atrous convolutions')
+flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], 'rates for the ASPP term convolutions')
+flags.DEFINE_int('output_stride', 16, 'final output stride (taking into account max pooling)')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -218,27 +218,28 @@ def main(argv):
                                            FLAGS.strides,
                                            FLAGS.padding)
 
-        # elif FLAGS.model_architecture == 'deeplabv3':
+        elif FLAGS.model_architecture == 'deeplabv3':
 
-        #     model = Deeplabv3(num_classes,
-        #                       FLAGS.kernel_size_initial_conv,
-        #                       FLAGS.num_filters_atrous,
-        #                       FLAGS.num_filters_DCNN,
-        #                       FLAGS.num_filter_ASPP,
-        #                       FLAGS.kernel_size_atrous,
-        #                       FLAGS.kernel_size_DCNN,
-        #                       FLAGS.kernel_size_ASPP,
-        #                       'same'
-        #                       FLAGS.activation,
-        #                       FLAGS.use_batchnorm,
-        #                       FLAGS.use_bias,
-        #                       FLAGS.use_dropout,
-        #                       FLAGS.dropout_rate,
-        #                       FLAGS.use_spatial,
-        #                       'channels_last',
-        #                       FLAGS.MultiGrid,
-        #                       FLAGS.rate_ASPP,
-        #                       FLAGS.output_stride)
+            model = Deeplabv3(num_classes,
+                              FLAGS.kernel_size_initial_conv,
+                              FLAGS.num_filters_atrous,
+                              FLAGS.num_filters_DCNN,
+                              FLAGS.num_filter_ASPP,
+                              FLAGS.kernel_size_atrous,
+                              FLAGS.kernel_size_DCNN,
+                              FLAGS.kernel_size_ASPP,
+                              padding='same',
+                              FLAGS.activation,
+                              FLAGS.use_batchnorm,
+                              FLAGS.use_nonlinearity,
+                              FLAGS.use_bias,
+                              FLAGS.use_dropout,
+                              FLAGS.dropout_rate,
+                              FLAGS.use_spatial,
+                              data_format='channels_last',
+                              FLAGS.MultiGrid,
+                              FLAGS.rate_ASPP,
+                              FLAGS.output_stride)
 
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
