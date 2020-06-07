@@ -7,11 +7,11 @@ class Deeplabv3(tf.keras.Model):
                  num_classes,
                  kernel_size_initial_conv,
                  num_channels_atrous,
-                 num_channels_DCNN=(256, 512, 1024),
+                 num_channels_DCNN=[256, 512, 1024],
                  num_channels_ASPP=256,
                  kernel_size_atrous=3,
-                 kernel_size_DCNN=(1, 3),
-                 kernel_size_ASPP=(1, 3, 3, 3),
+                 kernel_size_DCNN=[1, 3],
+                 kernel_size_ASPP=[1, 3, 3, 3],
                  padding='same',
                  nonlinearity='relu',
                  use_batchnorm=True,
@@ -21,8 +21,8 @@ class Deeplabv3(tf.keras.Model):
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
-                 MultiGrid=(1, 2, 4),
-                 rate_ASPP=(1, 6, 12, 18),
+                 MultiGrid=[1, 2, 4],
+                 rate_ASPP=[1, 6, 12, 18],
                  output_stride=16,
                  # Not adapted code for any other out stride
                  **kwargs):
@@ -418,6 +418,7 @@ class aspp_block(tf.keras.Sequential):
                                              momentum=0.95,
                                              epsilon=0.001))
         if use_nonlinearity:
+            print(nonlinearity)
             self.add(tfkl.Activation(nonlinearity))
 
     def call(self, x, training=False):
