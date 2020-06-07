@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import os
+from pathlib import Path
 from datetime import datetime
 from absl import app
 from absl import flags
@@ -256,13 +257,13 @@ def main(argv):
         optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
 
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
-
         if FLAGS.train:
             if FLAGS.backbone_architecture == 'default':
                 model.build((FLAGS.batch_size, 288, 288, 1))
             else:
                 model.build((FLAGS.batch_size, 288, 288, 3))
             model.summary()
+
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
@@ -270,14 +271,14 @@ def main(argv):
     if FLAGS.train:
 
         # define checkpoints
-        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
         training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
         training_history_dir = os.path.join(training_history_dir, time)
-        os.mkdir(training_history_dir)
+        Path(training_history_dir).mkdir(parents=True, exist_ok=True)
         flag_name = os.path.join(training_history_dir, 'test_flags.cfg')
         FLAGS.append_flags_into_file(flag_name)
-
+        
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         logdir = os.path.join(logdir, time)
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
@@ -292,32 +293,32 @@ def main(argv):
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
 
-        
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         model.load_weights(FLAGS.weights_dir).expect_partial()
+        model.evaluate(valid_ds, steps=validation_steps)
         cm = np.zeros((num_classes, num_classes))
+        classes=["Background",
+                 "Femoral",
+                 "Medial Tibial",
+                 "Lateral Tibial",
+                 "Patellar",
+                 "Lateral Meniscus",
+                 "Medial Meniscus"]
         for step, (image, label) in enumerate(valid_ds):
             print(step)
-            pred = model.predict(image, batch_size=16)
+            pred = model.predict(image)
             # visualise_multi_class(label, pred)
-
-            cm = cm + get_confusion_matrix(label, pred)
+            
+            cm = cm + get_confusion_matrix(label, pred, classes=list(range(0,num_classes)))
 
             if step > validation_steps - 1:
                 break
 
         fig_file = FLAGS.model_architecture + '_matrix.png'
         fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
-        plot_confusion_matrix(cm, fig_dir, classes=["Background",
-                                                    "Femoral",
-                                                    "Medial Tibial",
-                                                    "Lateral Tibial",
-                                                    "Patellar",
-                                                    "Lateral Meniscus",
-                                                    "Medial Meniscus"])
-
+        plot_confusion_matrix(cm, fig_dir, classes=classes)
 if __name__ == '__main__':
     app.run(main)

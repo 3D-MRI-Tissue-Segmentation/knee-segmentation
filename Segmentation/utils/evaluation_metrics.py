@@ -4,14 +4,18 @@ import matplotlib.pyplot as plt
 import itertools
 import os
 
-def get_confusion_matrix(y_true, y_pred):
+def get_confusion_matrix(y_true, y_pred, classes=None):
 
     y_true = np.reshape(y_true, (y_true.shape[0] * y_true.shape[1] * y_true.shape[2], y_true.shape[3]))
     y_pred = np.reshape(y_pred, (y_pred.shape[0] * y_pred.shape[1] * y_pred.shape[2], y_pred.shape[3]))
     y_true_max = np.argmax(y_true, axis=1)
     y_pred_max = np.argmax(y_pred, axis=1)
-
-    cm = confusion_matrix(y_true_max, y_pred_max)
+    
+    if classes is None:
+        cm = confusion_matrix(y_true_max, y_pred_max)
+    else:
+        cm = confusion_matrix(y_true_max, y_pred_max, labels=classes)
+    print(cm)
 
     return cm
 
@@ -40,5 +44,4 @@ def plot_confusion_matrix(cm, savefig, classes, normalise=True, title='confusion
     plt.tight_layout()
     plt.show()
     if savefig is not None:
-        filename = os.path.join(savefig, 'training_history.png')
-        plt.savefig(filename)
+        plt.savefig(savefig)

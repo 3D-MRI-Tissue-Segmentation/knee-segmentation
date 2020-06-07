@@ -1,5 +1,23 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
+import random
+import sys
+
+def crop_randomly_image_pair_2d(image_tensor, label_tensor):
+    
+    random_seed = random.randrange(sys.maxsize)
+    random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
+    
+    randomly_cropped_img = tf.cond(pred=tf.equal(random_var,0),
+                                   true_fn=lambda: tf.image.random_crop(image_tensor, size=[288,288,1], seed=random_seed),
+                                   false_fn=lambda: tf.image.resize_with_crop_or_pad(image_tensor, 288, 288))
+
+    randomly_cropped_label = tf.cond(pred=tf.equal(random_var,0),
+                                     true_fn=lambda: tf.image.random_crop(label_tensor, size=[288,288,7], seed=random_seed),
+                                     false_fn=lambda: tf.image.resize_with_crop_or_pad(label_tensor, 288, 288))
+    
+    return randomly_cropped_img, randomly_cropped_label
+    
 
 def flip_randomly_left_right_image_pair_2d(image_tensor, label_tensor):
 

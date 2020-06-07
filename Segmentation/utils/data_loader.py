@@ -7,8 +7,7 @@ import math
 from functools import partial
 import tensorflow as tf
 
-from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
-    translate_randomly_image_pair_2d
+from Segmentation.utils.augmentation import crop_randomly_image_pair_2d
 
 def get_multiclass(label):
 
@@ -84,10 +83,10 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
             img = np.rollaxis(img, 2, 0)
             seg = np.rollaxis(seg, 2, 0)
 
-            img = img[:, 48:336, 48:336]
-            seg = seg[:, 48:336, 48:336, :]
+            # img = img[:, 48:336, 48:336]
+            # seg = seg[:, 48:336, 48:336, :]
 
-            seg_temp = np.zeros((160, 288, 288, 1), dtype=np.int8)
+            seg_temp = np.zeros((160, 384, 384, 1), dtype=np.int8)
             seg_sum = np.sum(seg, axis=3)
             seg_temp[seg_sum == 0] = 1
             seg = np.concatenate([seg_temp, seg], axis=3)
@@ -156,23 +155,27 @@ def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False, u
     # Parse the input tf.Example proto using the dictionary above.
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
-    image = tf.cast(tf.reshape(image_raw, [288, 288, 1]), dtype)
+    image = tf.cast(tf.reshape(image_raw, [384, 384, 1]), dtype)
 
     if use_RGB:
         image = tf.image.grayscale_to_rgb(image)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
-    seg = tf.reshape(seg_raw, [288, 288, 7])
+    seg = tf.reshape(seg_raw, [384, 384, 7])
     seg = tf.cast(seg, dtype)
-
-    # if training:
+    
+    if training:
+        image, seg = crop_randomly_image_pair_2d(image, seg)
     #   image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
     #   image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
     #   image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+    else:
+        image = tf.image.resize_with_crop_or_pad(image, 288, 288)
+        seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
 
     if not multi_class:
         seg = tf.math.reduce_sum(seg, axis=-1)
-
+    
     return (image, seg)
 
 def parse_fn_3d(example_proto, training, multi_class=True):
@@ -216,7 +219,7 @@ def read_tfrecord(tfrecords_dir,
         shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
-                                cycle_length=4,
+                                cycle_length=8,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
