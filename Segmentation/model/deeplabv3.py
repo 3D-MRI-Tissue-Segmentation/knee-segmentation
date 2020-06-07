@@ -105,6 +105,7 @@ class ResNet_Backbone():
                  use_batchnorm=True,
                  use_nonlinearity=True,
                  use_bias=True,
+                 use_pooling=False,
                  data_format='channels_last',
                  **kwargs):
 
@@ -150,7 +151,8 @@ class ResNet_Backbone():
     def call(self, x, training=False):
 
         x = self.first_conv(x, training=training)  # output stride 2
-        x = self.max_pool(x)  # output stride 4
+        if use_pooling:
+            x = self.max_pool(x)  # output stride 4
 
         x = self.block1(x, training=training)  # output stride 4
         x = self.block2(x, training=training)  # output stride 8
