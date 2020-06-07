@@ -1,5 +1,5 @@
 import tensorflow as tf
-import tensorflow_addons as tfa
+# import tensorflow_addons as tfa
 import random
 import sys
 
@@ -32,7 +32,7 @@ def flip_randomly_left_right_image_pair_2d(image_tensor, label_tensor):
                                      false_fn=lambda: label_tensor)
 
     return randomly_flipped_img, randomly_flipped_label
-
+"""
 def rotate_randomly_image_pair_2d(image_tensor, label_tensor, min_angle, max_angle):
 
     random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
@@ -81,3 +81,4 @@ def one_hot_background_2d(label_tensor):
     new_label = tf.concat([new_background, label_6ch], axis=2)
 
     return new_label
+"""
