@@ -1,0 +1,1 @@
+python main.py --flagfile=config/train_gpu_oliv_test.cfg
