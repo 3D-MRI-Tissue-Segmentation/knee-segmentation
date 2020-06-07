@@ -30,7 +30,7 @@ htmlcov/
 *.hdf5
 *.csv
 *.tfrecords
-*.cfg
+# *.cfg
 *.sh
 
 # IDE

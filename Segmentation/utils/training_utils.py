@@ -3,6 +3,7 @@ import tensorflow.keras.backend as K
 import matplotlib.pyplot as plt
 import math
 import numpy as np
+import os
 
 def plot_train_history_loss(history, multi_class=True, savefig=None):
     # summarize history for loss
@@ -34,7 +35,8 @@ def plot_train_history_loss(history, multi_class=True, savefig=None):
     plt.show()
 
     if savefig is not None:
-        plt.savefig(savefig)
+        filename = os.path.join(savefig, 'training_history.png')
+        plt.savefig(filename)
 
 def visualise_binary(y_true, y_pred):
 
