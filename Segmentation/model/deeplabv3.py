@@ -197,7 +197,7 @@ class resnet_block(tf.keras.Model):
 
         self.second_conv = basic_conv_block(inner_num_channels,
                                             kernel_size[1],
-                                            stride,
+                                            1,
                                             padding,
                                             nonlinearity,
                                             use_batchnorm,
@@ -206,7 +206,7 @@ class resnet_block(tf.keras.Model):
                              
         self.third_conv = basic_conv_block(num_channels,
                                            kernel_size[0],
-                                           stride,
+                                           1,
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
@@ -286,6 +286,7 @@ class Atrous_conv(tf.keras.Model):
         
         self.first_conv = basic_conv_block(num_channels,
                                            kernel_size,
+                                           1,
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
@@ -295,6 +296,7 @@ class Atrous_conv(tf.keras.Model):
 
         self.second_conv = basic_conv_block(num_channels,
                                             kernel_size,
+                                            1,
                                             padding,
                                             nonlinearity,
                                             use_batchnorm,
@@ -304,6 +306,7 @@ class Atrous_conv(tf.keras.Model):
 
         self.third_conv = basic_conv_block(num_channels,
                                            kernel_size,
+                                           1,
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
