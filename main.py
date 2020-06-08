@@ -37,10 +37,11 @@ flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
-flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
+flags.DEFINE_bool('use_bias', True, 'Whether to use bias')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
+flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial dropout')
 
 # UNet parameters
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
@@ -128,6 +129,7 @@ def main(argv):
         train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
+                                 augmentation=FLAGS.aug_strategy,
                                  multi_class=FLAGS.multi_class,
                                  is_training=True,
                                  use_bfloat16=FLAGS.use_bfloat16,
@@ -135,6 +137,7 @@ def main(argv):
         valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
+                                 augmentation=FLAGS.aug_strategy,
                                  multi_class=FLAGS.multi_class,
                                  is_training=False,
                                  use_bfloat16=FLAGS.use_bfloat16,
