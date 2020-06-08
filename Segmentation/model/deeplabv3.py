@@ -318,8 +318,11 @@ class Atrous_conv(tf.keras.Model):
     def call(self, x, training=False):
 
         x = self.first_conv(x, training)
+        print(x.get_shape())
         x = self.second_conv(x, training)
+        print(x.get_shape())
         x = self.third_conv(x, training)
+        print(x.get_shape())
         return x
 
 
@@ -358,14 +361,11 @@ class atrous_spatial_pyramid_pooling(tf.keras.Model):
 
         feature_map_size = tf.shape(x)
         output_list = []
-        print(x.get_shape())
 
         # Non diluted convolution
         y = tf.math.reduce_mean(x, axis=[1, 2], keepdims=True)  # ~ Average Pooling
         y = self.basic_conv(y, training=training)
-        print(y.get_shape())
         output_list.append(tf.image.resize(y, (feature_map_size[1], feature_map_size[2])))  # ~ Upsampling
-        print(output_list[0].get_shape())
 
         # Series of diluted convolutions with rates (1, 6, 12, 18)
         for i, block in enumerate(self.block_list):
