@@ -15,27 +15,48 @@ class VoxelData():
     def __init__(self,data):
         print("Making voxels")
         self.data = data
-        self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
-        self.xyz = self.get_coords(self.data)
-        # self.x = self.xyz[0,:]
-        # self.y = self.xyz[1,:]
-        # self.z = self.xyz[2,:]
+        if np.size(np.shape(data)) > 3:
+            self.voxel_tot = sum(np.shape(data)[0:-1])  
+        else:
+            self.voxel_tot = sum(np.shape(data))  
         self.x_length = np.size(data,0)
         self.y_length = np.size(data,1)
         self.z_length = np.size(data,2)
+        self.class_colors, self.num_classes = self.get_class_colors()
+        if np.shape(self.class_colors)[0] > 1:
+            self.data = self.reduce_data()
+
+        self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
+        self.xyz = self.get_coords()
+        # self.x = self.xyz[0,:]
+        # self.y = self.xyz[1,:]
+        # self.z = self.xyz[2,:]
         self.vert_count = 0
-
-        self.vertices = np.zeros((self.x_length+1, self.y_length+1, self.z_length+1))
-        self.make_edge_verts2()
-
-        self.vert_xyz = self.get_coords(self.vertices)
-        # self.make_triangles()
+        self.vertices = self.make_edge_verts()
         self.triangles = np.delete(self.triangles, 0,1)
         #self.make_triangles()
 
 
-    def get_coords(self, data):
-        indices = np.nonzero(data)
+    self.get_class_colors(self):
+        channels = np.shape(self.data)[-1]
+
+        if np.size(data.shape) > 3:         
+            color_data = np.reshape(data, [self.voxel_tot, channels])
+            unique_colors = np.unique(color_data, axis=0)
+            del color_data
+        else:
+            unique_colors = np.unique(self.data)
+        
+        num_classes = np.shape(unique_colors)[0]
+        keys = np.arange(num_classes)
+        class_colors = dict(zip(keys, unique_colors.T)))
+
+        return class_colors, num_classes
+
+
+
+    def get_coords(self):
+        indices = np.nonzero(self.data)
         indices = np.stack((indices[0], indices[1],indices[2]))
         return indices
 
@@ -43,12 +64,12 @@ class VoxelData():
         return self.data[neighbor_coord[0],neighbor_coord[1],neighbor_coord[2]]
 
 
-    def get_neighbor(self, voxel, direction):
-        voxel_coords = self.xyz[:, voxel]
+    def get_neighbor(self, voxel_coords, direction):
+        x = voxel_coords[0]
+        y = voxel_coords[1]
+        z = voxel_coords[2]
         offset_to_check = CubeData.offsets[direction]
-        neighbor_coord = [voxel_coords[0]+ offset_to_check[0], 
-                        voxel_coords[1]+offset_to_check[1], 
-                        voxel_coords[2]+offset_to_check[2]]
+        neighbor_coord = [x+ offset_to_check[0], y+offset_to_check[1], z+offset_to_check[2]]
 
         # return 0 if neighbor out of bounds or nonexistent
         if (any(np.less(neighbor_coord,0)) | (neighbor_coord[0] >= self.x_length) | (neighbor_coord[1] >= self.y_length) | (neighbor_coord[2] >= self.z_length)):
@@ -108,7 +129,7 @@ class VoxelData():
         # only make a new face if there's no neighbor in that direction
         dirs_no_neighbor = []
         for direction in range(len(CubeData.direction)):
-            if np.any(self.get_neighbor(voxel, direction)):
+            if np.any(self.get_neighbor(voxel_coords, direction)):
                 continue
             else: 
                 dirs_no_neighbor = np.append(dirs_no_neighbor, direction)
@@ -124,60 +145,15 @@ class VoxelData():
         return cube
 
 
-    # def make_edge_verts(self):
-    #     # make only outer vertices 
-    #     edge_verts = np.zeros((np.size(self.xyz, 0),1))
-    #     num_voxels = np.size(self.xyz, 1)
-    #     for voxel in range(num_voxels):
-    #         cube = self.make_cube_verts(voxel)          # passing voxel num rather than 
-    #         edge_verts = np.append(edge_verts, cube, axis=1)
-    #     edge_verts = np.delete(edge_verts, 0,1)
-    #     return edge_verts       
-
-
-    def set_face(self, voxel, direction):
-        """Set element in vertices matrix to 1 if there should be a vertex there"""
-        voxel_coords = self.xyz[:, voxel]
-        explicit_dir = CubeData.direction[direction]
-        vert_order = CubeData.face_triangles[explicit_dir]
-
-        # Triangles (Use if triangle order gets fixed)
-        next_triangles = np.add(vert_order, voxel)
-        print("next_triangles", next_triangles)
-        next_i = [next_triangles[0], next_triangles[0]]
-        next_j = [next_triangles[1], next_triangles[2]]
-        next_k = [next_triangles[2], next_triangles[3]]
-        next_tri = np.vstack((next_i, next_j, next_k))
-        self.triangles = np.hstack((self.triangles, next_tri))
-
-        print("direction\n", explicit_dir)
-        print("voxel_coords\n", voxel_coords)
-        print("next_tri\n", next_tri)
-
-        for i in range(len(vert_order)):
-            face_vertices = voxel_coords + CubeData.cube_verts[vert_order[i]]   
-            print("face_vertices", face_vertices)
-            print("self.vertices[face_vertices]", self.vertices[face_vertices])
-            if self.vertices[face_vertices] == 0:       # keep track of creation order
-                self.vertices[face_vertices[0],face_vertices[1], face_vertices[2]] = self.vert_count
-            self.vert_count = self.vert_count +1 
-            
-
-    
-    def make_edge_verts2(self):
-        """Intersperse np voxel coordinates with vertices for triangles"""
+    def make_edge_verts(self):
+        # make only outer vertices 
+        edge_verts = np.zeros((np.size(self.xyz, 0),1))
         num_voxels = np.size(self.xyz, 1)
         for voxel in range(num_voxels):
-            for direction in range(len(CubeData.direction)):
-                if np.any(self.get_neighbor(voxel, direction)):
-                    continue
-                else: 
-                    self.set_face(voxel, direction)
-
-    
-    # def make_triangles(self):
-
-
+            cube = self.make_cube_verts(voxel)          # passing voxel num rather than 
+            edge_verts = np.append(edge_verts, cube, axis=1)
+        edge_verts = np.delete(edge_verts, 0,1)
+        return edge_verts        
 
 
 
@@ -262,5 +238,3 @@ class CubeData:
     #     [0, 1, 0],
     #     [0, -1, 0]
     # ]
-
-

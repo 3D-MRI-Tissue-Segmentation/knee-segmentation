@@ -3,9 +3,6 @@
 import sys
 import argparse
 import os
-# from util 
-# import util
-
 
 
 # inspiration from https://github.com/neoamos/3d-pix2pix-CycleGAN/blob/master/options/base_options.py
