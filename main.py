@@ -54,6 +54,7 @@ flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after e
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
+flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 
 # Deeplab parameters
 flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
@@ -108,7 +109,7 @@ def main(argv):
                     print(e)
     else:
         logging.info('Use TPU at %s',
-                     FLAGS.tpu if FLAGS.tpu is not None else 'local')
+                     FLAGS.tpu if FLAGS.tpu is not None else 'local')        
         resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=FLAGS.tpu)
         tf.config.experimental_connect_to_cluster(resolver)
         tf.tpu.experimental.initialize_tpu_system(resolver)
@@ -255,7 +256,15 @@ def main(argv):
                                        FLAGS.lr_drop_ratio,
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
-        optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+
+        if FLAGS.optimizer == 'adam':
+            optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+        elif FLAGS.optimizer == 'rms-prop':
+            optimiser = tf.keras.optimizers.RMSprop(learning_rate=lr_rate)
+        else:
+            print('Not a valid input optimizer, using Adam.')
+            optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+            
 
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
         if FLAGS.train:

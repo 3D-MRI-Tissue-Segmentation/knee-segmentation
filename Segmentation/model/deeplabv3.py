@@ -26,6 +26,7 @@ class Deeplabv3(tf.keras.Model):
                  output_stride=16,
                  # Not adapted code for any other out stride
                  **kwargs):
+        
         """ Arguments:
             kernel_size_initial_conv: the size of the kernel for the
                                       first convolution
@@ -95,7 +96,7 @@ class Deeplabv3(tf.keras.Model):
 
         return out
 
-class ResNet_Backbone():
+class ResNet_Backbone(tf.keras.Model):
     def __init__(self,
                  kernel_size_initial_conv,
                  num_channels=(256, 512, 1024),
@@ -108,7 +109,8 @@ class ResNet_Backbone():
                  use_pooling=False,
                  data_format='channels_last',
                  **kwargs):
-
+        
+        super(ResNet_Backbone, self).__init__(**kwargs)
         self.first_conv = tfkl.Conv2D(num_channels[0] // 4,
                                       kernel_size_initial_conv,
                                       strides=2,
@@ -118,6 +120,8 @@ class ResNet_Backbone():
 
         self.max_pool = tfkl.MaxPool2D(pool_size=(2, 2),
                                        padding='valid')
+        
+        self.use_pooling = use_pooling
 
         self.block1 = resnet_block(False,
                                    num_channels[0],
@@ -163,7 +167,7 @@ class ResNet_Backbone():
 
 
 # full pre-activation residual unit
-class resnet_block():
+class resnet_block(tf.keras.Model):
 
     def __init__(self,
                  use_stride,
@@ -176,7 +180,8 @@ class resnet_block():
                  use_bias=True,
                  data_format='channels_last',
                  **kwargs):
-
+        
+        super(resnet_block, self).__init__(**kwargs)
         self.use_stride = use_stride
         inner_num_channels = num_channels // 4
 
@@ -335,7 +340,7 @@ class Atrous_conv(tf.keras.Model):
 
 
 # ####################### ASPP ####################### #
-class atrous_spatial_pyramid_pooling():
+class atrous_spatial_pyramid_pooling(tf.keras.Model):
 
     def __init__(self,
                  num_channels=256,
@@ -349,6 +354,7 @@ class atrous_spatial_pyramid_pooling():
                  data_format='channels_last',
                  **kwargs):
         
+        super(atrous_spatial_pyramid_pooling, self).__init__(**kwargs)
         self.block_list = []
 
         self.basic_conv = tfkl.Conv2D(num_channels,
