@@ -13,12 +13,12 @@ from Segmentation.plotting.voxels import plot_volume, plot_slice, plot_to_image
 from Segmentation.model.vnet import VNet
 
 colour_maps = {
-    1: [tf.constant([1,1,1], dtype=tf.float32), tf.constant([[[[255, 255, 0]]]], dtype=tf.float32)], # background / black
-    2: [tf.constant([2,2,2], dtype=tf.float32), tf.constant([[[[0, 255, 255]]]], dtype=tf.float32)], 
-    3: [tf.constant([3,3,3], dtype=tf.float32), tf.constant([[[[255, 0, 255]]]], dtype=tf.float32)], 
-    4: [tf.constant([4,4,4], dtype=tf.float32), tf.constant([[[[255, 255, 255]]]], dtype=tf.float32)], 
-    5: [tf.constant([5,5,5], dtype=tf.float32), tf.constant([[[[120, 120, 120]]]], dtype=tf.float32)], 
-    6: [tf.constant([6,6,6], dtype=tf.float32), tf.constant([[[[255, 165, 0]]]], dtype=tf.float32)], 
+    1: [tf.constant([1, 1, 1], dtype=tf.float32), tf.constant([[[[255, 255, 0]]]], dtype=tf.float32)],  # background / black
+    2: [tf.constant([2, 2, 2], dtype=tf.float32), tf.constant([[[[0, 255, 255]]]], dtype=tf.float32)],
+    3: [tf.constant([3, 3, 3], dtype=tf.float32), tf.constant([[[[255, 0, 255]]]], dtype=tf.float32)],
+    4: [tf.constant([4, 4, 4], dtype=tf.float32), tf.constant([[[[255, 255, 255]]]], dtype=tf.float32)],
+    5: [tf.constant([5, 5, 5], dtype=tf.float32), tf.constant([[[[120, 120, 120]]]], dtype=tf.float32)],
+    6: [tf.constant([6, 6, 6], dtype=tf.float32), tf.constant([[[[255, 165, 0]]]], dtype=tf.float32)],
 }
 
 class Train:
@@ -226,7 +226,7 @@ def build_model(num_channels, num_classes, **kwargs):
 
 def main(epochs,
          batch_size=2,
-         lr=1e-4, 
+         lr=1e-4,
          lr_drop=0.9,
          lr_drop_freq=5,
          lr_warmup=5,
@@ -259,7 +259,7 @@ def main(epochs,
 
         trainer = Train(epochs, batch_size, enable_function,
                         model, optimizer, loss_func, lr_manager)
-        
+
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 

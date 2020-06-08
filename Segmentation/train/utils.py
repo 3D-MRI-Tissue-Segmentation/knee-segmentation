@@ -19,7 +19,7 @@ def setup_gpu():
 
 
 class LearningRateUpdate:
-    def __init__(self, 
+    def __init__(self,
                  init_lr,
                  drop_ratio,
                  drop_freq,
@@ -31,7 +31,7 @@ class LearningRateUpdate:
         self.drop_freq = drop_freq
         self.min_lr = min_lr
         self.warmup = warmup
-    
+
     def update_lr(self, epoch):
         if epoch < self.warmup:
             return self.init_lr

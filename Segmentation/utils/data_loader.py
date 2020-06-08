@@ -11,7 +11,7 @@ from glob import glob
 from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
     translate_randomly_image_pair_2d
 from Segmentation.utils.augmentation import apply_random_crop_3d, apply_centre_crop_3d, \
-    apply_random_brightness_3d, apply_random_contrast_3d, apply_random_gamma_3d, normalise
+    apply_random_brightness_3d, apply_random_contrast_3d, apply_random_gamma_3d, normalise, apply_flip_3d
 
 from Segmentation.plotting.voxels import plot_slice
 
@@ -74,19 +74,19 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
 
         if crop_size is not None:
 
-            img_mid = (int(img.shape[0]/2), int(img.shape[1]/2))
-            seg_mid = (int(seg.shape[0]/2), int(seg.shape[1]/2))
+            img_mid = (int(img.shape[0] / 2), int(img.shape[1] / 2))
+            seg_mid = (int(seg.shape[0] / 2), int(seg.shape[1] / 2))
 
             assert img_mid == seg_mid, "We expect the mid shapes to be the same size"
 
             seg_total = np.sum(seg)
 
             img = img[img_mid[0] - crop_size:img_mid[0] + crop_size,
-                    img_mid[1] - crop_size:img_mid[1] + crop_size, :]
+                      img_mid[1] - crop_size:img_mid[1] + crop_size, :]
             seg = seg[seg_mid[0] - crop_size:seg_mid[0] + crop_size,
-                    seg_mid[1] - crop_size:seg_mid[1] + crop_size, :, :]
+                      seg_mid[1] - crop_size:seg_mid[1] + crop_size, :, :]
 
-            #assert np.sum(seg) == seg_total, "We are losing information in the initial cropping."
+            # assert np.sum(seg) == seg_total, "We are losing information in the initial cropping."
             assert img.shape == (crop_size * 2, crop_size * 2, 160)
             assert seg.shape == (crop_size * 2, crop_size * 2, 160, 6)
 
@@ -175,7 +175,7 @@ def parse_fn_2d(example_proto, training, multi_class=True):
     seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'], image_features['num_channels']])
     seg = tf.cast(seg, tf.float32)
 
-    #if training:
+    # if training:
     #    image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
     #    image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
     #    image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
@@ -249,8 +249,10 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
             # dataset = dataset.map(apply_random_brightness_3d)
             # dataset = dataset.map(apply_random_contrast_3d)
             # dataset = dataset.map(apply_random_gamma_3d)
+            dataset = dataset.map(apply_flip_3d)
         else:
             parse_rnd_crop = partial(apply_centre_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size)
             dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            dataset = dataset.map(apply_flip_3d)
         dataset = dataset.map(normalise)
     return dataset
