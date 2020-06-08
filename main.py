@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import os
+from pathlib import Path
 from datetime import datetime
 from absl import app
 from absl import flags
@@ -53,18 +54,19 @@ flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after e
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
+flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 
 # Deeplab parameters
-# flags.DEFINE_int('kernel_size_initial_conv', , 'kernel size for the first convolution')
-# flags.DEFINE_int('num_filters_atrous', , '')
-# flags.DEFINE_list('num_filters_DCNN', [256, 512, 1024], 'number of filters for the first three blocks of the DCNN')
-# flags.DEFINE_int('num_filters_ASPP', 256, 'number of filters for the ASPP term')
-# flags.DEFINE_int('kernel_size_atrous', 3, 'number of filters for the ASPP term')
-# flags.DEFINE_list('kernel_size_DCNN', [1, 3], 'number of filters for the ASPP term')
-# flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'number of filters for the ASPP term')
-# flags.DEFINE_list('MultiGrid', [1, 2, 4], '')
-# flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], '')
-# flags.DEFINE_int('output_stride', 16, '')
+flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
+flags.DEFINE_integer('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
+flags.DEFINE_list('num_filters_DCNN', [256, 512, 1024], 'number of filters for the first three blocks of the DCNN')
+flags.DEFINE_integer('num_filters_ASPP', 256, 'number of filters for the ASPP term')
+flags.DEFINE_integer('kernel_size_atrous', 3, 'kernel size for the atrous convolutions')
+flags.DEFINE_list('kernel_size_DCNN', [1, 3], 'kernel sizes for the blocks of the DCNN')
+flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'kernel size for the ASPP term')
+flags.DEFINE_list('MultiGrid', [1, 2, 4], 'relative convolution rates for the atrous convolutions')
+flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], 'rates for the ASPP term convolutions')
+flags.DEFINE_integer('output_stride', 16, 'final output stride (taking into account max pooling)')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -107,7 +109,7 @@ def main(argv):
                     print(e)
     else:
         logging.info('Use TPU at %s',
-                     FLAGS.tpu if FLAGS.tpu is not None else 'local')
+                     FLAGS.tpu if FLAGS.tpu is not None else 'local')        
         resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=FLAGS.tpu)
         tf.config.experimental_connect_to_cluster(resolver)
         tf.tpu.experimental.initialize_tpu_system(resolver)
@@ -218,27 +220,28 @@ def main(argv):
                                            FLAGS.strides,
                                            FLAGS.padding)
 
-        # elif FLAGS.model_architecture == 'deeplabv3':
+        elif FLAGS.model_architecture == 'deeplabv3':
 
-        #     model = Deeplabv3(num_classes,
-        #                       FLAGS.kernel_size_initial_conv,
-        #                       FLAGS.num_filters_atrous,
-        #                       FLAGS.num_filters_DCNN,
-        #                       FLAGS.num_filter_ASPP,
-        #                       FLAGS.kernel_size_atrous,
-        #                       FLAGS.kernel_size_DCNN,
-        #                       FLAGS.kernel_size_ASPP,
-        #                       'same'
-        #                       FLAGS.activation,
-        #                       FLAGS.use_batchnorm,
-        #                       FLAGS.use_bias,
-        #                       FLAGS.use_dropout,
-        #                       FLAGS.dropout_rate,
-        #                       FLAGS.use_spatial,
-        #                       'channels_last',
-        #                       FLAGS.MultiGrid,
-        #                       FLAGS.rate_ASPP,
-        #                       FLAGS.output_stride)
+            model = Deeplabv3(num_classes,
+                              FLAGS.kernel_size_initial_conv,
+                              FLAGS.num_filters_atrous,
+                              FLAGS.num_filters_DCNN,
+                              FLAGS.num_filters_ASPP,
+                              FLAGS.kernel_size_atrous,
+                              FLAGS.kernel_size_DCNN,
+                              FLAGS.kernel_size_ASPP,
+                              'same',
+                              FLAGS.activation,
+                              FLAGS.use_batchnorm,
+                              FLAGS.use_nonlinearity,
+                              FLAGS.use_bias,
+                              FLAGS.use_dropout,
+                              FLAGS.dropout_rate,
+                              FLAGS.use_spatial,
+                              FLAGS.channel_order,
+                              FLAGS.MultiGrid,
+                              FLAGS.rate_ASPP,
+                              FLAGS.output_stride)
 
         else:
             logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
@@ -253,16 +256,24 @@ def main(argv):
                                        FLAGS.lr_drop_ratio,
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
-        optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+
+        if FLAGS.optimizer == 'adam':
+            optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+        elif FLAGS.optimizer == 'rms-prop':
+            optimiser = tf.keras.optimizers.RMSprop(learning_rate=lr_rate)
+        else:
+            print('Not a valid input optimizer, using Adam.')
+            optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+            
 
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
-
         if FLAGS.train:
             if FLAGS.backbone_architecture == 'default':
                 model.build((FLAGS.batch_size, 288, 288, 1))
             else:
                 model.build((FLAGS.batch_size, 288, 288, 3))
             model.summary()
+
         model.compile(optimizer=optimiser,
                       loss=tversky_loss,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
@@ -270,14 +281,14 @@ def main(argv):
     if FLAGS.train:
 
         # define checkpoints
-        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
         training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
         training_history_dir = os.path.join(training_history_dir, time)
-        os.mkdir(training_history_dir)
+        Path(training_history_dir).mkdir(parents=True, exist_ok=True)
         flag_name = os.path.join(training_history_dir, 'test_flags.cfg')
         FLAGS.append_flags_into_file(flag_name)
-
+        
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         logdir = os.path.join(logdir, time)
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
@@ -292,32 +303,32 @@ def main(argv):
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
 
-        
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         model.load_weights(FLAGS.weights_dir).expect_partial()
+        model.evaluate(valid_ds, steps=validation_steps)
         cm = np.zeros((num_classes, num_classes))
+        classes=["Background",
+                 "Femoral",
+                 "Medial Tibial",
+                 "Lateral Tibial",
+                 "Patellar",
+                 "Lateral Meniscus",
+                 "Medial Meniscus"]
         for step, (image, label) in enumerate(valid_ds):
             print(step)
-            pred = model.predict(image, batch_size=16)
+            pred = model.predict(image)
             # visualise_multi_class(label, pred)
-
-            cm = cm + get_confusion_matrix(label, pred)
+            
+            cm = cm + get_confusion_matrix(label, pred, classes=list(range(0,num_classes)))
 
             if step > validation_steps - 1:
                 break
 
         fig_file = FLAGS.model_architecture + '_matrix.png'
         fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
-        plot_confusion_matrix(cm, fig_dir, classes=["Background",
-                                                    "Femoral",
-                                                    "Medial Tibial",
-                                                    "Lateral Tibial",
-                                                    "Patellar",
-                                                    "Lateral Meniscus",
-                                                    "Medial Meniscus"])
-
+        plot_confusion_matrix(cm, fig_dir, classes=classes)
 if __name__ == '__main__':
     app.run(main)
