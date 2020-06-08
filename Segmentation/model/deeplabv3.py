@@ -340,9 +340,13 @@ class atrous_spatial_pyramid_pooling(tf.keras.Model):
         super(atrous_spatial_pyramid_pooling, self).__init__(**kwargs)
         self.block_list = []
 
-        self.basic_conv = tfkl.Conv2D(num_channels,
-                                      kernel_size=1,
-                                      padding=padding)
+        self.basic_conv1 = tfkl.Conv2D(num_channels,
+                                       kernel_size=1,
+                                       padding=padding)
+
+        self.basic_conv2 = tfkl.Conv2D(num_channels,
+                                       kernel_size=1,
+                                       padding=padding)
 
         for i in range(len(kernel_size)):
             self.block_list.append(aspp_block(kernel_size[i],
@@ -361,7 +365,7 @@ class atrous_spatial_pyramid_pooling(tf.keras.Model):
 
         # Non diluted convolution
         y = tf.math.reduce_mean(x, axis=[1, 2], keepdims=True)  # ~ Average Pooling
-        y = self.basic_conv(y, training=training)
+        y = self.basic_conv1(y, training=training)
         output_list.append(tf.image.resize(y, (feature_map_size[1], feature_map_size[2])))  # ~ Upsampling
 
         # Series of diluted convolutions with rates (1, 6, 12, 18)
@@ -371,7 +375,7 @@ class atrous_spatial_pyramid_pooling(tf.keras.Model):
         # concatenate all outputs
         out = tf.concat(output_list, axis=3)
         print(out.get_shape())
-        out = self.basic_conv(out, training=training)
+        out = self.basic_conv2(out, training=training)
         return out
 
 
