@@ -37,11 +37,11 @@ flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
-flags.DEFINE_bool('use_bias', True, 'Whether to use bias')
+flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
+flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
-flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial dropout')
 
 # UNet parameters
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
@@ -242,7 +242,11 @@ def main(argv):
                               'same',
                               FLAGS.activation,
                               FLAGS.use_batchnorm,
+                              FLAGS.use_nonlinearity,
                               FLAGS.use_bias,
+                              FLAGS.use_dropout,
+                              FLAGS.dropout_rate,
+                              FLAGS.use_spatial,
                               FLAGS.channel_order,
                               FLAGS.MultiGrid,
                               FLAGS.rate_ASPP,
@@ -273,9 +277,11 @@ def main(argv):
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
         if FLAGS.train:
             if FLAGS.backbone_architecture == 'default':
+
                 model.build((batch_size, 288, 288, 1))
             else:
                 model.build((batch_size, 288, 288, 3))
+
             model.summary()
 
         model.compile(optimizer=optimiser,

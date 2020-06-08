@@ -405,6 +405,7 @@ class aspp_block(tf.keras.Sequential):
             self.add(tfkl.BatchNormalization(axis=-1,
                                              momentum=0.95,
                                              epsilon=0.001))
+
         self.add(tfkl.Activation(nonlinearity))
 
     def call(self, x, training=False):
