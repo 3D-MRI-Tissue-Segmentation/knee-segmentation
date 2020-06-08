@@ -148,10 +148,12 @@ class ResNet_Backbone():
                                    use_bias,
                                    data_format)
 
+        self.use_pooling = use_pooling
+
     def call(self, x, training=False):
 
         x = self.first_conv(x, training=training)  # output stride 2
-        if use_pooling:
+        if self.use_pooling:
             x = self.max_pool(x)  # output stride 4
 
         x = self.block1(x, training=training)  # output stride 4
