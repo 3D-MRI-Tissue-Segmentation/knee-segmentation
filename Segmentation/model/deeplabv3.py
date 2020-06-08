@@ -44,6 +44,7 @@ class Deeplabv3(tf.keras.Sequential):
                                  nonlinearity,
                                  use_batchnorm,
                                  use_bias,
+                                 use_pooling=False,
                                  data_format))
 
         self.add(Atrous_conv(num_channels_atrous,
@@ -102,7 +103,7 @@ class ResNet_Backbone(tf.keras.Model):
                  **kwargs):
         
         super(ResNet_Backbone, self).__init__(**kwargs)
-        self.first_conv = tfkl.Conv2D(num_channels[0] // 4,
+        self.first_conv = tfkl.Conv2D(num_channels[0],
                                       kernel_size_initial_conv,
                                       strides=2,
                                       padding=padding,
