@@ -292,7 +292,7 @@ class Atrous_conv(tf.keras.Model):
                                            use_batchnorm,
                                            use_bias,
                                            data_format,
-                                           dilation_rate=multiplier * MultiGrid[0])
+                                           dilation_rate=(multiplier * MultiGrid[0]))
 
         self.second_conv = basic_conv_block(num_channels,
                                             kernel_size,
@@ -302,7 +302,7 @@ class Atrous_conv(tf.keras.Model):
                                             use_batchnorm,
                                             use_bias,
                                             data_format,
-                                            dilation_rate=multiplier * MultiGrid[1])
+                                            dilation_rate=(multiplier * MultiGrid[1]))
 
         self.third_conv = basic_conv_block(num_channels,
                                            kernel_size,
@@ -312,7 +312,7 @@ class Atrous_conv(tf.keras.Model):
                                            use_batchnorm,
                                            use_bias,
                                            data_format,
-                                           dilation_rate=multiplier * MultiGrid[2])
+                                           dilation_rate=(multiplier * MultiGrid[2]))
 
     def call(self, x, training=False):
 
