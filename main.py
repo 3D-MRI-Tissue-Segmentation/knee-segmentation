@@ -265,7 +265,6 @@ def main(argv):
             print('Not a valid input optimizer, using Adam.')
             optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
             
-
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
         if FLAGS.train:
             if FLAGS.backbone_architecture == 'default':
@@ -310,19 +309,19 @@ def main(argv):
         model.load_weights(FLAGS.weights_dir).expect_partial()
         model.evaluate(valid_ds, steps=validation_steps)
         cm = np.zeros((num_classes, num_classes))
-        classes=["Background",
-                 "Femoral",
-                 "Medial Tibial",
-                 "Lateral Tibial",
-                 "Patellar",
-                 "Lateral Meniscus",
-                 "Medial Meniscus"]
+        classes = ["Background",
+                   "Femoral",
+                   "Medial Tibial",
+                   "Lateral Tibial",
+                   "Patellar",
+                   "Lateral Meniscus",
+                   "Medial Meniscus"]
         for step, (image, label) in enumerate(valid_ds):
             print(step)
             pred = model.predict(image)
             # visualise_multi_class(label, pred)
             
-            cm = cm + get_confusion_matrix(label, pred, classes=list(range(0,num_classes)))
+            cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
             if step > validation_steps - 1:
                 break
