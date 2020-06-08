@@ -318,11 +318,8 @@ class Atrous_conv(tf.keras.Model):
     def call(self, x, training=False):
 
         x = self.first_conv(x, training)
-        print(x.get_shape())
         x = self.second_conv(x, training)
-        print(x.get_shape())
         x = self.third_conv(x, training)
-        print(x.get_shape())
         return x
 
 
@@ -373,6 +370,7 @@ class atrous_spatial_pyramid_pooling(tf.keras.Model):
 
         # concatenate all outputs
         out = tf.concat(output_list, axis=3)
+        print(out.get_shape())
         out = self.basic_conv(out, training=training)
         return out
 
