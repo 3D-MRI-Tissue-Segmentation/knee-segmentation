@@ -9,12 +9,11 @@ from time import time
 from Segmentation.train.utils import setup_gpu, LearningRateUpdate
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.losses import dice_loss, tversky_loss
-from Segmentation.utils.training_utils import colour_maps
-from Segmentation.plotting.voxels import plot_volume, plot_slice
+from Segmentation.plotting.voxels import plot_volume, plot_slice, plot_to_image
 from Segmentation.model.vnet import VNet
 
 colour_maps = {
-    1: [tf.constant([1,1,1], dtype=tf.float32), tf.constant([[[[255, 255, 0]]]], dtype=tf.float32)],       # background / black
+    1: [tf.constant([1,1,1], dtype=tf.float32), tf.constant([[[[255, 255, 0]]]], dtype=tf.float32)], # background / black
     2: [tf.constant([2,2,2], dtype=tf.float32), tf.constant([[[[0, 255, 255]]]], dtype=tf.float32)], 
     3: [tf.constant([3,3,3], dtype=tf.float32), tf.constant([[[[255, 0, 255]]]], dtype=tf.float32)], 
     4: [tf.constant([4,4,4], dtype=tf.float32), tf.constant([[[[255, 255, 255]]]], dtype=tf.float32)], 
@@ -85,6 +84,35 @@ class Train:
             img = tf.concat((x_slice, y_slice, pred_slice), axis=-2)
             return tf.reshape(img, (img.shape[1:]))
 
+        def get_mid_vol(y, pred, multi_class, rad=8):
+            y_shape = tf.shape(y)
+            y_subvol = tf.slice(y, [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0], [1, rad * 2, rad * 2, rad * 2, -1])
+            if multi_class:
+                y_subvol = tf.argmax(y_subvol, axis=-1)
+                y_subvol = tf.cast(y_subvol, tf.float32)
+            else:
+                y_subvol = tf.reshape(y_subvol, (y_subvol.shape[1:4]))
+            y_subvol = tf.stack((y_subvol,) * 3, axis=-1)
+            pred_subvol = tf.slice(pred, [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0], [1, rad * 2, rad * 2, rad * 2, -1])
+            if multi_class:
+                pred_subvol = tf.argmax(pred_subvol, axis=-1)
+                pred_subvol = tf.cast(pred_subvol, tf.float32)
+            else:
+                pred_subvol = tf.reshape(pred_subvol, (pred_subvol.shape[1:4]))
+            pred_subvol = tf.stack((pred_subvol,) * 3, axis=-1)
+            if multi_class:
+                for c in colour_maps:
+                    y_subvol = replace_vector(y_subvol, colour_maps[c][0], tf.divide(colour_maps[c][1], 255))
+                    pred_subvol = replace_vector(pred_subvol, colour_maps[c][0], tf.divide(colour_maps[c][1], 255))
+                y_subvol = tf.squeeze(y_subvol, axis=0)
+                pred_subvol = tf.squeeze(pred_subvol, axis=0)
+            fig = plot_volume(y_subvol, show=False)
+            y_img = plot_to_image(fig)
+            fig = plot_volume(pred_subvol, show=False)
+            pred_img = plot_to_image(fig)
+            img = tf.concat((y_img, pred_img), axis=-2)
+            return img
+
         def run_train_strategy(x, y, visualise):
             total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise, ))
             return strategy.reduce(
@@ -95,7 +123,7 @@ class Train:
             return strategy.reduce(
                 tf.distribute.ReduceOp.SUM, total_step_loss, axis=None), pred
 
-        def distributed_train_epoch(train_ds, epoch, strategy, num_to_visualise, multi_class, writer):
+        def distributed_train_epoch(train_ds, epoch, strategy, num_to_visualise, multi_class, slice_writer, vol_writer):
             total_loss, num_train_batch = 0.0, 0.0
             for x_train, y_train in train_ds:
                 visualise = (num_train_batch < num_to_visualise)
@@ -104,12 +132,16 @@ class Train:
                 total_loss += loss
                 if visualise:
                     img = get_mid_slice(x_train.values[0], y_train.values[0], pred.values[0], multi_class)
-                    with writer.as_default():
-                        tf.summary.image("Train", img, step=epoch)
+                    with slice_writer.as_default():
+                        tf.summary.image("Train - Slice", img, step=epoch)
+                    if epoch % 2 == 0:
+                        img = get_mid_vol(y_train.values[0], pred.values[0], multi_class)
+                        with vol_writer.as_default():
+                            tf.summary.image("Train - Volume", img, step=epoch)
                 num_train_batch += 1
             return total_loss / num_train_batch
 
-        def distributed_test_epoch(valid_ds, epoch, strategy, num_to_visualise, multi_class, writer):
+        def distributed_test_epoch(valid_ds, epoch, strategy, num_to_visualise, multi_class, slice_writer, vol_writer):
             total_loss, num_test_batch = 0.0, 0.0
             for x_valid, y_valid in valid_ds:
                 visualise = (num_test_batch < num_to_visualise)
@@ -118,13 +150,12 @@ class Train:
                 total_loss += loss
                 if visualise:
                     img = get_mid_slice(x_valid.values[0], y_valid.values[0], pred.values[0], multi_class)
-                    with writer.as_default():
-                        tf.summary.image("Validation", img, step=epoch)
-                    # working code for plotting a 3D volume
-                    # y_subvol = tf.slice(y_valid.values[0], [0, 60, 124, 124, 0], [1, 40, 40, 40, -1])
-                    # y_subvol = tf.reshape(y_subvol, (y_subvol.shape[1:4]))
-                    # y_subvol = tf.stack((y_subvol,) * 3, axis=-1)
-                    # plot_volume(y_subvol, show=False)
+                    with slice_writer.as_default():
+                        tf.summary.image("Validation - Slice", img, step=epoch)
+                    if epoch % 2 == 0:
+                        img = get_mid_vol(y_valid.values[0], pred.values[0], multi_class)
+                        with vol_writer.as_default():
+                            tf.summary.image("Validation - Volume", img, step=epoch)
                 num_test_batch += 1
             return total_loss / num_test_batch
 
@@ -136,8 +167,10 @@ class Train:
 
         train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
         test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation')
-        train_img_writer = tf.summary.create_file_writer(log_dir_now + '/train/img')
-        test_img_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img')
+        train_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/slice')
+        test_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/slice')
+        train_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/vol')
+        test_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/vol')
         lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr')
 
         for e in range(self.epochs):
@@ -145,11 +178,11 @@ class Train:
 
             et0 = time()
 
-            train_loss = distributed_train_epoch(train_ds, e, strategy, num_to_visualise, multi_class, train_img_writer)
+            train_loss = distributed_train_epoch(train_ds, e, strategy, num_to_visualise, multi_class, train_img_slice_writer, train_img_vol_writer)
             with train_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', train_loss, step=e)
 
-            test_loss = distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, multi_class, test_img_writer)
+            test_loss = distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, multi_class, test_img_slice_writer, test_img_vol_writer)
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
 
@@ -196,9 +229,9 @@ def main(epochs,
          lr_drop=0.9,
          lr_drop_freq=5,
          lr_warmup=5,
-         num_to_visualise = 2,
-         num_channels = 4,
-         buffer_size = 4,
+         num_to_visualise=2,
+         num_channels=4,
+         buffer_size=4,
          enable_function=True,
          tfrec_dir='./Data/tfrecords/',
          multi_class=False,
@@ -229,7 +262,7 @@ def main(epochs,
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-    trainer.train_model_loop(train_ds, valid_ds, strategy, num_to_visualise, multi_class)
+    trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, num_to_visualise)
     print(f"{time() - t0:.02f}")
 
 
@@ -249,4 +282,11 @@ if __name__ == "__main__":
     # main(epochs=100, lr=1e-3, dropout_rate=0.001, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
     # main(epochs=100, lr=1e-3, dropout_rate=0.0, noise=1e-4, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
 
-    main(epochs=10, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=1, num_conv_layers=2, multi_class=True)
+    main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+    main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+    main(epochs=50, lr=1e-3, dropout_rate=0.01, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+    main(epochs=50, lr=1e-3, dropout_rate=0.01, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+
+    main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
+    main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
+    main(epochs=100, lr=1e-4, dropout_rate=0.01, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)

@@ -2,6 +2,7 @@ import tensorflow as tf
 from glob import glob
 import math
 
+
 def setup_gpu():
     gpus = tf.config.experimental.list_physical_devices('GPU')
     print(gpus)
