@@ -103,14 +103,14 @@ def apply_random_brightness_3d(image_tensor, label_tensor):
 
 def apply_random_contrast_3d(image_tensor, label_tensor):
     do_contrast = tf.random.uniform([]) > 0.75
-    contrast = tf.random.uniform([], 0.8, 1.2)
+    contrast = tf.random.uniform([], 0.9, 1.1)
     image_tensor = tf.cond(do_contrast, lambda: tf.image.adjust_contrast(image_tensor, contrast), lambda: image_tensor)
     return image_tensor, label_tensor
 
 def apply_random_gamma_3d(image_tensor, label_tensor):
     do_gamma = tf.random.uniform([]) > 0.75
-    gamma = tf.random.uniform([], 0.75, 1.25)
-    gain = tf.random.uniform([], 0.9, 1.1)
+    gamma = tf.random.uniform([], 0.9, 1.1)
+    gain = tf.random.uniform([], 0.95, 1.05)
     image_tensor = tf.cond(do_gamma, lambda: tf.image.adjust_gamma(image_tensor, gamma=gamma, gain=gain), lambda: image_tensor)
     return image_tensor, label_tensor
 
@@ -120,16 +120,14 @@ def normalise(image_tensor, label_tensor):
     image_tensor = tf.divide(tf.math.subtract(image_tensor, mean), std)
     return image_tensor, label_tensor
 
-# def apply_flip_3d(image_tensor, label_tensor):
-#     do_flip = tf.random.uniform([]) > 0.5
-#     print("+======================")
-#     print(do_flip)
-#     print(tf.shape(image_tensor))
-#     image_tensor = tf.cond(do_flip, lambda: tf.image.flip_left_right(image_tensor), lambda: image_tensor)
-#     #label_tensor = tf.cond(do_flip, lambda: tf.image.flip_left_right(label_tensor), lambda: label_tensor)
-#     return image_tensor, label_tensor
+def apply_flip_3d_axis(image_tensor, label_tensor, axis):
+    do_flip = tf.random.uniform([]) > 0.5
+    image_tensor = tf.cond(do_flip, lambda: tf.reverse(image_tensor, [axis]), lambda: image_tensor)
+    label_tensor = tf.cond(do_flip, lambda: tf.reverse(label_tensor, [axis]), lambda: label_tensor)
+    return image_tensor, label_tensor
 
 def apply_flip_3d(image_tensor, label_tensor):
-    do_flip = tf.random.uniform([]) > 0.5
-    label_tensor = tf.cond(do_flip, lambda: tf.reverse(label_tensor, [-1]), lambda: label_tensor)
+    image_tensor, label_tensor = apply_flip_3d_axis(image_tensor, label_tensor, axis=-2)
+    image_tensor, label_tensor = apply_flip_3d_axis(image_tensor, label_tensor, axis=-3)
+    image_tensor, label_tensor = apply_flip_3d_axis(image_tensor, label_tensor, axis=-4)
     return image_tensor, label_tensor

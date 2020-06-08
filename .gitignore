@@ -37,6 +37,7 @@ htmlcov/
 # Logging
 **/logs/
 **/logs_old/
+**/logs_old_2/
 
 # Data
 checkpoints/
