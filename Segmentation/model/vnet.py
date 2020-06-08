@@ -9,7 +9,7 @@ class VNet(tf.keras.Model):
                  num_classes,
                  num_conv_layers=2,
                  kernel_size=(2, 2, 2),
-                 nonlinearity='relu',
+                 activation='relu',
                  use_batchnorm=True,
                  noise=0.0,
                  dropout_rate=0.25,
@@ -30,7 +30,7 @@ class VNet(tf.keras.Model):
         block_args = {
             'num_conv_layers': num_conv_layers,
             'kernel_size': kernel_size,
-            'nonlinearity': nonlinearity,
+            'activation': activation,
             'use_batchnorm': use_batchnorm,
             'dropout_rate': dropout_rate,
             'use_spatial_dropout': use_spatial_dropout,
@@ -48,7 +48,7 @@ class VNet(tf.keras.Model):
         self.upconv_1 = Up_ResBlock(num_channels=num_channels, **block_args)
 
         # convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation=nonlinearity, padding='same', data_format=data_format)
+        self.conv_output = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation=activation, padding='same', data_format=data_format)
         self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), activation="sigmoid", padding='same', data_format=data_format)
 
     def call(self, inputs, training):

@@ -152,7 +152,7 @@ class Train:
                     img = get_mid_slice(x_valid.values[0], y_valid.values[0], pred.values[0], multi_class)
                     with slice_writer.as_default():
                         tf.summary.image("Validation - Slice", img, step=epoch)
-                    if epoch % 2 == 0:
+                    if epoch % 5 == 0:
                         img = get_mid_vol(y_valid.values[0], pred.values[0], multi_class)
                         with vol_writer.as_default():
                             tf.summary.image("Validation - Volume", img, step=epoch)
@@ -163,15 +163,16 @@ class Train:
             run_train_strategy = tf.function(run_train_strategy)
             run_test_strategy = tf.function(run_test_strategy)
 
-        log_dir_now = self.log_dir + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        log_dir_now = self.log_dir + datetime.datetime.now().strftime("%Y%m%d/%H%M%S")
 
-        train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
-        test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation')
-        train_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/slice')
-        test_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/slice')
-        train_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/vol')
-        test_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/vol')
-        lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr')
+        mc = "/multi" if multi_class else ""
+        train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train' + mc)
+        test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation' + mc)
+        train_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/slice' + mc)
+        test_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/slice' + mc)
+        train_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/vol' + mc)
+        test_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/vol' + mc)
+        lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr' + mc)
 
         for e in range(self.epochs):
             self.optimizer.learning_rate = self.lr_manager.update_lr(e)
@@ -282,11 +283,18 @@ if __name__ == "__main__":
     # main(epochs=100, lr=1e-3, dropout_rate=0.001, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
     # main(epochs=100, lr=1e-3, dropout_rate=0.0, noise=1e-4, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
 
-    main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
-    main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
-    main(epochs=50, lr=1e-3, dropout_rate=0.01, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
-    main(epochs=50, lr=1e-3, dropout_rate=0.01, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+    # main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+    # main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+    # main(epochs=50, lr=1e-3, dropout_rate=0.01, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+    # main(epochs=50, lr=1e-3, dropout_rate=0.01, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
 
-    main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
-    main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
-    main(epochs=100, lr=1e-4, dropout_rate=0.01, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
+    # main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
+    # main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
+    # main(epochs=100, lr=1e-4, dropout_rate=0.01, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
+
+    main(epochs=25, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+    main(epochs=25, lr=1e-3, dropout_rate=0.0, noise=1e-4, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
+    main(epochs=25, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False, use_spatial_dropout=False)
+    main(epochs=25, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False, use_spatial_dropout=True)
+
+    main(epochs=25, lr=1e-3, dropout_rate=0.1, use_batchnorm=True, noise=1e-4, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False, use_spatial_dropout=False)

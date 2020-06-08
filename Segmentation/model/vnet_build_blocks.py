@@ -47,7 +47,7 @@ class Conv3D_Block(tf.keras.layers.Layer):
                  num_channels,
                  num_conv_layers=2,
                  kernel_size=(3, 3, 3),
-                 nonlinearity='relu',
+                 activation='relu',
                  use_batchnorm=True,
                  use_dropout=True,
                  dropout_rate=0.25,
@@ -65,7 +65,7 @@ class Conv3D_Block(tf.keras.layers.Layer):
 
         self.conv = []
         self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
-        self.activation = tf.keras.layers.Activation(nonlinearity)
+        self.activation = tf.keras.layers.Activation(activation)
 
         if use_spatial_dropout:
             self.dropout = tf.keras.layers.SpatialDropout3D(rate=dropout_rate)
@@ -93,7 +93,7 @@ class Up_Conv3D(tf.keras.layers.Layer):
     def __init__(self,
                  num_channels,
                  kernel_size=(2, 2, 2),
-                 nonlinearity='relu',
+                 activation='relu',
                  use_batchnorm=False,
                  use_transpose=False,
                  strides=(2, 2, 2),
@@ -109,13 +109,12 @@ class Up_Conv3D(tf.keras.layers.Layer):
         self.conv = tf.keras.layers.Conv3D(filters=num_channels, kernel_size=kernel_size,
                                            padding='same', data_format=data_format)
         self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1)
-        self.activation = tf.keras.layers.Activation(nonlinearity)
+        self.activation = tf.keras.layers.Activation(activation)
         self.use_transpose = use_transpose
         self.conv_transpose = tf.keras.layers.Conv3DTranspose(filters=num_channels, kernel_size=kernel_size, padding='same',
                                                               strides=strides, data_format=data_format)
 
     def call(self, inputs, training):
-
         x = inputs
         if self.use_transpose:
             x = self.conv_transpose(x)
