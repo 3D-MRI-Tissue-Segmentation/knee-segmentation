@@ -1,1 +1,1 @@
-python main.py --flagfile=config/train_gpu_oliv_test.cfg
+python3 main.py --flagfile=config/train_tpu_oliv_test.cfg
