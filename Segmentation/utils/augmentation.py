@@ -4,20 +4,23 @@ import random
 import sys
 
 def crop_randomly_image_pair_2d(image_tensor, label_tensor):
-    
+
     random_seed = random.randrange(sys.maxsize)
     random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
-    
-    randomly_cropped_img = tf.cond(pred=tf.equal(random_var,0),
-                                   true_fn=lambda: tf.image.random_crop(image_tensor, size=[288,288,1], seed=random_seed),
+
+    randomly_cropped_img = tf.cond(pred=tf.equal(random_var, 0),
+                                   true_fn=lambda: tf.image.random_crop(image_tensor,
+                                                                        size=[288, 288, 1],
+                                                                        seed=random_seed),
                                    false_fn=lambda: tf.image.resize_with_crop_or_pad(image_tensor, 288, 288))
 
-    randomly_cropped_label = tf.cond(pred=tf.equal(random_var,0),
-                                     true_fn=lambda: tf.image.random_crop(label_tensor, size=[288,288,7], seed=random_seed),
+    randomly_cropped_label = tf.cond(pred=tf.equal(random_var, 0),
+                                     true_fn=lambda: tf.image.random_crop(label_tensor,
+                                                                          size=[288, 288, 7],
+                                                                          seed=random_seed),
                                      false_fn=lambda: tf.image.resize_with_crop_or_pad(label_tensor, 288, 288))
-    
+
     return randomly_cropped_img, randomly_cropped_label
-    
 
 def flip_randomly_left_right_image_pair_2d(image_tensor, label_tensor):
 
@@ -34,35 +37,33 @@ def flip_randomly_left_right_image_pair_2d(image_tensor, label_tensor):
     return randomly_flipped_img, randomly_flipped_label
 
 
-def adjust_brightness_randomly(image_tensor, label_tensor):
+def adjust_brightness_randomly_image_pair_2d(image_tensor, label_tensor):
 
     random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
-    random_delta = tf.random.uniform(maxval=30, dtype=tf.int32, shape=[])
+    random_delta = tf.random.uniform(maxval=1, dtype=tf.float32, shape=[])
 
-    randomly_brightened_img = tf.cond(pred=tf.equal(random_var, 0), 
-                                        true_fn=lambda: tf.image.adjust_brightness(image_tensor, delta=random_delta),
-                                        false_fn=lambda: image_tensor)
+    randomly_brightened_img = tf.cond(pred=tf.equal(random_var, 0),
+                                      true_fn=lambda: tf.image.adjust_brightness(image_tensor, delta=random_delta),
+                                      false_fn=lambda: image_tensor)
 
-    randomly_brightened_label = tf.cond(pred=tf.equal(random_var, 0), 
+    randomly_brightened_label = tf.cond(pred=tf.equal(random_var, 0),
                                         true_fn=lambda: tf.image.adjust_brightness(label_tensor, delta=random_delta),
-                                        false_fn=lambda: label_tensor)                                    
+                                        false_fn=lambda: label_tensor)
 
-    return randomly_brightened_img, randomly_brightened_label                                    
+    return randomly_brightened_img, randomly_brightened_label
 
+def adjust_contrast_randomly_image_pair_2d(image_tensor, label_tensor):
 
-
-def adjust_contrast_randomly(image_tensor, label_tensor):
-    
     random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
-    random_contrast_factor = tf.random.uniform(maxval=30, dtype=tf.int32, shape=[])
+    random_contrast_factor = tf.random.uniform(maxval=1, dtype=tf.float32, shape=[])
 
-    random_crop_img = tf.cond(pred=tf.equal(random_var, 0), 
-                            true_fn=lambda: tf.image.adjust_contrast(image_tensor, random_contrast_factor),
-                            false_fn=lambda: image_tensor)
+    random_crop_img = tf.cond(pred=tf.equal(random_var, 0),
+                              true_fn=lambda: tf.image.adjust_contrast(image_tensor, random_contrast_factor),
+                              false_fn=lambda: image_tensor)
 
-    random_crop_label = tf.cond(pred=tf.equal(random_var, 0), 
-                            true_fn=lambda: tf.image.adjust_contrast(label_tensor, random_contrast_factor),
-                            false_fn=lambda: label_tensor)                        
+    random_crop_label = tf.cond(pred=tf.equal(random_var, 0),
+                                true_fn=lambda: tf.image.adjust_contrast(label_tensor, random_contrast_factor),
+                                false_fn=lambda: label_tensor)
 
     return random_crop_img, random_crop_label
 
