@@ -40,6 +40,8 @@ flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
+flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
+flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout.')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
 
 # UNet parameters
@@ -58,7 +60,6 @@ flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 
 # Deeplab parameters
-flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
 flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
 flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
 flags.DEFINE_integer('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
@@ -124,7 +125,7 @@ def main(argv):
         batch_size = FLAGS.batch_size * FLAGS.num_cores
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size
-
+        logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
         train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
