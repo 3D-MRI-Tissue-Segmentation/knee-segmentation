@@ -96,7 +96,6 @@ class ResNet_Backbone(tf.keras.Model):
                  padding='same',
                  nonlinearity='relu',
                  use_batchnorm=True,
-                 use_nonlinearity=True,
                  use_bias=True,
                  use_pooling=False,
                  data_format='channels_last',
