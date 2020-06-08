@@ -246,6 +246,7 @@ class basic_conv_block(tf.keras.Sequential):
                                              momentum=0.95,
                                              epsilon=0.001))
         self.add(tfkl.Activation(nonlinearity))
+        print(nonlinearity)
 
         self.add(tfkl.Conv2D(num_channels,
                              kernel_size,
