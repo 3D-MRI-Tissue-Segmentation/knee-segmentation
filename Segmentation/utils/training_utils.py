@@ -151,24 +151,23 @@ def visualise_multi_class(y_true, y_pred):
         fig.tight_layout()
         plt.show()
 
-def label2color(img):
-    colour_maps = {
-        0: [0, 0, 0],
-        1: [255, 0, 0],
-        2: [0, 255, 0],
-        3: [0, 0, 255],
-        4: [128, 64, 255],
-        5: [70, 255, 70],
-        6: [255, 20, 147]
-    }
+colour_maps = {
+    0: [0, 0, 0],       # background / black
+    1: [255, 255, 0],   # yellow
+    2: [0, 255, 255],   # cyan
+    3: [255, 0, 255],   # pink
+    4: [255, 255, 255], # white
+    5: [120, 120, 120], # gray
+    6: [255, 165, 0]    # orange 
+}
 
+def label2color(img):
     img_height, img_width = img.shape
     img_color = np.zeros((img_height, img_width, 3))
     for row in range(img_height):
         for col in range(img_width):
             label = img[row, col]
             img_color[row, col] = np.array(colour_maps[label])
-
     return img_color
     
 def make_lr_scheduler(init_lr):

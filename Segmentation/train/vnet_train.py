@@ -9,9 +9,18 @@ from time import time
 from Segmentation.train.utils import setup_gpu, LearningRateUpdate
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.losses import dice_loss, tversky_loss
+from Segmentation.utils.training_utils import colour_maps
 from Segmentation.plotting.voxels import plot_volume, plot_slice
 from Segmentation.model.vnet import VNet
 
+colour_maps = {
+    1: [tf.constant([1,1,1], dtype=tf.float32), tf.constant([[[[255, 255, 0]]]], dtype=tf.float32)],       # background / black
+    2: [tf.constant([2,2,2], dtype=tf.float32), tf.constant([[[[0, 255, 255]]]], dtype=tf.float32)], 
+    3: [tf.constant([3,3,3], dtype=tf.float32), tf.constant([[[[255, 0, 255]]]], dtype=tf.float32)], 
+    4: [tf.constant([4,4,4], dtype=tf.float32), tf.constant([[[[255, 255, 255]]]], dtype=tf.float32)], 
+    5: [tf.constant([5,5,5], dtype=tf.float32), tf.constant([[[[120, 120, 120]]]], dtype=tf.float32)], 
+    6: [tf.constant([6,6,6], dtype=tf.float32), tf.constant([[[[255, 165, 0]]]], dtype=tf.float32)], 
+}
 
 class Train:
     def __init__(self, epochs, batch_size, enable_function,
@@ -45,9 +54,37 @@ class Train:
         return loss, None
 
     def train_model_loop(self, train_ds, valid_ds, strategy,
-                         num_to_visualise=0):
+                         multi_class, num_to_visualise=0):
         """ Trains 3D model with custom tf loop and MirrorStrategy
         """
+        def replace_vector(img, search, replace):
+            condition = tf.equal(img, search)
+            condition = tf.reduce_all(condition, axis=-1)
+            condition = tf.stack((condition,) * img.shape[-1], axis=-1)
+            replace_tiled = tf.tile(replace, img.shape[:-1])
+            replace_tiled = tf.reshape(replace_tiled, img.shape)
+            return tf.where(condition, replace_tiled, img)
+
+        def get_mid_slice(x, y, pred, multi_class):
+            mid = tf.cast(tf.divide(tf.shape(y)[1], 2), tf.int32)
+            x_slice = tf.slice(x, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+            y_slice = tf.slice(y, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+            pred_slice = tf.slice(pred, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+            if multi_class:
+                x_slice = tf.squeeze(x_slice, axis=-1)
+                x_slice = tf.stack((x_slice,) * 3, axis=-1)
+                y_slice = tf.argmax(y_slice, axis=-1)
+                y_slice = tf.stack((y_slice,) * 3, axis=-1)
+                y_slice = tf.cast(y_slice, tf.float32)
+                pred_slice = tf.argmax(pred_slice, axis=-1)
+                pred_slice = tf.stack((pred_slice,) * 3, axis=-1)
+                pred_slice = tf.cast(pred_slice, tf.float32)
+                for c in colour_maps:
+                    y_slice = replace_vector(y_slice, colour_maps[c][0], colour_maps[c][1])
+                    pred_slice = replace_vector(pred_slice, colour_maps[c][0], colour_maps[c][1])
+            img = tf.concat((x_slice, y_slice, pred_slice), axis=-2)
+            return tf.reshape(img, (img.shape[1:]))
+
         def run_train_strategy(x, y, visualise):
             total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise, ))
             return strategy.reduce(
@@ -58,7 +95,7 @@ class Train:
             return strategy.reduce(
                 tf.distribute.ReduceOp.SUM, total_step_loss, axis=None), pred
 
-        def distributed_train_epoch(train_ds, epoch, strategy, num_to_visualise, writer):
+        def distributed_train_epoch(train_ds, epoch, strategy, num_to_visualise, multi_class, writer):
             total_loss, num_train_batch = 0.0, 0.0
             for x_train, y_train in train_ds:
                 visualise = (num_train_batch < num_to_visualise)
@@ -66,18 +103,13 @@ class Train:
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    mid = tf.cast(tf.divide(tf.shape(y_train.values[0])[1], 2), tf.int32)
-                    x_slice = tf.slice(x_train.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
-                    y_slice = tf.slice(y_train.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
-                    pred_slice = tf.slice(pred.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
-                    img = tf.concat((x_slice, y_slice, pred_slice), axis=-2)
-                    img = tf.reshape(img, (img.shape[1:]))
+                    img = get_mid_slice(x_train.values[0], y_train.values[0], pred.values[0], multi_class)
                     with writer.as_default():
                         tf.summary.image("Train", img, step=epoch)
                 num_train_batch += 1
             return total_loss / num_train_batch
 
-        def distributed_test_epoch(valid_ds, epoch, strategy, num_to_visualise, writer):
+        def distributed_test_epoch(valid_ds, epoch, strategy, num_to_visualise, multi_class, writer):
             total_loss, num_test_batch = 0.0, 0.0
             for x_valid, y_valid in valid_ds:
                 visualise = (num_test_batch < num_to_visualise)
@@ -85,12 +117,7 @@ class Train:
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    mid = tf.cast(tf.divide(tf.shape(y_valid.values[0])[1], 2), tf.int32)
-                    x_slice = tf.slice(x_valid.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
-                    y_slice = tf.slice(y_valid.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
-                    pred_slice = tf.slice(pred.values[0], [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
-                    img = tf.concat((x_slice, y_slice, pred_slice), axis=-2)
-                    img = tf.reshape(img, (img.shape[1:]))
+                    img = get_mid_slice(x_valid.values[0], y_valid.values[0], pred.values[0], multi_class)
                     with writer.as_default():
                         tf.summary.image("Validation", img, step=epoch)
                     # working code for plotting a 3D volume
@@ -118,11 +145,11 @@ class Train:
 
             et0 = time()
 
-            train_loss = distributed_train_epoch(train_ds, e, strategy, num_to_visualise, train_img_writer)
+            train_loss = distributed_train_epoch(train_ds, e, strategy, num_to_visualise, multi_class, train_img_writer)
             with train_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', train_loss, step=e)
 
-            test_loss = distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, test_img_writer)
+            test_loss = distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, multi_class, test_img_writer)
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
 
@@ -140,22 +167,18 @@ def load_datasets(batch_size, buffer_size,
     """
     Loads tf records datasets for 3D models.
     """
+    args = {
+        'batch_size': batch_size,
+        'buffer_size': buffer_size,
+        'multi_class': multi_class,
+        'use_keras_fit': False,
+        'crop_size': crop_size,
+        'depth_crop_size': depth_crop_size,
+    }
     train_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'train_3d/'),
-                                batch_size=batch_size,
-                                buffer_size=buffer_size,
-                                multi_class=multi_class,
-                                is_training=True,
-                                use_keras_fit=False,
-                                crop_size=crop_size,
-                                depth_crop_size=depth_crop_size)
+                                is_training=True, **args)
     valid_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
-                                batch_size=batch_size,
-                                buffer_size=buffer_size,
-                                multi_class=multi_class,
-                                is_training=False,
-                                use_keras_fit=False,
-                                crop_size=crop_size,
-                                depth_crop_size=depth_crop_size)
+                                is_training=False, **args)
     return train_ds, valid_ds
 
 
@@ -171,11 +194,11 @@ def main(epochs,
          batch_size=2,
          lr=1e-4, 
          lr_drop=0.9,
-         lr_drop_freq=3,
+         lr_drop_freq=5,
          lr_warmup=5,
          num_to_visualise = 2,
          num_channels = 4,
-         buffer_size = 2,
+         buffer_size = 4,
          enable_function=True,
          tfrec_dir='./Data/tfrecords/',
          multi_class=False,
@@ -206,16 +229,24 @@ def main(epochs,
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-    trainer.train_model_loop(train_ds, valid_ds, strategy, num_to_visualise)
+    trainer.train_model_loop(train_ds, valid_ds, strategy, num_to_visualise, multi_class)
     print(f"{time() - t0:.02f}")
 
 
 if __name__ == "__main__":
     setup_gpu()
-    main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
-    main(epochs=100, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
-    main(epochs=100, lr=1e-4, dropout_rate=0.05, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
-    main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32)
-    main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5)
-    main(epochs=100, batch_size=8, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=8)
-    main(epochs=100, batch_size=8, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=8)
+    # main(epochs=100, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
+    # main(epochs=100, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
+    # main(epochs=100, lr=5e-4, dropout_rate=0.05, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
+    # main(epochs=100, lr=5e-4, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32)
+    # main(epochs=100, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=3)
+    # main(epochs=100, batch_size=8, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=8)
+    # main(epochs=100, batch_size=8, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=8)
+    # main(epochs=150, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
+    # main(epochs=150, batch_size=8, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=8)
+
+    # main(epochs=100, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8, num_conv_layers=3)
+    # main(epochs=100, lr=1e-3, dropout_rate=0.001, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
+    # main(epochs=100, lr=1e-3, dropout_rate=0.0, noise=1e-4, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
+
+    main(epochs=10, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=1, num_conv_layers=2, multi_class=True)
