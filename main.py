@@ -273,9 +273,9 @@ def main(argv):
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
         if FLAGS.train:
             if FLAGS.backbone_architecture == 'default':
-                model.build((FLAGS.batch_size, 288, 288, 1))
+                model.build((batch_size, 288, 288, 1))
             else:
-                model.build((FLAGS.batch_size, 288, 288, 3))
+                model.build((batch_size, 288, 288, 3))
             model.summary()
 
         model.compile(optimizer=optimiser,
