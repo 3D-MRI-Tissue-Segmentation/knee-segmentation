@@ -56,6 +56,9 @@ flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 
+# 100 Layer Tiramisu paramter(s)
+flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
+
 # Deeplab parameters
 flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
 flags.DEFINE_integer('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
@@ -211,7 +214,7 @@ def main(argv):
 
             model = Hundred_Layer_Tiramisu(FLAGS.growth_rate,
                                            FLAGS.layers_per_block,
-                                           FLAGS.num_channels,
+                                           FLAGS.init_num_channels,
                                            num_classes,
                                            FLAGS.kernel_size,
                                            FLAGS.pool_size,
@@ -223,7 +226,7 @@ def main(argv):
         elif FLAGS.model_architecture == 'deeplabv3':
 
             model = Deeplabv3(num_classes,
-                              FLAGS.kernel_size_initial_conv,
+                    FLAGS.kernel_size_initial_conv,
                               FLAGS.num_filters_atrous,
                               FLAGS.num_filters_DCNN,
                               FLAGS.num_filters_ASPP,
