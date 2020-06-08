@@ -1,63 +1,28 @@
-# Holds voxel data with one segmentation class value >0 and bg class = 0
+# Converts segmentation data information to info for a Mesh3d figure 
+from VoxelData import VoxelData
 import numpy as np
 
-class Coordinate():
+class RenderData(VoxelData):
 
-    def __init__(self, xyz):
-        self.x = xyz[0]
-        self.y = xyz[1]
-        self.z = xyz[2]
-
-
-class VoxelData():
-
-    
-    def __init__(self,data):
-        print("Processing data")
-        self.data = data
-        if np.size(np.shape(data)) > 3:
-            self.voxel_tot = sum(np.shape(data)[0:-1])  
+    def __init__(self,seg_data):
+        print("Making segmentation voxels")
+        self.data = seg_data
+        if np.size(np.shape(self.data)) > 3:
+            self.voxel_tot = sum(np.shape(self.data)[0:-1])  
         else:
-            self.voxel_tot = sum(np.shape(data))  
-        self.x_length = np.size(data,0)
-        self.y_length = np.size(data,1)
-        self.z_length = np.size(data,2)
+            self.voxel_tot = sum(np.shape(self.data))  
+        self.x_length = np.size(self.data,0)
+        self.y_length = np.size(self.data,1)
+        self.z_length = np.size(self.data,2)
         self.class_colors, self.num_classes = self.get_class_colors()
 
-
-        # self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
-        # self.xyz = self.get_coords()
-        # # self.x = self.xyz[0,:]
-        # # self.y = self.xyz[1,:]
-        # # self.z = self.xyz[2,:]
-        # self.vert_count = 0
-        # self.vertices = self.make_edge_verts()
-        # self.triangles = np.delete(self.triangles, 0,1)
-        # #self.make_triangles()
-
-
-    def get_class_colors(self):
+        self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
+        self.xyz = self.get_coords()
         
-        if np.size(np.shape(self.data)) > 3:     
-            channels = np.shape(self.data)[-1]    
-            color_data = np.reshape(self.data, [self.voxel_tot, channels])
-            unique_colors = np.unique(color_data, axis=0)
-            del color_data
-        else:
-            unique_colors = np.unique(self.data)
-        
-        num_classes = np.shape(unique_colors)[0]
-        keys = np.arange(num_classes)
-        # class_colors = dict(zip(keys, unique_colors))
-
-        return unique_colors, num_classes
-
-
-    def get_class_voxels(self, seg_class):
-        """ Mask over voxel data only returning voxels from that segmentation class """
-        seg_voxels =  np.where(self.data == seg_class, 1,0)
-    
-        return seg_voxels
+        self.vert_count = 0
+        self.vertices = self.make_edge_verts()
+        self.triangles = np.delete(self.triangles, 0,1)
+        #self.make_triangles()
 
 
     def get_coords(self):

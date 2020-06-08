@@ -60,7 +60,7 @@ def load_data(opt):
 
         data = td.volume
         # data = data[:,:,:,1]
-        data = data[:,:,:,:]
+        data = data[:,:,:,1]
         
     else:
         assert data_paths, 'The directory %s does not contain files with valid extensions %s' % (opt.dataroot, EXTENSIONS)
