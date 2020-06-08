@@ -358,6 +358,7 @@ class atrous_spatial_pyramid_pooling(tf.keras.Model):
 
         feature_map_size = tf.shape(x)
         output_list = []
+        print(x.get_shape())
 
         # Non diluted convolution
         y = tf.math.reduce_mean(x, axis=[1, 2], keepdims=True)  # ~ Average Pooling
