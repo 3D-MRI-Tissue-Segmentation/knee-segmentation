@@ -222,7 +222,7 @@ class resnet_block(tf.keras.Model):
         residual = self.second_conv(residual, training=training)
         residual = self.third_conv(residual, training=training)
 
-        output = tfkl.Add([residual, x])
+        output = tfkl.Add()[residual, x])
         return output
 
 
@@ -247,7 +247,6 @@ class basic_conv_block(tf.keras.Sequential):
                                              momentum=0.95,
                                              epsilon=0.001))
         self.add(tfkl.Activation(nonlinearity))
-        print(nonlinearity)
 
         self.add(tfkl.Conv2D(num_channels,
                              kernel_size,
