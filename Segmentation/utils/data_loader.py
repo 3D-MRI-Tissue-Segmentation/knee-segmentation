@@ -171,6 +171,10 @@ def parse_fn_2d(example_proto, training, augmentation, multi_class=True, use_bfl
         elif augmentation == 'noise':
             image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
             image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
+        elif augmentation == 'crop_and_noise':
+            image, seg = crop_randomly_image_pair_2d(image, seg)
+            image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
+            image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
         elif augmentation is None:
             image = tf.image.resize_with_crop_or_pad(image, 288, 288)
             seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
