@@ -44,8 +44,18 @@ class Deeplabv3(tf.keras.Sequential):
                                  nonlinearity,
                                  use_batchnorm,
                                  use_bias,
-                                 use_pooling=False,
+                                 False,
                                  data_format))
+
+                #  kernel_size_initial_conv,
+                #  num_channels=[256, 512, 1024],
+                #  kernel_size_blocks=[1, 3],
+                #  padding='same',
+                #  nonlinearity='relu',
+                #  use_batchnorm=True,
+                #  use_bias=True,
+                #  use_pooling=False,
+                #  data_format='channels_last',
 
         self.add(Atrous_conv(num_channels_atrous,
                              kernel_size_atrous,
