@@ -47,16 +47,6 @@ class Deeplabv3(tf.keras.Sequential):
                                  False,
                                  data_format))
 
-                #  kernel_size_initial_conv,
-                #  num_channels=[256, 512, 1024],
-                #  kernel_size_blocks=[1, 3],
-                #  padding='same',
-                #  nonlinearity='relu',
-                #  use_batchnorm=True,
-                #  use_bias=True,
-                #  use_pooling=False,
-                #  data_format='channels_last',
-
         self.add(Atrous_conv(num_channels_atrous,
                              kernel_size_atrous,
                              MultiGrid,
@@ -224,13 +214,13 @@ class resnet_block(tf.keras.Model):
                                            use_bias,
                                            data_format)
 
-    def call(self, x, training=False):
+    def call(self, inputt, training=False):
 
         if self.use_stride:
-            x = self.input_conv(x, training=training)
+            x = self.input_conv(inputt, training=training)
         print(x.get_shape())
 
-        residual = self.first_conv(x, training=training)
+        residual = self.first_conv(inputt, training=training)
         print(residual.get_shape())
         residual = self.second_conv(residual, training=training)
         print(residual.get_shape())
