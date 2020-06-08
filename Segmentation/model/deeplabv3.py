@@ -214,14 +214,15 @@ class resnet_block(tf.keras.Model):
                                            use_bias,
                                            data_format)
 
-    def call(self, inputt, training=False):
+    def call(self, x, training=False):
+        
+        residual = self.first_conv(x, training=training)
+        print(residual.get_shape())
 
         if self.use_stride:
-            x = self.input_conv(inputt, training=training)
-        #print(x.get_shape())
+            x = self.input_conv(x, training=training)
+        print(x.get_shape())
 
-        residual = self.first_conv(inputt, training=training)
-        print(residual.get_shape())
         residual = self.second_conv(residual, training=training)
         print(residual.get_shape())
         residual = self.third_conv(residual, training=training)
