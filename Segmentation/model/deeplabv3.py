@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow.keras.layers as tfkl
 
-class Deeplabv3(tf.keras.Model):
+class Deeplabv3(tf.keras.Sequential):
     """ Tensorflow 2 Implementation of """
     def __init__(self,
                  num_classes,
@@ -17,9 +17,6 @@ class Deeplabv3(tf.keras.Model):
                  use_batchnorm=True,
                  use_nonlinearity=True,
                  use_bias=True,
-                 use_dropout=False,
-                 dropout_rate=0.25,
-                 use_spatial_dropout=True,
                  data_format='channels_last',
                  MultiGrid=(1, 2, 4),
                  rate_ASPP=(1, 6, 12, 18),
@@ -38,57 +35,50 @@ class Deeplabv3(tf.keras.Model):
                               of the resnet_block (Second element)  """
 
         super(Deeplabv3, self).__init__(**kwargs)
-        self.steps = tf.keras.Sequential()
-        self.steps.add(ResNet_Backbone(kernel_size_initial_conv,
-                                       num_channels_DCNN,
-                                       kernel_size_DCNN,
-                                       padding,
-                                       nonlinearity,
-                                       use_batchnorm,
-                                       use_nonlinearity,
-                                       use_bias,
-                                       data_format))
+        self.add(ResNet_Backbone(kernel_size_initial_conv,
+                                 num_channels_DCNN,
+                                 kernel_size_DCNN,
+                                 padding,
+                                 nonlinearity,
+                                 use_batchnorm,
+                                 use_nonlinearity,
+                                 use_bias,
+                                 data_format))
 
-        self.steps.add(Atrous_conv(num_channels_atrous,
-                                   kernel_size_atrous,
-                                   MultiGrid,
-                                   padding,
-                                   use_batchnorm,
-                                   use_nonlinearity,
-                                   nonlinearity,
-                                   use_bias,
-                                   data_format,
-                                   output_stride))
+        self.add(Atrous_conv(num_channels_atrous,
+                             kernel_size_atrous,
+                             MultiGrid,
+                             padding,
+                             use_batchnorm,
+                             use_nonlinearity,
+                             nonlinearity,
+                             use_bias,
+                             data_format,
+                             output_stride))
 
-        self.steps.add(atrous_spatial_pyramid_pooling(num_channels_ASPP,
-                                                      kernel_size_ASPP,
-                                                      rate_ASPP,
-                                                      padding,
-                                                      use_batchnorm,
-                                                      use_nonlinearity,
-                                                      nonlinearity,
-                                                      use_bias,
-                                                      data_format))
+        self.add(atrous_spatial_pyramid_pooling(num_channels_ASPP,
+                                                kernel_size_ASPP,
+                                                rate_ASPP,
+                                                padding,
+                                                use_batchnorm,
+                                                use_nonlinearity,
+                                                nonlinearity,
+                                                use_bias,
+                                                data_format))
 
-        self.steps.add(aspp_block(1,
-                                  1,
-                                  num_classes,
-                                  padding,
-                                  use_batchnorm,
-                                  use_nonlinearity,
-                                  nonlinearity,
-                                  use_bias,
-                                  data_format))
-
-        if use_dropout:
-            if use_spatial_dropout:
-                self.steps.add(tfkl.SpatialDropout2D(rate=dropout_rate))
-            else:
-                self.steps.add(tfkl.Dropout(rate=dropout_rate))
+        self.add(aspp_block(1,
+                            1,
+                            num_classes,
+                            padding,
+                            use_batchnorm,
+                            use_nonlinearity,
+                            nonlinearity,
+                            use_bias,
+                            data_format))
 
     def call(self, x, training=False):
 
-        out = self.steps(x, training=training)
+        out = super(Deeplabv3, self).call(x, training=training)
 
         # Upsample to same size as the input
         input_size = tf.shape(x)[1:3]
