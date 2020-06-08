@@ -222,7 +222,7 @@ class resnet_block(tf.keras.Model):
         residual = self.second_conv(residual, training=training)
         residual = self.third_conv(residual, training=training)
 
-        output = tfkl.Add()[residual, x])
+        output = tfkl.Add()([residual, x])
         return output
 
 
