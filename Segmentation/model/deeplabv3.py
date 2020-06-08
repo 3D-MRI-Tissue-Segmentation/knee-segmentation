@@ -218,7 +218,7 @@ class resnet_block(tf.keras.Model):
 
         if self.use_stride:
             x = self.input_conv(inputt, training=training)
-        print(x.get_shape())
+        #print(x.get_shape())
 
         residual = self.first_conv(inputt, training=training)
         print(residual.get_shape())
