@@ -217,10 +217,14 @@ class resnet_block(tf.keras.Model):
 
         if self.use_stride:
             x = self.input_conv(x, training=training)
+        print(x.get_shape())
 
         residual = self.first_conv(x, training=training)
+        print(residual.get_shape())
         residual = self.second_conv(residual, training=training)
+        print(residual.get_shape())
         residual = self.third_conv(residual, training=training)
+        print(residual.get_shape())
 
         output = tfkl.Add()([residual, x])
         return output
