@@ -15,7 +15,6 @@ class Deeplabv3(tf.keras.Sequential):
                  padding='same',
                  nonlinearity='relu',
                  use_batchnorm=True,
-                 use_nonlinearity=True,
                  use_bias=True,
                  data_format='channels_last',
                  MultiGrid=(1, 2, 4),
@@ -35,13 +34,15 @@ class Deeplabv3(tf.keras.Sequential):
                               of the resnet_block (Second element)  """
 
         super(Deeplabv3, self).__init__(**kwargs)
+
+        self.num_classes = num_classes
+
         self.add(ResNet_Backbone(kernel_size_initial_conv,
                                  num_channels_DCNN,
                                  kernel_size_DCNN,
                                  padding,
                                  nonlinearity,
                                  use_batchnorm,
-                                 use_nonlinearity,
                                  use_bias,
                                  data_format))
 
@@ -50,8 +51,7 @@ class Deeplabv3(tf.keras.Sequential):
                              MultiGrid,
                              padding,
                              use_batchnorm,
-                             use_nonlinearity,
-                             nonlinearity,
+                             'linear',
                              use_bias,
                              data_format,
                              output_stride))
@@ -61,8 +61,7 @@ class Deeplabv3(tf.keras.Sequential):
                                                 rate_ASPP,
                                                 padding,
                                                 use_batchnorm,
-                                                use_nonlinearity,
-                                                nonlinearity,
+                                                'linear',
                                                 use_bias,
                                                 data_format))
 
@@ -71,15 +70,18 @@ class Deeplabv3(tf.keras.Sequential):
                             num_classes,
                             padding,
                             use_batchnorm,
-                            use_nonlinearity,
-                            nonlinearity,
+                            'linear',
                             use_bias,
                             data_format))
 
     def call(self, x, training=False):
 
         out = super(Deeplabv3, self).call(x, training=training)
-
+        if self.num_classes == 1:
+            out = tfkl.Activation('sigmoid')(out)
+        else:
+            out = tfkl.Activation('softmax')(out)
+        
         # Upsample to same size as the input
         input_size = tf.shape(x)[1:3]
         out = tf.image.resize(out, input_size)
@@ -119,7 +121,6 @@ class ResNet_Backbone(tf.keras.Model):
                                    padding,
                                    nonlinearity,
                                    use_batchnorm,
-                                   use_nonlinearity,
                                    use_bias,
                                    data_format)
         self.block2 = resnet_block(True,
@@ -128,7 +129,6 @@ class ResNet_Backbone(tf.keras.Model):
                                    padding,
                                    nonlinearity,
                                    use_batchnorm,
-                                   use_nonlinearity,
                                    use_bias,
                                    data_format)
 
@@ -138,7 +138,6 @@ class ResNet_Backbone(tf.keras.Model):
                                    padding,
                                    nonlinearity,
                                    use_batchnorm,
-                                   use_nonlinearity,
                                    use_bias,
                                    data_format)
 
@@ -166,7 +165,6 @@ class resnet_block(tf.keras.Model):
                  padding='same',
                  nonlinearity='relu',
                  use_batchnorm=True,
-                 use_nonlinearity=True,
                  use_bias=True,
                  data_format='channels_last',
                  **kwargs):
@@ -182,7 +180,6 @@ class resnet_block(tf.keras.Model):
                                                padding,
                                                nonlinearity,
                                                use_batchnorm,
-                                               use_nonlinearity,
                                                use_bias,
                                                data_format)
             stride = 2
@@ -196,7 +193,6 @@ class resnet_block(tf.keras.Model):
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
-                                           use_nonlinearity,
                                            use_bias,
                                            data_format)
 
@@ -205,7 +201,6 @@ class resnet_block(tf.keras.Model):
                                             padding,
                                             nonlinearity,
                                             use_batchnorm,
-                                            use_nonlinearity,
                                             use_bias,
                                             data_format)
                              
@@ -214,7 +209,6 @@ class resnet_block(tf.keras.Model):
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
-                                           use_nonlinearity,
                                            use_bias,
                                            data_format)
 
@@ -240,7 +234,6 @@ class basic_conv_block(tf.keras.Sequential):
                  padding='same',
                  nonlinearity='relu',
                  use_batchnorm=True,
-                 use_nonlinearity=True,
                  use_bias=True,
                  data_format='channels_last',
                  rate=1,
@@ -252,8 +245,7 @@ class basic_conv_block(tf.keras.Sequential):
             self.add(tfkl.BatchNormalization(axis=-1,
                                              momentum=0.95,
                                              epsilon=0.001))
-        if use_nonlinearity:
-            self.add(tfkl.Activation(nonlinearity))
+        self.add(tfkl.Activation(nonlinearity))
 
         self.add(tfkl.Conv2D(num_channels,
                              kernel_size,
@@ -277,8 +269,7 @@ class Atrous_conv(tf.keras.Model):
                  MultiGrid=(1, 2, 4),
                  padding='same',
                  use_batchnorm=True,
-                 use_nonlinearity=False,
-                 nonlinearity='relu',
+                 nonlinearity='linear',
                  use_bias=True,
                  data_format='channels_last',
                  output_stride=16,
@@ -296,7 +287,6 @@ class Atrous_conv(tf.keras.Model):
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
-                                           use_nonlinearity,
                                            use_bias,
                                            data_format,
                                            dilation_rate=multiplier * MultiGrid[0])
@@ -306,7 +296,6 @@ class Atrous_conv(tf.keras.Model):
                                             padding,
                                             nonlinearity,
                                             use_batchnorm,
-                                            use_nonlinearity,
                                             use_bias,
                                             data_format,
                                             dilation_rate=multiplier * MultiGrid[1])
@@ -316,7 +305,6 @@ class Atrous_conv(tf.keras.Model):
                                            padding,
                                            nonlinearity,
                                            use_batchnorm,
-                                           use_nonlinearity,
                                            use_bias,
                                            data_format,
                                            dilation_rate=multiplier * MultiGrid[2])
@@ -338,8 +326,7 @@ class atrous_spatial_pyramid_pooling(tf.keras.Model):
                  rate=(1, 6, 12, 18),
                  padding='same',
                  use_batchnorm=True,
-                 use_nonlinearity=False,
-                 nonlinearity='relu',
+                 nonlinearity='linear',
                  use_bias=True,
                  data_format='channels_last',
                  **kwargs):
@@ -357,7 +344,6 @@ class atrous_spatial_pyramid_pooling(tf.keras.Model):
                                               num_channels,
                                               padding,
                                               use_batchnorm,
-                                              use_nonlinearity,
                                               nonlinearity,
                                               use_bias,
                                               data_format))
@@ -390,8 +376,7 @@ class aspp_block(tf.keras.Sequential):
                  num_channels=256,
                  padding='same',
                  use_batchnorm=True,
-                 use_nonlinearity=False,
-                 nonlinearity='relu',
+                 nonlinearity='linear',
                  use_bias=True,
                  data_format='channels_last',
                  **kwargs):
@@ -409,8 +394,7 @@ class aspp_block(tf.keras.Sequential):
             self.add(tfkl.BatchNormalization(axis=-1,
                                              momentum=0.95,
                                              epsilon=0.001))
-        if use_nonlinearity:
-            self.add(tfkl.Activation(nonlinearity))
+        self.add(tfkl.Activation(nonlinearity))
 
     def call(self, x, training=False):
 
