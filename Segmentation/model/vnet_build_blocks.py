@@ -5,13 +5,14 @@ class Conv3d_ResBlock(tf.keras.layers.Layer):
     def __init__(self,
                  num_channels,
                  kernel_size=(3, 3, 3),
+                 strides=(2, 2, 2),
                  res_activation="relu",
                  name="conv_res_block",
                  **kwargs):
         super(Conv3d_ResBlock, self).__init__(name=name)
 
         self.conv_block = Conv3D_Block(num_channels=num_channels, kernel_size=kernel_size, **kwargs)
-        self.conv_stride = tf.keras.layers.Conv3D(num_channels * 2, kernel_size=kernel_size, strides=2, activation=res_activation, padding="same")
+        self.conv_stride = tf.keras.layers.Conv3D(num_channels * 2, kernel_size=kernel_size, strides=strides, activation=res_activation, padding="same")
 
     def call(self, inputs, training):
         x = inputs
@@ -28,12 +29,21 @@ class Up_ResBlock(tf.keras.layers.Layer):
                  name="upsampling_conv_res_block",
                  **kwargs):
         super(Up_ResBlock, self).__init__(name=name)
-
+        self.num_channels = num_channels
         self.up_conv = Up_Conv3D(num_channels=num_channels, kernel_size=kernel_size, **kwargs)
         self.conv_block = Conv3D_Block(num_channels=num_channels, kernel_size=kernel_size, **kwargs)
 
     def call(self, inputs, training):
+
+        # tf.print(self.num_channels)
+        
+
         x, x_highway = inputs
+
+
+        # tf.print(tf.shape(x))
+        # tf.print(tf.shape(x_highway))
+        # tf.print("================")
         x_res_start = self.up_conv(x, training=training)
         x_up = tf.keras.layers.concatenate([x_res_start, x_highway], axis=-1)
         x = self.conv_block(x_up)
@@ -65,7 +75,10 @@ class Conv3D_Block(tf.keras.layers.Layer):
 
         self.conv = []
         self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
-        self.activation = tf.keras.layers.Activation(activation)
+        if activation is 'prelu':
+            self.activation = tf.keras.layers.PReLU()#alpha_initializer=tf.keras.initializers.Constant(value=0.25))
+        else:
+            self.activation = tf.keras.layers.Activation(activation)
 
         if use_spatial_dropout:
             self.dropout = tf.keras.layers.SpatialDropout3D(rate=dropout_rate)
@@ -110,7 +123,10 @@ class Up_Conv3D(tf.keras.layers.Layer):
         self.conv = tf.keras.layers.Conv3D(filters=num_channels, kernel_size=kernel_size,
                                            padding='same', data_format=data_format)
         self.batch_norm = tf.keras.layers.BatchNormalization(axis=-1)
-        self.activation = tf.keras.layers.Activation(activation)
+        if activation is 'prelu':
+            self.activation = tf.keras.layers.PReLU()#alpha_initializer=tf.keras.initializers.Constant(value=0.25))
+        else:
+            self.activation = tf.keras.layers.Activation(activation)
         self.use_transpose = use_transpose
         self.conv_transpose = tf.keras.layers.Conv3DTranspose(filters=num_channels, kernel_size=kernel_size, padding='same',
                                                               strides=strides, data_format=data_format)

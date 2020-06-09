@@ -83,8 +83,8 @@ class Train:
                 for c in colour_maps:
                     y_slice = replace_vector(y_slice, colour_maps[c][0], colour_maps[c][1])
                     pred_slice = replace_vector(pred_slice, colour_maps[c][0], colour_maps[c][1])
-            #else:
-            pred_slice_round = tf.math.round(pred_slice)  # new
+            else:
+                pred_slice_round = tf.math.round(pred_slice)
             img = tf.concat((x_slice, y_slice, pred_slice, pred_slice_round), axis=-2)
             return tf.reshape(img, (img.shape[1:]))
 
@@ -234,9 +234,9 @@ def build_model(num_channels, num_classes, **kwargs):
 def main(epochs,
          batch_size=2,
          lr=1e-4,
-         lr_drop=0.9,
+         lr_drop=0.8,
          lr_drop_freq=5,
-         lr_warmup=5,
+         lr_warmup=0,
          num_to_visualise=2,
          num_channels=4,
          buffer_size=4,
@@ -278,17 +278,38 @@ def main(epochs,
 
 if __name__ == "__main__":
     setup_gpu()
-    main(epochs=60, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-         aug=['flip'], kernel_size=(3, 3, 3))
-    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-         aug=['flip'], kernel_size=(3, 3, 3))
-    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=True,
-         aug=['flip'], kernel_size=(3, 3, 3))
-    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-         aug=['flip', 'bright'], kernel_size=(3, 3, 3))
-    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-         aug=['flip', 'gamma'], kernel_size=(3, 3, 3))
-    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-         aug=['flip', 'contrast'], kernel_size=(3, 3, 3))
-    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-         aug=['flip', 'contrast', 'gamma', 'bright'], kernel_size=(3, 3, 3))
+    # main(epochs=60, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+    #      aug=['flip'], kernel_size=(3, 3, 3))
+    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+    #      aug=['flip'], kernel_size=(3, 3, 3))
+    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=True,
+    #      aug=['flip'], kernel_size=(3, 3, 3))
+    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+    #      aug=['flip', 'bright'], kernel_size=(3, 3, 3))
+    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+    #      aug=['flip', 'gamma'], kernel_size=(3, 3, 3))
+    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+    #      aug=['flip', 'contrast'], kernel_size=(3, 3, 3))
+    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+    #      aug=['flip', 'contrast', 'gamma', 'bright'], kernel_size=(3, 3, 3)) all failed
+
+    # main(epochs=30, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
+    #      kernel_size=(3, 3, 3))  # works well 0.4 in 10 epochs
+
+    # main(epochs=30, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
+    #      kernel_size=(5, 5, 5))
+
+    # main(epochs=25, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=128, depth_crop_size=64, num_channels=2, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
+    #      kernel_size=(3, 3, 3))
+
+    # main(epochs=30, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
+    #      kernel_size=(2, 2, 2))
+
+
+    # main(epochs=10, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
+    #      kernel_size=(3, 3, 3))
+
+
+    for i in range(5):
+        main(epochs=1, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=2, batch_size=2 + 2*i, multi_class=False,
+            kernel_size=(2, 2, 2))  # works well 0.4 in 10 epochs

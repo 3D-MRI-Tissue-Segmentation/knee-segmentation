@@ -9,7 +9,7 @@ class VNet(tf.keras.Model):
                  num_classes,
                  num_conv_layers=2,
                  kernel_size=(3, 3, 3),
-                 activation='relu',
+                 activation='prelu',
                  use_batchnorm=True,
                  noise=0.0,
                  dropout_rate=0.25,
@@ -48,7 +48,11 @@ class VNet(tf.keras.Model):
         self.upconv_1 = Up_ResBlock(num_channels=num_channels, **block_args)
 
         # convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation=activation, padding='same', data_format=data_format)
+        self.conv_output = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation=None, padding='same', data_format=data_format)
+        if activation is 'prelu':
+            self.activation = tf.keras.layers.PReLU()#alpha_initializer=tf.keras.initializers.Constant(value=0.25))
+        else:
+            self.activation = tf.keras.layers.Activation(activation)
         self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), activation="sigmoid", padding='same', data_format=data_format)
 
     def call(self, inputs, training):
@@ -64,11 +68,15 @@ class VNet(tf.keras.Model):
 
         # decoder blocks
         u4 = self.upconv_4([x4, x4_before], training)
+        
+
         u3 = self.upconv_3([u4, x3_before], training)
         u2 = self.upconv_2([u3, x2_before], training)
         u1 = self.upconv_1([u2, x1_before], training)
 
         output = self.conv_output(u1)
+        output = self.activation(output)
+
         output = self.conv_1x1(output)
 
         if self.use_slice:
