@@ -28,26 +28,28 @@ flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay 
 flags.DEFINE_list('lr_decay_epochs', None, 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
-flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
+flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random-crop, noise, crop_and_noise')
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
-flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
-flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
+flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
+flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
-flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
+flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial')
+flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
+flags.DEFINE_string('activation', 'relu', 'activation function to be used')
+flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
+
+# UNet parameters
+flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
+flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
 flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
-flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
-flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
-flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
-flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
-flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
+
+# 100-layer Tiramisu parameters
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
 flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block')
 flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after each convolution')
@@ -57,6 +59,8 @@ flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 
 # Deeplab parameters
+flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
+flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
 flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
 flags.DEFINE_integer('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
 flags.DEFINE_list('num_filters_DCNN', [256, 512, 1024], 'number of filters for the first three blocks of the DCNN')
@@ -109,7 +113,7 @@ def main(argv):
                     print(e)
     else:
         logging.info('Use TPU at %s',
-                     FLAGS.tpu if FLAGS.tpu is not None else 'local')        
+                     FLAGS.tpu if FLAGS.tpu is not None else 'local')
         resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=FLAGS.tpu)
         tf.config.experimental_connect_to_cluster(resolver)
         tf.tpu.experimental.initialize_tpu_system(resolver)
@@ -125,6 +129,7 @@ def main(argv):
         train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
+                                 augmentation=FLAGS.aug_strategy,
                                  multi_class=FLAGS.multi_class,
                                  is_training=True,
                                  use_bfloat16=FLAGS.use_bfloat16,
@@ -132,6 +137,7 @@ def main(argv):
         valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
+                                 augmentation=FLAGS.aug_strategy,
                                  multi_class=FLAGS.multi_class,
                                  is_training=False,
                                  use_bfloat16=FLAGS.use_bfloat16,
@@ -264,13 +270,13 @@ def main(argv):
         else:
             print('Not a valid input optimizer, using Adam.')
             optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
-            
+
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
         if FLAGS.train:
             if FLAGS.backbone_architecture == 'default':
-                model.build((FLAGS.batch_size, 288, 288, 1))
+                model.build((None, 288, 288, 1))
             else:
-                model.build((FLAGS.batch_size, 288, 288, 3))
+                model.build((None, 288, 288, 3))
             model.summary()
 
         model.compile(optimizer=optimiser,
@@ -286,7 +292,7 @@ def main(argv):
         Path(training_history_dir).mkdir(parents=True, exist_ok=True)
         flag_name = os.path.join(training_history_dir, 'test_flags.cfg')
         FLAGS.append_flags_into_file(flag_name)
-        
+
         logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         logdir = os.path.join(logdir, time)
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
@@ -320,7 +326,6 @@ def main(argv):
             print(step)
             pred = model.predict(image)
             # visualise_multi_class(label, pred)
-            
             cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
             if step > validation_steps - 1:

@@ -7,7 +7,8 @@ import math
 from functools import partial
 import tensorflow as tf
 
-from Segmentation.utils.augmentation import crop_randomly_image_pair_2d
+from Segmentation.utils.augmentation import crop_randomly_image_pair_2d, adjust_contrast_randomly_image_pair_2d
+from Segmentation.utils.augmentation import adjust_brightness_randomly_image_pair_2d
 
 def get_multiclass(label):
 
@@ -137,7 +138,7 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
             count += 1
         print('{} out of {} datasets have been processed'.format(i, end - 1))
 
-def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False, use_RGB=False):
+def parse_fn_2d(example_proto, training, augmentation, multi_class=True, use_bfloat16=False, use_RGB=False):
 
     if use_bfloat16:
         dtype = tf.bfloat16
@@ -163,19 +164,30 @@ def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False, u
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
     seg = tf.reshape(seg_raw, [384, 384, 7])
     seg = tf.cast(seg, dtype)
-    
+
     if training:
-        image, seg = crop_randomly_image_pair_2d(image, seg)
-    #   image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
-    #   image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
-    #   image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+        if augmentation == 'random_crop':
+            image, seg = crop_randomly_image_pair_2d(image, seg)
+        elif augmentation == 'noise':
+            image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
+            image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
+        elif augmentation == 'crop_and_noise':
+            image, seg = crop_randomly_image_pair_2d(image, seg)
+            image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
+            image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
+        elif augmentation is None:
+            image = tf.image.resize_with_crop_or_pad(image, 288, 288)
+            seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
+        else:
+            "Augmentation strategy {} does not exist or is not supported!".format(augmentation)
+
     else:
         image = tf.image.resize_with_crop_or_pad(image, 288, 288)
         seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
 
     if not multi_class:
         seg = tf.math.reduce_sum(seg, axis=-1)
-    
+
     return (image, seg)
 
 def parse_fn_3d(example_proto, training, multi_class=True):
@@ -207,6 +219,7 @@ def parse_fn_3d(example_proto, training, multi_class=True):
 def read_tfrecord(tfrecords_dir,
                   batch_size,
                   buffer_size,
+                  augmentation,
                   parse_fn=parse_fn_2d,
                   multi_class=True,
                   is_training=False,
@@ -226,6 +239,7 @@ def read_tfrecord(tfrecords_dir,
 
     parser = partial(parse_fn,
                      training=is_training,
+                     augmentation=augmentation,
                      multi_class=multi_class,
                      use_bfloat16=use_bfloat16,
                      use_RGB=use_RGB)
