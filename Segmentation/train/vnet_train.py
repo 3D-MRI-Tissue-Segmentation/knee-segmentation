@@ -310,6 +310,8 @@ if __name__ == "__main__":
     #      kernel_size=(3, 3, 3))
 
 
-    for i in range(5):
-        main(epochs=1, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=2, batch_size=2 + 2*i, multi_class=False,
+    for i in range(10):
+        batch_size = 2 + 2*i
+        print("batch size:", batch_size)
+        main(epochs=3, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=2, batch_size=batch_size, multi_class=False,
             kernel_size=(2, 2, 2))  # works well 0.4 in 10 epochs

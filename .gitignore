@@ -13,6 +13,7 @@ ml_env/
 
 # Python
 __pycache__/
+*.pyc
 
 # Pytest and coverage
 .pytest_cache/
