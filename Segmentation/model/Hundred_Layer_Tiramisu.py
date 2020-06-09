@@ -16,7 +16,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                  dropout_rate=0.2,
                  strides=(2, 2),
                  padding='same',
-                 use_dropout=True,
+                 use_dropout=False,
                  **kwargs):
 
         super(Hundred_Layer_Tiramisu, self).__init__(**kwargs)
@@ -50,7 +50,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
         num_filters = num_channels
 
         for idx in range(0, len(self.layers_per_block)-1):
-            num_conv_layers = layers_per_block[idx]
+            num_conv_layers = int(layers_per_block[idx])
             self.dense_block_list.append(dense_layer(num_conv_layers,
                                                      growth_rate,
                                                      kernel_size,
@@ -128,7 +128,7 @@ class conv_layer(tf.keras.Sequential):
                              use_bias=True))
 
        # if use_dropout:
-          #  self.add(tfkl.Dropout(rate=self.dropout_rate))
+           # self.add(tfkl.SpatialDropout2D(rate=self.dropout_rate))
 
     def call(self, inputs, training=False):
 
