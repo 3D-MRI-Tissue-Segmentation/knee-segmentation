@@ -236,7 +236,7 @@ def main(epochs,
          lr=1e-4,
          lr_drop=0.8,
          lr_drop_freq=5,
-         lr_warmup=0,
+         lr_warmup=5,
          num_to_visualise=2,
          num_channels=4,
          buffer_size=4,
@@ -272,46 +272,14 @@ def main(epochs,
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-    trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
+        trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
     print(f"{time() - t0:.02f}")
 
 
 if __name__ == "__main__":
     setup_gpu()
-    # main(epochs=60, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-    #      aug=['flip'], kernel_size=(3, 3, 3))
-    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-    #      aug=['flip'], kernel_size=(3, 3, 3))
-    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=True,
-    #      aug=['flip'], kernel_size=(3, 3, 3))
-    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-    #      aug=['flip', 'bright'], kernel_size=(3, 3, 3))
-    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-    #      aug=['flip', 'gamma'], kernel_size=(3, 3, 3))
-    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-    #      aug=['flip', 'contrast'], kernel_size=(3, 3, 3))
-    # main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
-    #      aug=['flip', 'contrast', 'gamma', 'bright'], kernel_size=(3, 3, 3)) all failed
 
-    # main(epochs=30, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
-    #      kernel_size=(3, 3, 3))  # works well 0.4 in 10 epochs
-
-    # main(epochs=30, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
-    #      kernel_size=(5, 5, 5))
-
-    # main(epochs=25, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=128, depth_crop_size=64, num_channels=2, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
-    #      kernel_size=(3, 3, 3))
-
-    # main(epochs=30, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
-    #      kernel_size=(2, 2, 2))
-
-
-    # main(epochs=10, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=3, multi_class=False,
-    #      kernel_size=(3, 3, 3))
-
-
-    for i in range(10):
-        batch_size = 2 + 2*i
-        print("batch size:", batch_size)
-        main(epochs=3, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0, crop_size=64, depth_crop_size=32, num_channels=4, lr_drop_freq=3, num_conv_layers=2, batch_size=batch_size, multi_class=False,
-            kernel_size=(2, 2, 2))  # works well 0.4 in 10 epochs
+    main(epochs=50, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
+         num_conv_layers=3, batch_size=6, multi_class=False, kernel_size=(3, 3, 3),
+         aug=['flip'])

@@ -56,30 +56,57 @@ class VNet(tf.keras.Model):
         self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), activation="sigmoid", padding='same', data_format=data_format)
 
     def call(self, inputs, training):
-
+        # tf.print("in:   ", tf.shape(inputs))
         if self.noise and training:
             inputs = tf.keras.layers.GaussianNoise(self.noise)(inputs)
 
         # encoder blocks
         x1, x1_before = self.conv_1(inputs, training)
+
+        # tf.print("x1 bf:", tf.shape(x1_before))
+        # tf.print("x1:   ", tf.shape(x1))
+
         x2, x2_before = self.conv_2(x1, training)
+
+        # tf.print("x2 bf:", tf.shape(x2_before))
+        # tf.print("x2:   ", tf.shape(x2))
+
         x3, x3_before = self.conv_3(x2, training)
+
+        # tf.print("x3 bf:", tf.shape(x3_before))
+        # tf.print("x3:   ", tf.shape(x3))
+
         x4, x4_before = self.conv_4(x3, training)
+
+        # tf.print("x4 bf:", tf.shape(x4_before))
+        # tf.print("x4:   ", tf.shape(x4))
 
         # decoder blocks
         u4 = self.upconv_4([x4, x4_before], training)
         
+        # tf.print("u4:   ", tf.shape(u4))
 
         u3 = self.upconv_3([u4, x3_before], training)
+
+        # tf.print("u3:   ", tf.shape(u3))
+
         u2 = self.upconv_2([u3, x2_before], training)
+
+        # tf.print("u2:   ", tf.shape(u2))
+
         u1 = self.upconv_1([u2, x1_before], training)
+
+        # tf.print("u1:   ", tf.shape(u1))
 
         output = self.conv_output(u1)
         output = self.activation(output)
+        # tf.print("out:  ", tf.shape(output))
 
         output = self.conv_1x1(output)
 
         if self.use_slice:
             if self.slice_format == "mean":
                 output = tf.reduce_mean(output, -2)
+        # tf.print("out:  ", tf.shape(output))
+        # tf.print("====================")
         return output
