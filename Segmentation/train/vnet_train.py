@@ -278,45 +278,17 @@ def main(epochs,
 
 if __name__ == "__main__":
     setup_gpu()
-    # main(epochs=100, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
-    # main(epochs=100, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
-    # main(epochs=100, lr=5e-4, dropout_rate=0.05, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32)
-    # main(epochs=100, lr=5e-4, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32)
-    # main(epochs=100, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=3)
-    # main(epochs=100, batch_size=8, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=8)
-    # main(epochs=100, batch_size=8, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=8)
-    # main(epochs=150, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
-    # main(epochs=150, batch_size=8, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=8)
-
-    # main(epochs=100, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8, num_conv_layers=3)
-    # main(epochs=100, lr=1e-3, dropout_rate=0.001, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
-    # main(epochs=100, lr=1e-3, dropout_rate=0.0, noise=1e-4, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=8)
-
-    # main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
-    # main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
-    # main(epochs=50, lr=1e-3, dropout_rate=0.01, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
-    # main(epochs=50, lr=1e-3, dropout_rate=0.01, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
-
-    # main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
-    # main(epochs=100, lr=1e-4, dropout_rate=0.0, use_batchnorm=True, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
-    # main(epochs=100, lr=1e-4, dropout_rate=0.01, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=16, lr_drop_freq=6, num_conv_layers=2, multi_class=True)
-
-    # main(epochs=25, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
-    # main(epochs=25, lr=1e-3, dropout_rate=0.0, noise=1e-4, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False)
-    # main(epochs=25, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=20, lr_drop_freq=5, num_conv_layers=3, multi_class=False, use_spatial_dropout=False)
-    # main(epochs=25, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=3, multi_class=False, use_spatial_dropout=True)
-
-    # main(epochs=25, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=1e-4, crop_size=64, depth_crop_size=64, num_channels=20, lr_drop_freq=5, num_conv_layers=3, multi_class=False, use_spatial_dropout=False,
-    #      aug=['bright', 'contrast', 'gamma', 'flip'])
-    
-    # main(epochs=3, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=1e-4, crop_size=32, depth_crop_size=32, num_channels=1, lr_drop_freq=5, num_conv_layers=1, multi_class=False, use_spatial_dropout=True,
-    #      aug=['bright'], debug=True)
-    # main(epochs=3, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=1e-4, crop_size=32, depth_crop_size=32, num_channels=1, lr_drop_freq=5, num_conv_layers=1, multi_class=False, use_spatial_dropout=True,
-    #      aug=['contrast'], debug=True)
-    # main(epochs=3, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=1e-4, crop_size=32, depth_crop_size=32, num_channels=1, lr_drop_freq=5, num_conv_layers=1, multi_class=False, use_spatial_dropout=True,
-    #      aug=['gamma'], debug=True)
-    main(epochs=20, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=1e-4, crop_size=128, depth_crop_size=32, num_channels=1, lr_drop_freq=5, num_conv_layers=1, multi_class=False, use_spatial_dropout=False,
-         aug=['bright', 'gamma', 'contrast', 'flip'], debug=True)
-    main(epochs=20, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=1e-4, crop_size=128, depth_crop_size=32, num_channels=1, lr_drop_freq=5, num_conv_layers=1, multi_class=False, use_spatial_dropout=True,
-         aug=['bright', 'gamma', 'contrast', 'flip'], debug=True)
-    
+    main(epochs=60, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+         aug=['flip'], kernel_size=(3, 3, 3))
+    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+         aug=['flip'], kernel_size=(3, 3, 3))
+    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=True,
+         aug=['flip'], kernel_size=(3, 3, 3))
+    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+         aug=['flip', 'bright'], kernel_size=(3, 3, 3))
+    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+         aug=['flip', 'gamma'], kernel_size=(3, 3, 3))
+    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+         aug=['flip', 'contrast'], kernel_size=(3, 3, 3))
+    main(epochs=60, lr=1e-3, dropout_rate=0.1, use_batchnorm=False, noise=5e-5, crop_size=64, depth_crop_size=64, num_channels=32, lr_drop_freq=5, num_conv_layers=2, multi_class=False, use_spatial_dropout=False,
+         aug=['flip', 'contrast', 'gamma', 'bright'], kernel_size=(3, 3, 3))

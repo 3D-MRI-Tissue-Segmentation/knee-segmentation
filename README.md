@@ -164,3 +164,13 @@ On your local machine: ssh -L 16006:127.0.0.1:6006 username@ip
 
 Go to localhost: http://localhost:16006/
 ```
+
+---
+
+### Valid 3D Configs
+
+Batch / GPU | Crop Size | Depth Crop Size | Num Channels | Num Conv Layers | Kernel Size
+:----------:|:--------:|:---------------:|:------------:|:---------------:|:----------:
+1 | 32 | 32 | 20 | 2 | (5,5,5)
+1 | 64 | 64 | 32 | 2 | (3,3,3)
+1 | 64 | 64 | 32 | 2 | (5,5,5)
