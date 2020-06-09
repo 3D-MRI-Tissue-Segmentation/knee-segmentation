@@ -15,6 +15,8 @@ class Options():
         self.parser.add_argument('-dir', '--dataroot', type=str, default='./', help='Path to input folderz with ur 3d numpies :3')
         self.parser.add_argument('-f', '--file_name', type=str, default='', help='Name of file you wanna visualize')
         self.parser.add_argument('-out', '--output_dir', type=str, default="voxel_graph", help='Folder name you want as the directory to export to (don\'t include / in front of it)')
+        self.parser.add_argument('-out_name', '--output_html_pathname', type=str, default='segmentation_plotly.html', help='Name of output file pathname; must end with html')
+        self.parser.add_argument('-shuff', '--shuffle_colors', type=bool, default=True, help='Shuffle the list of colors corresponding to each segmentation class (copy paste in the output if you prefer it)')
         self.parser.add_argument('-toy', '--toy_dataset', type=int, default=False, help='To test voxel graphics with random voxel cube, input cube dimension (1 int)')
         # self.parser.add_argument('-t', '--test', default='hullo', help="testestets")
 

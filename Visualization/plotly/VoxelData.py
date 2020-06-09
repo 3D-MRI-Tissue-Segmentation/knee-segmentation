@@ -22,7 +22,7 @@ class VoxelData():
         self.x_length = np.size(data,0)
         self.y_length = np.size(data,1)
         self.z_length = np.size(data,2)
-        self.class_colors, self.num_classes = self.get_class_colors()
+        self.class_colors, self.num_classes = self.get_class_names()
 
 
         # self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
@@ -36,21 +36,23 @@ class VoxelData():
         # #self.make_triangles()
 
 
-    def get_class_colors(self):
+    def get_class_names(self):
         
         if np.size(np.shape(self.data)) > 3:     
             channels = np.shape(self.data)[-1]    
-            color_data = np.reshape(self.data, [self.voxel_tot, channels])
-            unique_colors = np.unique(color_data, axis=0)
-            del color_data
+            class_name_data = np.reshape(self.data, [self.voxel_tot, channels])
+            unique_classes = np.unique(class_name_data, axis=0)
+            del class_name_data
         else:
-            unique_colors = np.unique(self.data)
+            unique_classes = np.unique(self.data)
+
+        # print("unique_classes",unique_classes)
         
-        num_classes = np.shape(unique_colors)[0]
+        num_classes = np.shape(unique_classes)[0]
         keys = np.arange(num_classes)
         # class_colors = dict(zip(keys, unique_colors))
 
-        return unique_colors, num_classes
+        return unique_classes, num_classes
 
 
     def get_class_voxels(self, seg_class):

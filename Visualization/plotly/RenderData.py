@@ -5,7 +5,6 @@ import numpy as np
 class RenderData(VoxelData):
 
     def __init__(self,seg_data):
-        print("Making segmentation voxels")
         self.data = seg_data
         if np.size(np.shape(self.data)) > 3:
             self.voxel_tot = sum(np.shape(self.data)[0:-1])  
@@ -14,7 +13,7 @@ class RenderData(VoxelData):
         self.x_length = np.size(self.data,0)
         self.y_length = np.size(self.data,1)
         self.z_length = np.size(self.data,2)
-        self.class_colors, self.num_classes = self.get_class_colors()
+        self.class_colors, self.num_classes = self.get_class_names()
 
         self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
         self.xyz = self.get_coords()
