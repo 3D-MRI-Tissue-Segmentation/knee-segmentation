@@ -38,10 +38,8 @@ def plot_train_history_loss(history, multi_class=True, savefig=None):
         filename = os.path.join(savefig, 'training_history.png')
         plt.savefig(filename)
 
-def visualise_binary(y_true, y_pred):
-
-    y_true = np.expand_dims(y_true, axis=-1)
-    y_pred = np.expand_dims(y_pred, axis=-1)
+def visualise_binary(y_true, y_pred, savefig=None):
+    
     batch_size = y_true.shape[0]
 
     for i in range(batch_size):
@@ -53,6 +51,8 @@ def visualise_binary(y_true, y_pred):
 
         fig.tight_layout()
         plt.show()
+        if savefig is not None:
+            plt.savefig(savefig)
 
 def visualise_multi_class(y_true, y_pred):
 
