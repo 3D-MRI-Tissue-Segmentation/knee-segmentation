@@ -265,7 +265,7 @@ def main(epochs,
     t0 = time()
 
     if tpu:
-        tfrecords_dir = 'gs://oai-challenge-dataset/tfrecords'
+        tfrec_dir = 'gs://oai-challenge-dataset/tfrecords'
 
     num_classes = 7 if multi_class else 1
     
