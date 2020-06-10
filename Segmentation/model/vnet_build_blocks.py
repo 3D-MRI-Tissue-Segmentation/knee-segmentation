@@ -5,13 +5,14 @@ class Conv3d_ResBlock(tf.keras.layers.Layer):
     def __init__(self,
                  num_channels,
                  kernel_size=(3, 3, 3),
+                 strides=(2, 2, 2),
                  res_activation='relu',
                  name="conv_res_block",
                  **kwargs):
         super(Conv3d_ResBlock, self).__init__(name=name)
 
         self.conv_block = Conv3D_Block(num_channels=num_channels, kernel_size=kernel_size, **kwargs)
-        self.conv_stride = tf.keras.layers.Conv3D(num_channels * 2, kernel_size=(2, 2, 2), strides=(2, 2, 2), padding="same")
+        self.conv_stride = tf.keras.layers.Conv3D(num_channels * 2, kernel_size=(2, 2, 2), strides=strides, padding="same")
         if res_activation is 'prelu':
             self.res_activation = tf.keras.layers.PReLU()
         else:
@@ -40,7 +41,7 @@ class Up_ResBlock(tf.keras.layers.Layer):
     def call(self, inputs, training):
         x, x_highway = inputs
         x_res_start = self.up_conv(x, training=training)
-        x_up = tf.keras.layers.add([x_res_start, x_highway])
+        x_up = tf.keras.layers.concatenate([x_res_start, x_highway], axis=-1)
         x = self.conv_block(x_up)
         x = tf.keras.layers.add([x, x_res_start])
         return x
@@ -104,11 +105,10 @@ class Up_Conv3D(tf.keras.layers.Layer):
     def __init__(self,
                  num_channels,
                  kernel_size=(2, 2, 2),
+                 strides=(2, 2, 2),
                  activation='relu',
                  use_batchnorm=False,
                  use_transpose=False,
-                 strides=(2, 2, 2),
-                 upsample_size=(2, 2, 2),
                  name="upsampling_conv_block",
                  **kwargs):
 
@@ -126,7 +126,7 @@ class Up_Conv3D(tf.keras.layers.Layer):
         self.conv_transpose = tf.keras.layers.Conv3DTranspose(filters=num_channels,
                                                               kernel_size=(2, 2, 2), strides=strides,
                                                               padding='same')
-        self.upsample = tf.keras.layers.UpSampling3D(size=upsample_size)
+        self.upsample = tf.keras.layers.UpSampling3D(size=strides)
         self.conv = tf.keras.layers.Conv3D(filters=num_channels,
                                            kernel_size=kernel_size,
                                            padding='same')

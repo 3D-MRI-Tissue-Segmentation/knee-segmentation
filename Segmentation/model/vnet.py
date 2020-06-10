@@ -14,17 +14,16 @@ class VNet(tf.keras.Model):
                  noise=0.0,
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
-                 use_slice=False,
-                 slice_format=None,
+                 predict_slice=False,
+                 slice_format="mean",
                  data_format='channels_last',
-                 name="vnet"):
+                 name="vnet",
+                 **kwargs):
 
         self.params = str(inspect.currentframe().f_locals)
         super(VNet, self).__init__(name=name)
         self.noise = noise
-        self.use_slice = use_slice
-        if self.use_slice:
-            assert kernel_size[-1] == 1
+        self.predict_slice = predict_slice
         self.slice_format = slice_format
 
         block_args = {
@@ -37,15 +36,15 @@ class VNet(tf.keras.Model):
             'data_format': data_format,
         }
 
-        self.conv_1 = Conv3d_ResBlock(num_channels=num_channels, **block_args)
-        self.conv_2 = Conv3d_ResBlock(num_channels=num_channels * 2, **block_args)
-        self.conv_3 = Conv3d_ResBlock(num_channels=num_channels * 4, **block_args)
-        self.conv_4 = Conv3d_ResBlock(num_channels=num_channels * 8, **block_args)
+        self.conv_1 = Conv3d_ResBlock(num_channels=num_channels, **block_args, **kwargs)
+        self.conv_2 = Conv3d_ResBlock(num_channels=num_channels * 2, **block_args, **kwargs)
+        self.conv_3 = Conv3d_ResBlock(num_channels=num_channels * 4, **block_args, **kwargs)
+        self.conv_4 = Conv3d_ResBlock(num_channels=num_channels * 8, **block_args, **kwargs)
 
-        self.upconv_4 = Up_ResBlock(num_channels=num_channels * 8, **block_args)
-        self.upconv_3 = Up_ResBlock(num_channels=num_channels * 4, **block_args)
-        self.upconv_2 = Up_ResBlock(num_channels=num_channels * 2, **block_args)
-        self.upconv_1 = Up_ResBlock(num_channels=num_channels, **block_args)
+        self.upconv_4 = Up_ResBlock(num_channels=num_channels * 8, **block_args, **kwargs)
+        self.upconv_3 = Up_ResBlock(num_channels=num_channels * 4, **block_args, **kwargs)
+        self.upconv_2 = Up_ResBlock(num_channels=num_channels * 2, **block_args, **kwargs)
+        self.upconv_1 = Up_ResBlock(num_channels=num_channels, **block_args, **kwargs)
 
         # convolution num_channels at the output
         self.conv_output = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation=None, padding='same', data_format=data_format)
@@ -56,57 +55,28 @@ class VNet(tf.keras.Model):
         self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), activation="sigmoid", padding='same', data_format=data_format)
 
     def call(self, inputs, training):
-        # tf.print("in:   ", tf.shape(inputs))
+
         if self.noise and training:
             inputs = tf.keras.layers.GaussianNoise(self.noise)(inputs)
 
         # encoder blocks
         x1, x1_before = self.conv_1(inputs, training)
-
-        # tf.print("x1 bf:", tf.shape(x1_before))
-        # tf.print("x1:   ", tf.shape(x1))
-
         x2, x2_before = self.conv_2(x1, training)
-
-        # tf.print("x2 bf:", tf.shape(x2_before))
-        # tf.print("x2:   ", tf.shape(x2))
-
         x3, x3_before = self.conv_3(x2, training)
-
-        # tf.print("x3 bf:", tf.shape(x3_before))
-        # tf.print("x3:   ", tf.shape(x3))
-
         x4, x4_before = self.conv_4(x3, training)
-
-        # tf.print("x4 bf:", tf.shape(x4_before))
-        # tf.print("x4:   ", tf.shape(x4))
 
         # decoder blocks
         u4 = self.upconv_4([x4, x4_before], training)
-        
-        # tf.print("u4:   ", tf.shape(u4))
-
         u3 = self.upconv_3([u4, x3_before], training)
-
-        # tf.print("u3:   ", tf.shape(u3))
-
         u2 = self.upconv_2([u3, x2_before], training)
-
-        # tf.print("u2:   ", tf.shape(u2))
-
         u1 = self.upconv_1([u2, x1_before], training)
-
-        # tf.print("u1:   ", tf.shape(u1))
 
         output = self.conv_output(u1)
         output = self.activation(output)
-        # tf.print("out:  ", tf.shape(output))
 
         output = self.conv_1x1(output)
-
-        if self.use_slice:
+        if self.predict_slice:
             if self.slice_format == "mean":
-                output = tf.reduce_mean(output, -2)
-        # tf.print("out:  ", tf.shape(output))
-        # tf.print("====================")
+                output = tf.reduce_mean(output, -4)
+                output = tf.expand_dims(output, 1)
         return output

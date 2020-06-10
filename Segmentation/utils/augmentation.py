@@ -131,3 +131,8 @@ def apply_flip_3d(image_tensor, label_tensor):
     image_tensor, label_tensor = apply_flip_3d_axis(image_tensor, label_tensor, axis=-3)
     image_tensor, label_tensor = apply_flip_3d_axis(image_tensor, label_tensor, axis=-4)
     return image_tensor, label_tensor
+
+def to_slice(image_tensor, label_tensor):
+    dc = tf.cast(tf.math.divide(tf.shape(image_tensor)[1], 2), tf.int32)
+    label_tensor = tf.slice(label_tensor, [0, dc, 0, 0, 0], [-1, 1, -1, -1, -1])
+    return image_tensor, label_tensor
