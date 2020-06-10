@@ -259,9 +259,13 @@ def main(epochs,
          aug=[],
          debug=False,
          predict_slice=False,
+         tpu=False,
          **model_kwargs,
          ):
     t0 = time()
+
+    if tpu:
+        tfrecords_dir = 'gs://oai-challenge-dataset/tfrecords'
 
     num_classes = 7 if multi_class else 1
     
@@ -272,8 +276,13 @@ def main(epochs,
     num_gpu = len(tf.config.experimental.list_physical_devices('GPU'))
     steps_per_epoch = len(glob(os.path.join(tfrec_dir, 'train_3d/*'))) / (batch_size)
 
-
-    strategy = tf.distribute.MirroredStrategy()
+    if tpu:
+        resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='pit-tpu')
+        tf.config.experimental_connect_to_cluster(resolver)
+        tf.tpu.experimental.initialize_tpu_system(resolver)
+        strategy = tf.distribute.experimental.TPUStrategy(resolver)
+    else:
+        strategy = tf.distribute.MirroredStrategy()
     #strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
     with strategy.scope():
         loss_func = tversky_loss if multi_class else dice_loss
@@ -327,12 +336,12 @@ if __name__ == "__main__":
     main(epochs=20, lr=1e-5, dropout_rate=0, use_batchnorm=True, noise=0.0,
          crop_size=120, depth_crop_size=80, num_channels=1, lr_drop_freq=3,
          num_conv_layers=3, batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip'], use_transpose=True) # give a spin tonight
+         aug=['flip'], use_transpose=True, tpu=True) # give a spin tonight
 
     main(epochs=20, lr=1e-5, dropout_rate=0, use_batchnorm=True, noise=0.0,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=3,
          num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip'], use_transpose=True) # give a spin tonight
+         aug=['flip'], use_transpose=True, tpu=True) # give a spin tonight
 
 
 
