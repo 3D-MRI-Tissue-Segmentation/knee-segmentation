@@ -8,8 +8,8 @@ from functools import partial
 import tensorflow as tf
 from glob import glob
 
-from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
-    translate_randomly_image_pair_2d
+# from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
+#     translate_randomly_image_pair_2d
 from Segmentation.utils.augmentation import apply_random_crop_3d, apply_centre_crop_3d, \
     apply_random_brightness_3d, apply_random_contrast_3d, apply_random_gamma_3d, normalise, \
     apply_flip_3d, to_slice
