@@ -51,14 +51,12 @@ flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
 
 # 100-layer Tiramisu parameters
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
-flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12], 'number of convolutional layers per block')
+flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block')
 flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after each convolution')
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
-
-# 100 Layer Tiramisu paramter(s)
 flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
 
 # Deeplab parameters
