@@ -86,6 +86,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
 
         for i, up in enumerate(self.up_transition_list):
             x = up(x, blocks[-i-1], training=training)
+            print(x.get_shape())
         
         x = self.final_dense_block(x)
         x = self.conv_1x1(x)
