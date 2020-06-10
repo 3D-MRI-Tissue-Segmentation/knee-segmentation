@@ -35,7 +35,7 @@ class VNet(tf.keras.Model):
             'use_spatial_dropout': use_spatial_dropout,
             'data_format': data_format,
         }
-
+        
         self.conv_1 = Conv3d_ResBlock(num_channels=num_channels, **block_args, **kwargs)
         self.conv_2 = Conv3d_ResBlock(num_channels=num_channels * 2, **block_args, **kwargs)
         self.conv_3 = Conv3d_ResBlock(num_channels=num_channels * 4, **block_args, **kwargs)
@@ -52,7 +52,9 @@ class VNet(tf.keras.Model):
             self.activation = tf.keras.layers.PReLU()#alpha_initializer=tf.keras.initializers.Constant(value=0.25))
         else:
             self.activation = tf.keras.layers.Activation(activation)
-        self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), activation="sigmoid", padding='same', data_format=data_format)
+        act = 'sigmoid' if num_classes == 1 else 'softmax'
+        self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), activation=act, padding='same', data_format=data_format)
+
 
     def call(self, inputs, training):
 

@@ -215,7 +215,7 @@ def parse_fn_3d(example_proto, training, multi_class=True):
 
 def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
                   multi_class=True, is_training=False, use_keras_fit=True, crop_size=None):
-
+    tfrecords_dir = 'gs://oai-challenge-dataset/tfrecords' if tfrecords_dir == 'oai' else tfrecords_dir
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
     if is_training:
