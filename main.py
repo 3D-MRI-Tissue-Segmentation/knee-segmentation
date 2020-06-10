@@ -241,7 +241,6 @@ def main(argv):
                               'same',
                               FLAGS.activation,
                               FLAGS.use_batchnorm,
-                              FLAGS.use_nonlinearity,
                               FLAGS.use_bias,
                               FLAGS.channel_order,
                               FLAGS.MultiGrid,
