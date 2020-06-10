@@ -240,9 +240,9 @@ def build_model(num_channels, num_classes, **kwargs):
 def main(epochs,
          batch_size=2,
          lr=1e-4,
-         lr_drop=0.8,
+         lr_drop=0.9,
          lr_drop_freq=5,
-         lr_warmup=5,
+         lr_warmup=3,
          num_to_visualise=2,
          num_channels=4,
          buffer_size=4,
@@ -287,62 +287,63 @@ def main(epochs,
 if __name__ == "__main__":
     setup_gpu()
 
-    main(epochs=30, lr=1e-3, dropout_rate=0.0, use_batchnorm=True, noise=0.0,
+    # main(epochs=30, lr=1e-3, dropout_rate=0.0, use_batchnorm=True, noise=0.0,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['flip'])
+
+    # main(epochs=30, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['flip'])
+
+    main(epochs=120, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=6, multi_class=False, kernel_size=(3, 3, 3),
+         num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
          aug=['flip'])
 
-    main(epochs=30, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+    # main(epochs=30, lr=5e-5, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['flip'])
+
+    # main(epochs=30, lr=1e-5, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['flip'])
+
+    main(epochs=120, lr=2e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=6, multi_class=False, kernel_size=(3, 3, 3),
+         num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
          aug=['flip'])
 
-    main(epochs=30, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=6, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip'])
+    # main(epochs=120, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+    #      crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
+    #      aug=['flip'])
 
-    main(epochs=30, lr=5e-5, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=6, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip'])
+    # main(epochs=30, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['flip'])
 
-    main(epochs=30, lr=1e-5, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=6, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip'])
 
-    main(epochs=30, lr=2e-4, dropout_rate=0.0, use_batchnorm=True, noise=0.0,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=6, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip'])
-
-    main(epochs=30, lr=2e-4, dropout_rate=0.0, use_batchnorm=True, noise=0.0,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-         aug=['flip'])
-
-    main(epochs=30, lr=2e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=6, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip'])
-
-    main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=True, noise=0.0,
+    main(epochs=150, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
          crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
          num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
          aug=['flip'])
 
-    main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+    main(epochs=150, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
          crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
          num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
          aug=['flip'])
 
-    main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=True, noise=0.0,
-         crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=10, multi_class=True, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
-         aug=['flip'])
+    # main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+    #      crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=8, multi_class=True, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
+    #      aug=['flip'])
 
-    main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-         crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
-         aug=['flip'])
+    # main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
+    #      crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
+    #      aug=['flip'])
