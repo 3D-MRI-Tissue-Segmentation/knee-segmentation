@@ -15,7 +15,8 @@ from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
-from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
+from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
+from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 
 # Dataset/training options
@@ -38,9 +39,10 @@ flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Defau
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
-flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
+flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
+flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
 
 # UNet parameters
@@ -50,19 +52,15 @@ flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution
 flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
 
 # 100-layer Tiramisu parameters
-flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
-flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12], 'number of convolutional layers per block')
+flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block')
 flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after each convolution')
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
-
-# 100 Layer Tiramisu paramter(s)
 flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
 
-# Deeplab parameters
-flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
+# Deeplab parametersi
 flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
 flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
 flags.DEFINE_integer('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
@@ -128,7 +126,7 @@ def main(argv):
         batch_size = FLAGS.batch_size * FLAGS.num_cores
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size
-
+        logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
         train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
@@ -232,7 +230,7 @@ def main(argv):
         elif FLAGS.model_architecture == 'deeplabv3':
 
             model = Deeplabv3(num_classes,
-                    FLAGS.kernel_size_initial_conv,
+                              FLAGS.kernel_size_initial_conv,
                               FLAGS.num_filters_atrous,
                               FLAGS.num_filters_DCNN,
                               FLAGS.num_filters_ASPP,
@@ -330,14 +328,14 @@ def main(argv):
         for step, (image, label) in enumerate(valid_ds):
             print(step)
             pred = model.predict(image)
-            # visualise_multi_class(label, pred)
-            cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+            visualise_binary(label, pred, FLAGS.fig_dir)
+            # cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
             if step > validation_steps - 1:
                 break
 
-        fig_file = FLAGS.model_architecture + '_matrix.png'
-        fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
-        plot_confusion_matrix(cm, fig_dir, classes=classes)
+        # fig_file = FLAGS.model_architecture + '_matrix.png'
+        # fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
+        # plot_confusion_matrix(cm, fig_dir, classes=classes)
 if __name__ == '__main__':
     app.run(main)
