@@ -38,6 +38,7 @@ flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Defau
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
+flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
@@ -52,12 +53,15 @@ flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
 
 # 100-layer Tiramisu parameters
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
-flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block')
+flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12], 'number of convolutional layers per block')
 flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after each convolution')
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
+
+# 100 Layer Tiramisu paramter(s)
+flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
 
 # Deeplab parameters
 flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
@@ -217,7 +221,7 @@ def main(argv):
 
             model = Hundred_Layer_Tiramisu(FLAGS.growth_rate,
                                            FLAGS.layers_per_block,
-                                           FLAGS.num_channels,
+                                           FLAGS.init_num_channels,
                                            num_classes,
                                            FLAGS.kernel_size,
                                            FLAGS.pool_size,
@@ -229,7 +233,7 @@ def main(argv):
         elif FLAGS.model_architecture == 'deeplabv3':
 
             model = Deeplabv3(num_classes,
-                              FLAGS.kernel_size_initial_conv,
+                    FLAGS.kernel_size_initial_conv,
                               FLAGS.num_filters_atrous,
                               FLAGS.num_filters_DCNN,
                               FLAGS.num_filters_ASPP,
@@ -274,9 +278,11 @@ def main(argv):
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
         if FLAGS.train:
             if FLAGS.backbone_architecture == 'default':
-                model.build((None, 288, 288, 1))
+
+                model.build((batch_size, 288, 288, 1))
             else:
-                model.build((None, 288, 288, 3))
+                model.build((batch_size, 288, 288, 3))
+
             model.summary()
 
         model.compile(optimizer=optimiser,
