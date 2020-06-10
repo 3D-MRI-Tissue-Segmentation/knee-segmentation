@@ -374,7 +374,6 @@ class atrous_spatial_pyramid_pooling(tf.keras.Model):
 
         # concatenate all outputs
         out = tf.concat(output_list, axis=3)
-        print(out.get_shape())
         out = self.basic_conv2(out, training=training)
         return out
 
