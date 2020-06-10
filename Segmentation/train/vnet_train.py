@@ -264,8 +264,12 @@ def main(epochs,
          ):
     t0 = time()
 
+    print("TPU:", tpu)
+
     if tpu:
         tfrec_dir = 'gs://oai-challenge-dataset/tfrecords'
+
+    print("dir:", tfrec_dir)
 
     num_classes = 7 if multi_class else 1
     
@@ -294,12 +298,12 @@ def main(epochs,
         model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
 
         trainer = Train(epochs, batch_size, enable_function,
-                        model, optimizer, loss_func, lr_manager, predict_slice)
+                        model, optimizer, loss_func, lr_manager, predict_slice, tfrec_dir=tfrec_dir)
 
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-        trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
+        trainer.train_model_loop(train_ds, valid_ds, multi_class, strategy, debug, num_to_visualise)
 
         # for data in train_ds:
         #     x, y = data
@@ -335,12 +339,12 @@ if __name__ == "__main__":
     
     main(epochs=20, lr=1e-5, dropout_rate=0, use_batchnorm=True, noise=0.0,
          crop_size=120, depth_crop_size=80, num_channels=1, lr_drop_freq=3,
-         num_conv_layers=3, batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+         num_conv_layers=3, batch_size=2*8, multi_class=False, kernel_size=(3, 3, 3),
          aug=['flip'], use_transpose=True, tpu=True) # give a spin tonight
 
     main(epochs=20, lr=1e-5, dropout_rate=0, use_batchnorm=True, noise=0.0,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=3,
-         num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+         num_conv_layers=3, batch_size=4*8, multi_class=False, kernel_size=(3, 3, 3),
          aug=['flip'], use_transpose=True, tpu=True) # give a spin tonight
 
 
