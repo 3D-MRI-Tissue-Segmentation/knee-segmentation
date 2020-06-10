@@ -15,7 +15,8 @@ from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
-from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
+from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
+from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 
 # Dataset/training options
@@ -330,14 +331,14 @@ def main(argv):
         for step, (image, label) in enumerate(valid_ds):
             print(step)
             pred = model.predict(image)
-            # visualise_multi_class(label, pred)
-            cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+            visualise_binary(label, pred, FLAGS.fig_dir)
+            # cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
             if step > validation_steps - 1:
                 break
 
-        fig_file = FLAGS.model_architecture + '_matrix.png'
-        fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
-        plot_confusion_matrix(cm, fig_dir, classes=classes)
+        # fig_file = FLAGS.model_architecture + '_matrix.png'
+        # fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
+        # plot_confusion_matrix(cm, fig_dir, classes=classes)
 if __name__ == '__main__':
     app.run(main)
