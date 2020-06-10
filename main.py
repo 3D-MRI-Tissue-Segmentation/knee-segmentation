@@ -38,7 +38,6 @@ flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Defau
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
-flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')

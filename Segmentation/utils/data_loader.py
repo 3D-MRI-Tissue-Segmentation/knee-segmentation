@@ -214,6 +214,7 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     if not multi_class:
         seg = tf.slice(seg, [0, 0, 1], [-1, -1 , 6])
         seg = tf.math.reduce_sum(seg, axis=-1)
+        seg = tf.expand_dims(seg, axis=-1)
         seg = tf.clip_by_value(seg, 0, 1)
 
     return (image, seg)
