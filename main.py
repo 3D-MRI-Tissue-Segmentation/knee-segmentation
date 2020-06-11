@@ -46,6 +46,7 @@ flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
 
 # UNet parameters
+flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
 flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
@@ -84,7 +85,7 @@ flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise,
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
 flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
 flags.DEFINE_integer('num_cores', 8, 'Number of TPU cores or number of GPUs.')
-flags.DEFINE_string('tpu', 'oai-tpu-machine', 'Name of the TPU. Only used if use_gpu is False.')
+flags.DEFINE_string('tpu', 'joe', 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
 
@@ -145,10 +146,13 @@ def main(argv):
                                  use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
 
         num_classes = 7 if FLAGS.multi_class else 1
-
+    
+    
     if FLAGS.multi_class:
+        loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
     else:
+        loss_fn = dice_coef_loss
         crossentropy_loss_fn = tf.keras.losses.binary_crossentropy
 
     if FLAGS.use_bfloat16:
@@ -277,11 +281,12 @@ def main(argv):
                 model.build((batch_size, 288, 288, 3))
 
             model.summary()
-
+        
         model.compile(optimizer=optimiser,
-                      loss=tversky_loss,
+                      loss=loss_fn,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
-
+       
+                          
     if FLAGS.train:
 
         # define checkpoints
