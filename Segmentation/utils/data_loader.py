@@ -10,7 +10,7 @@ from glob import glob
 
 # from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
 #     translate_randomly_image_pair_2d
-from Segmentation.utils.augmentation import apply_random_crop_3d, apply_centre_crop_3d, \
+from Segmentation.utils.augmentation import apply_valid_random_crop_3d, apply_centre_crop_3d, \
     apply_random_brightness_3d, apply_random_contrast_3d, apply_random_gamma_3d, normalise, \
     apply_flip_3d, to_slice
 
@@ -244,7 +244,7 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
     dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
     if crop_size is not None:
         if is_training:
-            parse_rnd_crop = partial(apply_random_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size)
+            parse_rnd_crop = partial(apply_valid_random_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size)
             dataset = dataset.map(map_func=parse_rnd_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
             if "bright" in aug:
                 dataset = dataset.map(apply_random_brightness_3d)

@@ -64,40 +64,90 @@ def one_hot_background_2d(label_tensor):
 
     return new_label
 
-def apply_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size):
-    centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32),
+
+def apply_valid_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size):
+
+    def body(input_image_tensor, input_label_tensor,
+             proposed_image_tensor, proposed_label_tensor, 
+             crop_size, depth_crop_size):
+        # tf.print("------------------------ cropping --------------------------")
+        proposed_image_tensor, proposed_label_tensor = get_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size)
+        # tf.print(tf.shape(proposed_image_tensor))
+        # tf.print(tf.shape(proposed_label_tensor))
+        # tf.print("-- cropping done --")
+        return input_image_tensor, input_label_tensor, proposed_image_tensor, proposed_label_tensor, crop_size, depth_crop_size
+
+    def condition(input_image_tensor, input_label_tensor,
+                  proposed_image_tensor, proposed_label_tensor, *args):
+        # tf.print("=================== condition ======================")
+        # tf.print("shape:", tf.shape(proposed_label_tensor), len(tf.shape(proposed_label_tensor)))
+        # if tf.shape(proposed_label_tensor) == [2]:
+        #     tf.print("assign")
+        #     red_sum = proposed_label_tensor
+        # else:
+        #     tf.print("dont assign")
+        red_sum = tf.reduce_sum(proposed_label_tensor, [1,2,3,4])
+        # tf.print("red sum:", red_sum)
+        # tf.print("logic:", tf.reduce_all((red_sum) < 300000))
+        # tf.print("===========================")
+        return tf.reduce_all((red_sum) < 100)
+
+    crop_image_tensor, crop_label_tensor = get_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size)
+    # tf.print("+=============################============+")
+    # tf.print("## shape:", tf.shape(crop_image_tensor), tf.shape(crop_label_tensor))
+    # tf.print("## red sum:", tf.reduce_sum(crop_label_tensor, [1,2,3,4]))
+
+    _, _, image_tensor, label_tensor, _, _ = tf.while_loop(
+        condition,
+        body,
+        [image_tensor, label_tensor,
+         #tf.constant([[[[[0.0, 0.0]]]]], tf.float32), tf.constant([[[[[0.0, 0.0]]]]], tf.float32), 
+         # tf.constant([0.0, 0.0], tf.float32), tf.constant([0.0, 0.0], tf.float32),
+         crop_image_tensor, crop_label_tensor,
+         crop_size, depth_crop_size],
+    # )
+         shape_invariants=[image_tensor.get_shape(), label_tensor.get_shape(),
+                           tf.TensorShape([None, None, None, None, None]), tf.TensorShape([None, None, None, None, None]),
+                           tf.TensorShape([]), tf.TensorShape([]),]
+    )
+    # tf.print("-- shape:", tf.shape(image_tensor), tf.shape(label_tensor))
+    # tf.print("-- red sum:", tf.reduce_sum(label_tensor, [1,2,3,4]))
+    # tf.print("+============================+")
+    return image_tensor, label_tensor
+
+# def apply_valid_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size):
+#     image_tensor, label_tensor = get_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size)
+#     return image_tensor, label_tensor
+
+def get_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size):
+    centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[1], 2), tf.int32), 
+              tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32),
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32),
-              tf.cast(tf.math.divide(tf.shape(image_tensor)[1], 2), tf.int32))
-
-    #tf.while_loop()
-
-    hrc = tf.random.normal([], mean=tf.cast(centre[0], tf.float32), stddev=tf.cast(centre[0] / 4, tf.float32))
-    wrc = tf.random.normal([], mean=tf.cast(centre[1], tf.float32), stddev=tf.cast(centre[1] / 4, tf.float32))
-    drc = tf.random.normal([], mean=tf.cast(centre[2], tf.float32), stddev=tf.cast(centre[2] / 4, tf.float32))
+              )
+    drc = tf.random.normal([], mean=tf.cast(centre[0], tf.float32), stddev=tf.cast(centre[0] / 4, tf.float32))
+    hrc = tf.random.normal([], mean=tf.cast(centre[1], tf.float32), stddev=tf.cast(centre[1] / 4, tf.float32))
+    wrc = tf.random.normal([], mean=tf.cast(centre[2], tf.float32), stddev=tf.cast(centre[2] / 4, tf.float32))
+    drc = tf.clip_by_value(drc, tf.cast(depth_crop_size, tf.float32), tf.cast(tf.shape(image_tensor)[1] - depth_crop_size, tf.float32))
     hrc = tf.clip_by_value(hrc, tf.cast(crop_size, tf.float32), tf.cast(tf.shape(image_tensor)[2] - crop_size, tf.float32))
     wrc = tf.clip_by_value(wrc, tf.cast(crop_size, tf.float32), tf.cast(tf.shape(image_tensor)[3] - crop_size, tf.float32))
-    drc = tf.clip_by_value(drc, tf.cast(depth_crop_size, tf.float32), tf.cast(tf.shape(image_tensor)[1] - depth_crop_size, tf.float32))
+    drc = tf.cast(tf.math.round(drc), tf.int32)
     hrc = tf.cast(tf.math.round(hrc), tf.int32)
     wrc = tf.cast(tf.math.round(wrc), tf.int32)
-    drc = tf.cast(tf.math.round(drc), tf.int32)
-    centre = (hrc, wrc, drc)
+    centre = (drc, hrc, wrc)
     image_tensor, label_tensor = crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size, centre)
-
-    # tf.print(tf.shape(label_tensor))
-    # tf.print(tf.reduce_sum(label_tensor, [1,2,3,4]))
-
     return image_tensor, label_tensor
 
 
 def apply_centre_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size):
-    centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32),
+    centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[1], 2), tf.int32),
+              tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32),
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32),
-              tf.cast(tf.math.divide(tf.shape(image_tensor)[1], 2), tf.int32))
+              )
     image_tensor, label_tensor = crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size, centre)
     return image_tensor, label_tensor
 
 def crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size, centre):
-    hc, wc, dc = centre
+    dc, hc, wc = centre
     image_tensor = tf.slice(image_tensor, [0, dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [-1, depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
     label_tensor = tf.slice(label_tensor, [0, dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [-1, depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
     return image_tensor, label_tensor

@@ -283,14 +283,13 @@ def main(epochs,
         strategy = tf.distribute.experimental.TPUStrategy(resolver)
     else:
         strategy = tf.distribute.MirroredStrategy()
-    #strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
+    # strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
     with strategy.scope():
         loss_func = tversky_loss if multi_class else dice_loss
 
         lr_manager = LearningRateUpdate(lr, lr_drop, lr_drop_freq, warmup=lr_warmup)
 
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-        #optimizer = tf.keras.optimizers.SGD(learning_rate=lr)
         model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
 
         trainer = Train(epochs, batch_size, enable_function,
@@ -299,26 +298,31 @@ def main(epochs,
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-        trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
-
-        # for idx, data in enumerate(train_ds):
-        #     x, y = data
-        #     tf.print(idx, "x", tf.shape(x.values[0]), tf.reduce_max(x.values[0]), tf.reduce_max(x.values[1]))
-        #     tf.print(idx, "y", tf.shape(y.values[0]), tf.reduce_sum(y.values[0]), tf.reduce_sum(y.values[1]))
-        #     tf.print("=====================")
-            #pred = model(x, training=True)
-            #print("p", tf.shape(pred.values[0]))
-            #model.summary()
+        # trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
+        tf.print("starting")
+        for idx, data in enumerate(train_ds):
+            x, y = data
+            print(type(x))
+            print(type(y))
+            print("==========================")
+            # tf.print(idx, "x", tf.shape(x), tf.reduce_max(x))
+            # tf.print(idx, "y", tf.shape(y), tf.reduce_sum(y))
+            tf.print(idx, "x", tf.shape(x.values[0]), tf.reduce_max(x.values[0]), tf.reduce_max(x.values[1]))
+            tf.print(idx, "y", tf.shape(y.values[0]), tf.reduce_sum(y.values[0]), tf.reduce_sum(y.values[1]))
+            tf.print("=====================")
+            # pred = model(x, training=True)
+            # print("p", tf.shape(pred.values[0]))
+            # model.summary()
 
     print(f"{time() - t0:.02f}")
 
 
 if __name__ == "__main__":
-    use_tpu = True
+    use_tpu = False
     if not use_tpu:
         setup_gpu()
 
-    es = 100
+    es = 1
     main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
         num_conv_layers=3, batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
