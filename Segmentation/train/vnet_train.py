@@ -264,12 +264,8 @@ def main(epochs,
          ):
     t0 = time()
 
-    print("TPU:", tpu)
-
     if tpu:
         tfrec_dir = 'gs://oai-challenge-dataset/tfrecords'
-
-    print("dir:", tfrec_dir)
 
     num_classes = 7 if multi_class else 1
     
@@ -293,8 +289,8 @@ def main(epochs,
 
         lr_manager = LearningRateUpdate(lr, lr_drop, lr_drop_freq, warmup=lr_warmup)
 
-        # optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-        optimizer = tf.keras.optimizers.SGD(learning_rate=lr)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        #optimizer = tf.keras.optimizers.SGD(learning_rate=lr)
         model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
 
         trainer = Train(epochs, batch_size, enable_function,
@@ -303,16 +299,16 @@ def main(epochs,
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-        trainer.train_model_loop(train_ds, valid_ds, multi_class, strategy, debug, num_to_visualise)
+        # trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
 
-        # for data in train_ds:
-        #     x, y = data
-        #     print("x", tf.shape(x))
-        #     print("y", tf.shape(y))
-        #     pred = model(x, training=True)
-        #     print("p", tf.shape(pred))
-        #     print(model.summary())
-        #     break
+        for data in train_ds:
+            x, y = data
+            print("x", tf.shape(x), tf.reduce_max(x))
+            print("y", tf.shape(y), tf.reduce_sum(y))
+            pred = model(x, training=True)
+            print("p", tf.shape(pred))
+            print(model.summary())
+            break
 
     print(f"{time() - t0:.02f}")
 
@@ -320,88 +316,26 @@ def main(epochs,
 if __name__ == "__main__":
     setup_gpu()
 
-    # main(epochs=30, lr=1e-3, dropout_rate=0.0, use_batchnorm=True, noise=0.0,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['flip'])
+    es = 10
 
-    # main(epochs=30, lr=5e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['flip'])
+    for i in range(10):
+        main(epochs=es, lr=1e-3, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
+            num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+            aug=['flip'], use_transpose=True, debug=True)  # decent performance
 
-    #### =====================
+        main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+            num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+            aug=['flip'], use_transpose=False, debug=True)  # decent performance
 
-    # main(epochs=10, lr=1e-4, dropout_rate=0, use_batchnorm=True, noise=0.0,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=3,
-    #      num_conv_layers=3, batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-    #      aug=['flip'], use_transpose=True)
-    
-    main(epochs=20, lr=1e-5, dropout_rate=0, use_batchnorm=True, noise=0.0,
-         crop_size=120, depth_crop_size=80, num_channels=1, lr_drop_freq=3,
-         num_conv_layers=3, batch_size=2*8, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip'], use_transpose=True, tpu=True) # give a spin tonight
+    #main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #     crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=5,
+    #     num_conv_layers=3, batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
+    #     aug=['flip'], use_transpose=True)  # just predicts background class
 
-    main(epochs=20, lr=1e-5, dropout_rate=0, use_batchnorm=True, noise=0.0,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=3,
-         num_conv_layers=3, batch_size=4*8, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip'], use_transpose=True, tpu=True) # give a spin tonight
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # main(epochs=30, lr=5e-5, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['flip'])
-
-    # main(epochs=30, lr=1e-5, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['flip'])
-
-    # main(epochs=120, lr=2e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=3,
-    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['flip'])
-
-    # main(epochs=120, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-    #      aug=['flip'])
-
-    # main(epochs=30, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['flip'])
-
-
-    # main(epochs=150, lr=1e-4, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
-    #      aug=['flip'])
-
-    # main(epochs=150, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
-    #      aug=['flip'])
-
-    # main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=8, multi_class=True, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
-    #      aug=['flip'])
-
-    # main(epochs=50, lr=1e-3, dropout_rate=0.0, use_batchnorm=False, noise=0.0,
-    #      crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=5,
-    #      num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 5, 5), strides=(1, 2, 2), predict_slice=True,
-    #      aug=['flip'])
+    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=True, noise=1e-5,
+    #      crop_size=120, depth_crop_size=64, num_channels=4, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['flip'], use_transpose=True)  # poor performance
 
