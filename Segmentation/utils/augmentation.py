@@ -69,6 +69,8 @@ def apply_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size)
               tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32),
               tf.cast(tf.math.divide(tf.shape(image_tensor)[1], 2), tf.int32))
 
+    #tf.while_loop()
+
     hrc = tf.random.normal([], mean=tf.cast(centre[0], tf.float32), stddev=tf.cast(centre[0] / 4, tf.float32))
     wrc = tf.random.normal([], mean=tf.cast(centre[1], tf.float32), stddev=tf.cast(centre[1] / 4, tf.float32))
     drc = tf.random.normal([], mean=tf.cast(centre[2], tf.float32), stddev=tf.cast(centre[2] / 4, tf.float32))
@@ -80,6 +82,10 @@ def apply_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size)
     drc = tf.cast(tf.math.round(drc), tf.int32)
     centre = (hrc, wrc, drc)
     image_tensor, label_tensor = crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size, centre)
+
+    # tf.print(tf.shape(label_tensor))
+    # tf.print(tf.reduce_sum(label_tensor, [1,2,3,4]))
+
     return image_tensor, label_tensor
 
 
