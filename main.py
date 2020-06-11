@@ -53,17 +53,15 @@ flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution
 flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
 
 # 100-layer Tiramisu parameters
-flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12], 'number of convolutional layers per block')
+flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block')
 flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after each convolution')
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
-
-# 100 Layer Tiramisu paramter(s)
 flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
 
-# Deeplab parameters
+# Deeplab parametersi
 flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
 flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
 flags.DEFINE_integer('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
@@ -236,7 +234,7 @@ def main(argv):
         elif FLAGS.model_architecture == 'deeplabv3':
 
             model = Deeplabv3(num_classes,
-                    FLAGS.kernel_size_initial_conv,
+                              FLAGS.kernel_size_initial_conv,
                               FLAGS.num_filters_atrous,
                               FLAGS.num_filters_DCNN,
                               FLAGS.num_filters_ASPP,
@@ -246,11 +244,7 @@ def main(argv):
                               'same',
                               FLAGS.activation,
                               FLAGS.use_batchnorm,
-                              FLAGS.use_nonlinearity,
                               FLAGS.use_bias,
-                              FLAGS.use_dropout,
-                              FLAGS.dropout_rate,
-                              FLAGS.use_spatial,
                               FLAGS.channel_order,
                               FLAGS.MultiGrid,
                               FLAGS.rate_ASPP,

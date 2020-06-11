@@ -17,6 +17,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                  strides=(2, 2),
                  padding='same',
                  use_dropout=False,
+                 use_concat=True,
                  **kwargs):
 
         super(Hundred_Layer_Tiramisu, self).__init__(**kwargs)
@@ -32,43 +33,52 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
         self.strides = strides
         self.padding = padding
         self.use_dropout = use_dropout
+        self.use_concat = use_concat
 
-        self.conv_3x3 = tfkl.Conv2D(num_channels, kernel_size, padding='same')
+        self.conv_3x3 = tfkl.Conv2D(self.num_channels, 
+                                    kernel_size, 
+                                    padding='same')
         self.dense_block_list = []
         self.up_transition_list = []   
-        self.final_dense_block = dense_layer(layers_per_block[0],
+        '''self.final_dense_block = dense_layer(layers_per_block[0],
                                              growth_rate,
                                              kernel_size,
                                              dropout_rate,
                                              nonlinearity,
-                                             use_dropout=False)
+                                             use_dropout=False,
+                                             use_concat=False)'''
 
         self.conv_1x1 = tfkl.Conv2D(filters=num_classes, 
                                     kernel_size=(1, 1),
                                     padding='same')
+
         layers_counter = 0
         num_filters = num_channels
 
-        for idx in range(0, len(self.layers_per_block)-1):
-            num_conv_layers = int(layers_per_block[idx])
+        for idx in range(0, len(self.layers_per_block) - 1):
+            num_conv_layers = layers_per_block[idx]
             self.dense_block_list.append(dense_layer(num_conv_layers,
                                                      growth_rate,
                                                      kernel_size,
                                                      dropout_rate,
-                                                     nonlinearity))
-            
+                                                     nonlinearity,
+                                                     use_dropout=False,
+                                                     use_concat=True))
+                                                     
             layers_counter = layers_counter + num_conv_layers
-            num_filters = num_channels + layers_counter*growth_rate
+            num_filters = num_channels + layers_counter * growth_rate
 
-            self.dense_block_list.append(down_transition(num_channels=num_filters,
-                                                         kernel_size=(1, 1),
-                                                         pool_size=(2, 2),
-                                                         dropout_rate=0.2,
-                                                         nonlinearity='relu'))
+            while idx != len(self.layers_per_block) - 1:
+                self.dense_block_list.append(down_transition(num_channels=num_filters,
+                                                             kernel_size=(1, 1),
+                                                             pool_size=(2, 2),
+                                                             dropout_rate=0.2,
+                                                             nonlinearity='relu',
+                                                             use_dropout=False))
         
-        for idx in range(len(self.layers_per_block) -1, 0, -1):
+        for idx in range(len(self.layers_per_block) - 2, 0, -1):
             num_conv_layers = layers_per_block[idx]
-            num_filters = num_conv_layers*growth_rate
+            num_filters = num_conv_layers * growth_rate
             self.up_transition_list.append(up_transition(num_conv_layers,
                                                          num_channels=num_filters,
                                                          growth_rate=self.growth_rate,
@@ -85,9 +95,9 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                 blocks.append(x)
 
         for i, up in enumerate(self.up_transition_list):
-            x = up(x, blocks[-i-1], training=training)
+            x = up(x, blocks[- i - 1], training=training)
         
-        x = self.final_dense_block(x)
+        # x = self.final_dense_block(x)
         x = self.conv_1x1(x)
         if self.num_classes == 1:
             output = tfkl.Activation('sigmoid')(x)
@@ -104,7 +114,7 @@ class conv_layer(tf.keras.Sequential):
                  kernel_size=(3, 3),
                  dropout_rate=0.2,
                  nonlinearity='relu',
-                 use_dropout=True,
+                 use_dropout=False,
                  **kwargs):
 
         super(conv_layer, self).__init__(**kwargs)
@@ -127,8 +137,8 @@ class conv_layer(tf.keras.Sequential):
                              activation=None, 
                              use_bias=True))
 
-       # if use_dropout:
-           # self.add(tfkl.SpatialDropout2D(rate=self.dropout_rate))
+        if use_dropout:
+            self.add(tfkl.Dropout(rate=self.dropout_rate))
 
     def call(self, inputs, training=False):
 
@@ -145,7 +155,8 @@ class dense_layer(tf.keras.Sequential):
                  kernel_size=(3, 3),
                  dropout_rate=0.2,
                  nonlinearity='relu',
-                 use_dropout=True,
+                 use_dropout=False,
+                 use_concat=True,
                  **kwargs):
 
         super(dense_layer, self).__init__(**kwargs)
@@ -156,6 +167,7 @@ class dense_layer(tf.keras.Sequential):
         self.dropout_rate = dropout_rate
         self.nonlinearity = nonlinearity
         self.use_dropout = use_dropout
+        self.use_concat = use_concat
 
         self.conv_list = []
         for layer in range(num_conv_layers):
@@ -174,7 +186,9 @@ class dense_layer(tf.keras.Sequential):
             dense_output.append(out)
 
         x = tfkl.concatenate(dense_output, axis=-1)
-        x = tfkl.concatenate([x, inputs], axis=-1)
+
+        if self.use_concat:
+            x = tfkl.concatenate([x, inputs], axis=-1)
 
         outputs = x
         return outputs
@@ -189,6 +203,7 @@ class down_transition(tf.keras.Sequential):
                  pool_size=(2, 2),
                  dropout_rate=0.2,
                  nonlinearity='relu',
+                 use_dropout=False,
                  **kwargs):
 
         super(down_transition, self).__init__(**kwargs)
@@ -197,13 +212,16 @@ class down_transition(tf.keras.Sequential):
         self.pool_size = pool_size
         self.dropout_rate = dropout_rate
         self.nonlinearity = nonlinearity
+        self.use_dropout = use_dropout
 
         self.add(tfkl.BatchNormalization(axis=-1,
                                          momentum=0.95,
                                          epsilon=0.001))
         self.add(tfkl.Activation(nonlinearity))
         self.add(tfkl.Conv2D(num_channels, kernel_size, padding='same'))
-        self.add(tfkl.Dropout(rate=self.dropout_rate))
+        if use_dropout:
+            self.add(tfkl.Dropout(rate=self.dropout_rate))
+
         self.add(tfkl.MaxPooling2D(pool_size))
     
     def call(self, inputs, training=False):
@@ -249,9 +267,9 @@ class up_transition(tf.keras.Model):
 
     def call(self, inputs, bridge, training=False):
         
-        db_up = self.dense_block(inputs, training=training)
-        up = self.up_conv(db_up, training=training)
-        c_up = tfkl.concatenate([up, bridge], axis=3)
+        up = self.up_conv(inputs, training=training)
+        db_up = self.dense_block(up, training=training)
+        c_up = tfkl.concatenate([db_up, bridge], axis=3)
 
         return c_up
 

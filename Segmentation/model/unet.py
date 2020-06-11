@@ -276,7 +276,6 @@ class Nested_UNet(tf.keras.Model):
         for sum in range(1, len(self.conv_block_lists)):
             i, j = sum, 0
             while j <= sum:
-
                 name = str(i) + '_' + str(j)
 
                 if i == sum:
@@ -298,7 +297,6 @@ class Nested_UNet(tf.keras.Model):
                 j = j + 1
 
         output = self.conv_1x1(x[last_name])
-        
         '''
         # i + j = 0
         x0_0 = self.conv_block_lists[0][0](x, training=training)
