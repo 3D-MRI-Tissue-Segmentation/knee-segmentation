@@ -16,7 +16,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                  dropout_rate=0.2,
                  strides=(2, 2),
                  padding='same',
-                 use_dropout=True,
+                 use_dropout=False,
                  use_concat=True,
                  **kwargs):
 
@@ -74,8 +74,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                                                              pool_size=(2, 2),
                                                              dropout_rate=0.2,
                                                              nonlinearity='relu',
-                                                             use_dropout=False,
-                                                             use_concat=False))
+                                                             use_dropout=False))
         
         for idx in range(len(self.layers_per_block) - 2, 0, -1):
             num_conv_layers = layers_per_block[idx]
@@ -94,11 +93,9 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
             x = down(x, training=training)
             if i % 2 == 0 and i != len(self.dense_block_list):
                 blocks.append(x)
-                print(x.get_shape())
 
         for i, up in enumerate(self.up_transition_list):
             x = up(x, blocks[- i - 1], training=training)
-            print(x.get_shape())
         
         # x = self.final_dense_block(x)
         x = self.conv_1x1(x)
@@ -117,7 +114,7 @@ class conv_layer(tf.keras.Sequential):
                  kernel_size=(3, 3),
                  dropout_rate=0.2,
                  nonlinearity='relu',
-                 use_dropout=True,
+                 use_dropout=False,
                  **kwargs):
 
         super(conv_layer, self).__init__(**kwargs)
@@ -158,7 +155,7 @@ class dense_layer(tf.keras.Sequential):
                  kernel_size=(3, 3),
                  dropout_rate=0.2,
                  nonlinearity='relu',
-                 use_dropout=True,
+                 use_dropout=False,
                  use_concat=True,
                  **kwargs):
 
@@ -178,8 +175,7 @@ class dense_layer(tf.keras.Sequential):
                                              kernel_size=self.kernel_size,
                                              dropout_rate=self.dropout_rate,
                                              nonlinearity=self.nonlinearity,
-                                             use_dropout=self.use_dropout,
-                                             use_concat=self.use_concat))
+                                             use_dropout=self.use_dropout))
 
     def call(self, inputs, training=False):
         dense_output = []
@@ -207,7 +203,7 @@ class down_transition(tf.keras.Sequential):
                  pool_size=(2, 2),
                  dropout_rate=0.2,
                  nonlinearity='relu',
-                 use_dropout=True,
+                 use_dropout=False,
                  **kwargs):
 
         super(down_transition, self).__init__(**kwargs)
