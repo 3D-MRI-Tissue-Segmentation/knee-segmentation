@@ -68,7 +68,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
             layers_counter = layers_counter + num_conv_layers
             num_filters = num_channels + layers_counter * growth_rate
 
-            while idx != len(self.layers_per_block) - 1:
+            if idx != len(self.layers_per_block) - 1:
                 self.dense_block_list.append(down_transition(num_channels=num_filters,
                                                              kernel_size=(1, 1),
                                                              pool_size=(2, 2),
@@ -272,4 +272,3 @@ class up_transition(tf.keras.Model):
         c_up = tfkl.concatenate([db_up, bridge], axis=3)
 
         return c_up
-
