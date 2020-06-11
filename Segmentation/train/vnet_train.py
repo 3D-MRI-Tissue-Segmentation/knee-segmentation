@@ -276,14 +276,14 @@ def main(epochs,
     num_gpu = len(tf.config.experimental.list_physical_devices('GPU'))
     steps_per_epoch = len(glob(os.path.join(tfrec_dir, 'train_3d/*'))) / (batch_size)
 
-    if tpu:
-        resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='pit-tpu')
-        tf.config.experimental_connect_to_cluster(resolver)
-        tf.tpu.experimental.initialize_tpu_system(resolver)
-        strategy = tf.distribute.experimental.TPUStrategy(resolver)
-    else:
-        strategy = tf.distribute.MirroredStrategy()
-    #strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
+    # if tpu:
+    #     resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='pit-tpu')
+    #     tf.config.experimental_connect_to_cluster(resolver)
+    #     tf.tpu.experimental.initialize_tpu_system(resolver)
+    #     strategy = tf.distribute.experimental.TPUStrategy(resolver)
+    # else:
+    #     strategy = tf.distribute.MirroredStrategy()
+    strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
     with strategy.scope():
         loss_func = tversky_loss if multi_class else dice_loss
 
@@ -314,20 +314,15 @@ def main(epochs,
 
 
 if __name__ == "__main__":
-    setup_gpu()
+    use_tpu = False
+    if not use_tpu:
+        setup_gpu()
 
-    es = 10
-
-    for i in range(10):
-        main(epochs=es, lr=1e-3, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=5,
-            num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-            aug=['flip'], use_transpose=True, debug=True)  # decent performance
-
-        main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-            num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-            aug=['flip'], use_transpose=False, debug=True)  # decent performance
+    es = 100
+    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+        crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+        num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+        aug=['flip'], use_transpose=False, debug=True, tpu=use_tpu)  # decent performance
 
     #main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
     #     crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=5,
@@ -338,4 +333,3 @@ if __name__ == "__main__":
     #      crop_size=120, depth_crop_size=64, num_channels=4, lr_drop_freq=10,
     #      num_conv_layers=3, batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
     #      aug=['flip'], use_transpose=True)  # poor performance
-
