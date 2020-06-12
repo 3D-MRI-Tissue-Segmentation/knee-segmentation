@@ -318,7 +318,7 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
-    # elif not FLAGS.visual_file == "":
+   # elif not FLAGS.visual_file == "":
     #     #pit code
     #     training_history_dir = os.path.join(FLAGS.logdir, FLAGS.tpu)
     #     training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
