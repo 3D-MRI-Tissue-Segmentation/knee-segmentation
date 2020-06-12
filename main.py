@@ -8,6 +8,7 @@ from datetime import datetime
 from absl import app
 from absl import flags
 from absl import logging
+from glob import glob
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
@@ -80,6 +81,7 @@ flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
+flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -90,6 +92,9 @@ flags.DEFINE_string('tpu', 'joe', 'Name of the TPU. Only used if use_gpu is Fals
 FLAGS = flags.FLAGS
 
 def main(argv):
+
+    if FLAGS.visual:
+        assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
 
     del argv  # unused arg
     # tf.random.set_seed(FLAGS.seed)
@@ -313,7 +318,10 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
-
+    elif FLAGS.visual not "":
+        """ add visualisation code here """
+        checkpoints = glob(os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual, "*"))
+        print(checkpoints)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         model.load_weights(FLAGS.weights_dir).expect_partial()
