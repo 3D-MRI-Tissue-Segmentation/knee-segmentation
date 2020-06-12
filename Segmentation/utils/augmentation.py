@@ -108,22 +108,11 @@ def apply_valid_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop
             new_width = tf.cast(original_width + tf.random.uniform([], minval=-original_width * factor, maxval=original_width * factor), tf.int32)
             x = tf.image.resize(x, [new_height, new_width])
             y = tf.image.resize(y, [new_height, new_width])
-
-        # tf.print("x:", tf.shape(x))
-        # tf.print("y:", tf.shape(y))
-        # tf.print("c:", centre)
-        
         dc, hc, wc = centre
-        
         x = tf.slice(x, [dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
         y = tf.slice(y, [dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
-        # tf.print("x:", tf.shape(x))
-        # tf.print("y:", tf.shape(y))
-        # tf.print("c:", centre)
         return centre, x, y
-
     centre = get_random_batch_centre(image_tensor, crop_size, depth_crop_size)
-
     centre, image_tensor, label_tensor = tf.map_fn(lambda x: crop_per_batch(x[0], x[1], x[2], crop_size, depth_crop_size, resize), (centre, image_tensor, label_tensor))
     return image_tensor, label_tensor
 
@@ -232,6 +221,7 @@ def apply_rotate_3d(image_tensor, label_tensor):
 
 
 def rotate_per_batch_3d(image_tensor, label_tensor):
+    tf.print("attempting to rotate:", tf.shape(image_tensor), tf.shape(label_tensor))
     k = tf.random.uniform([], minval=0, maxval=3, dtype=tf.int32)
     image_tensor = tf.image.rot90(image_tensor, k=k)
     label_tensor = tf.image.rot90(label_tensor, k=k)
