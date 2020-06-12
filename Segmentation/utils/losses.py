@@ -6,7 +6,7 @@ epsilon = 1e-5
 smooth = 1
 
 def dice_coef_loss(y_true, y_pred):
-    return 1. - dice_coef(y_true, y_pred)
+    return -dice_coef(y_true, y_pred)
 
 def dice_coef(y_true, y_pred, smooth=1):
     y_true_f = K.flatten(y_true)

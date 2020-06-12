@@ -8,6 +8,8 @@ from datetime import datetime
 from absl import app
 from absl import flags
 from absl import logging
+from glob import glob
+from google.cloud import storage
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
@@ -16,8 +18,9 @@ from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary
+from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
+from Segmentation.plotting.voxels import plot_volume
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -46,6 +49,7 @@ flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
 
 # UNet parameters
+flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
 flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
@@ -77,18 +81,24 @@ flags.DEFINE_integer('output_stride', 16, 'final output stride (taking into acco
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
 flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
+flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
+
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
+flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
 flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
 flags.DEFINE_integer('num_cores', 8, 'Number of TPU cores or number of GPUs.')
-flags.DEFINE_string('tpu', 'oai-tpu-machine', 'Name of the TPU. Only used if use_gpu is False.')
+flags.DEFINE_string('tpu', 'joe', 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
 
 def main(argv):
+
+    if FLAGS.visual_file:
+        assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
 
     del argv  # unused arg
     # tf.random.set_seed(FLAGS.seed)
@@ -145,10 +155,13 @@ def main(argv):
                                  use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
 
         num_classes = 7 if FLAGS.multi_class else 1
-
+    
+    
     if FLAGS.multi_class:
+        loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
     else:
+        loss_fn = dice_coef_loss
         crossentropy_loss_fn = tf.keras.losses.binary_crossentropy
 
     if FLAGS.use_bfloat16:
@@ -277,11 +290,12 @@ def main(argv):
                 model.build((batch_size, 288, 288, 3))
 
             model.summary()
-
+        
         model.compile(optimizer=optimiser,
-                      loss=tversky_loss,
+                      loss=loss_fn,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
-
+       
+                          
     if FLAGS.train:
 
         # define checkpoints
@@ -308,6 +322,102 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
+    elif not FLAGS.visual_file == "":
+        #pit code
+        training_history_dir = os.path.join(FLAGS.logdir, FLAGS.tpu)
+        training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
+        checkpoints = Path(training_history_dir).glob('*')
+
+        """ add visualisation code here """
+        #path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
+        print(training_history_dir)
+        # checkpoints = glob(os.path.join(path, "*"))
+        print("+========================================================")
+        print(f"Does the selected path exist: {Path(training_history_dir).is_dir()}")
+        print(f"The glob object is: {checkpoints}")
+        print("\n\nThe directories are:")
+
+        storage_client = storage.Client()
+        
+        session_name = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
+
+        blobs = storage_client.list_blobs(FLAGS.bucket) 
+        session_content = []
+        for blob in blobs:
+            if session_name in blob.name:
+                session_content.append(blob.name)
+
+        session_weights = []
+        for item in session_content:
+            if ('_weights' in item) and ('.ckpt.index' in item):
+                session_weights.append(item)
+        
+        for s in session_weights:
+            print(s)
+        print("--")
+
+        for chkpt in session_weights:
+            name = chkpt.split('/')[-1]
+            name = name.split('.inde')[0]
+            model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
+            
+            sample_x = []    # x for current 160,288,288 vol
+            sample_pred = [] # prediction for current 160,288,288 vol
+            sample_y = []    # y for current 160,288,288 vol
+
+            for idx, ds in enumerate(valid_ds):
+                x, y = ds
+                batch_size = x.shape[0]
+                target = 160
+                print(batch_size)
+                print(target)
+                x = np.array(x)
+                y = np.array(y)
+                print(type(x))
+                print(x.shape)
+                pred = model.predict(x)
+                print(type(pred))
+                print(pred.shape)
+                print(type(y))
+                print(y.shape)
+
+                print("=================")
+
+                if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
+                    sample_pred.append(pred)
+                    sample_y.append(y)
+                else:
+                    remaining = target - get_depth(sample_pred)
+                    sample_pred.append(pred[:remaining])
+                    sample_y.append(y[:remaining])
+                    pred_vol = np.concatenate(sample_pred)
+                    pred_y = np.concatenate(sample_pred)
+                    sample_pred = [pred[remaining:]]
+                    sample_y = [y[remaining:]]
+
+                    print("===============")
+                    print("pred done")
+                    print(pred_vol.shape)
+                    print(pred_y.shape)
+                    print("===============")
+
+                    
+                    pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
+                    pred_vol = np.stack((pred_vol,) * 3, axis=-1)
+
+                    fig = plot_volume(pred_vol)
+                    plt.savefig(f"results/hello-hello")
+                    plt.close('all')
+
+                    break
+
+                print("=================")
+
+                if idx == 4:
+                    break
+                ## we need to then merge into each (288,288,160) volume. Validation data should be in order
+
+            break
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file
