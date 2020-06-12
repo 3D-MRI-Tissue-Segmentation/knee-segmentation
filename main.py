@@ -324,13 +324,13 @@ def main(argv):
         print(path)
         gs_path = Path(path)
         # checkpoints = glob(os.path.join(path, "*"))
-        checkpoints = list(gs_path.glob(os.path.join(path, "*")))
+        checkpoints = list(gs_path.glob('*'))
         print("+========================================================")
         print(checkpoints)
         print("+========================================================")
-        from os import listdir
-        chkp = listdir(path)
-        print(chkp)
+        # from os import listdir
+        # chkp = listdir(path)
+        # print(chkp)
         print("+========================================================")
     else:
         # load the checkpoint in the FLAGS.weights_dir file
