@@ -365,6 +365,8 @@ def main(argv):
             sample_pred = [] # prediction for current 160,288,288 vol
             sample_y = []    # y for current 160,288,288 vol
 
+            dices = []
+
             for idx, ds in enumerate(valid_ds):
                 x, y = ds
                 batch_size = x.shape[0]
@@ -391,17 +393,21 @@ def main(argv):
                     sample_pred.append(pred[:remaining])
                     sample_y.append(y[:remaining])
                     pred_vol = np.concatenate(sample_pred)
-                    pred_y = np.concatenate(sample_pred)
+                    y_vol = np.concatenate(sample_y)
                     sample_pred = [pred[remaining:]]
                     sample_y = [y[remaining:]]
 
                     print("===============")
                     print("pred done")
                     print(pred_vol.shape)
-                    print(pred_y.shape)
+                    print(y_vol.shape)
                     print("===============")
 
-                    
+                    pred_vol_dice = dice_coef_loss(y_vol, pred_vol)
+                    dices.append(pred_vol_dice)
+
+                    print("DICE:", pred_vol_dice)
+
                     pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
                     pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
