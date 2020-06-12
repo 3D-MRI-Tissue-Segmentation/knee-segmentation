@@ -337,12 +337,19 @@ def main(argv):
         storage_client = storage.Client()
         bucket_name = 'oai-challenge-dataset'
         weight_folder = 'checkpoints'
-        session_name = os.path.join(weight_folder, FLAGS.tpu, FLAGS.visual_file, FLAGS.model_architecture)
+        session_name = os.path.join(weight_folder, FLAGS.tpu, FLAGS.visual_file)
 
         blobs = storage_client.list_blobs(bucket_name) 
+        session_content = []
         for blob in blobs:
             if session_name in blob.name:
-                print(blob.name)
+                session_content.append(blob.name)
+
+        for item in session_content:
+            if '_weights' not in item:
+                session_content.remove(item)
+        
+        print(session_content)
         
         for dirs in checkpoints:
             print("\n", dirs)
