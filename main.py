@@ -325,9 +325,6 @@ def main(argv):
         training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
         checkpoints = Path(training_history_dir).glob('*')
 
-        client = storage.Client()
-        
-
         """ add visualisation code here """
         #path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
         print(training_history_dir)
@@ -336,6 +333,11 @@ def main(argv):
         print(f"Does the selected path exist: {Path(training_history_dir).is_dir()}")
         print(f"The glob object is: {checkpoints}")
         print("\n\nThe directories are:")
+
+        storage_client = storage.Client()
+        blobs = storage_client.list_blobs(bucket_name) 
+        print('blobs', blobs)
+        
         for dirs in checkpoints:
             print("\n", dirs)
         print("+========================================================")
