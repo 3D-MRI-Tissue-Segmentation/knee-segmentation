@@ -20,6 +20,7 @@ from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
+from Segmentation.plotting.voxels import plot_volume
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -403,6 +404,12 @@ def main(argv):
                     print(pred_vol.shape)
                     print(pred_y.shape)
                     print("===============")
+
+                    fig = plot_volume(pred_vol)
+                    plt.savefig(f"results/hello-hello")
+                    plt.close('all')
+
+                    break
 
                 print("=================")
 
