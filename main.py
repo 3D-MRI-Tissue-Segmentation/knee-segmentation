@@ -20,6 +20,7 @@ from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
+from Segmentation.plotting.voxels import plot_volume
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -380,10 +381,6 @@ def main(argv):
                 print(type(y))
                 print(y.shape)
 
-            
-                
-
-
                 print("=================")
 
                 if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
@@ -404,9 +401,8 @@ def main(argv):
                     print(pred_y.shape)
                     print("===============")
 
-<<<<<<< HEAD
                     
-                    pred_vol = pred_vol[30:90, 114:174, 114:174, 0]
+                    pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
                     pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
                     fig = plot_volume(pred_vol)
@@ -415,8 +411,6 @@ def main(argv):
 
                     break
 
-=======
->>>>>>> 344d8fde559e06c390cd22d9f7d44d9f44aafa09
                 print("=================")
 
                 if idx == 4:
