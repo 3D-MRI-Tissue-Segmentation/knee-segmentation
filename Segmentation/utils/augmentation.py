@@ -98,9 +98,9 @@ def one_hot_background_2d(label_tensor):
 #     return image_tensor, label_tensor
 
 
-def apply_valid_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size, resize, factor=0.04):
+def apply_valid_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size, resize, random_shift, factor=0.04):
 
-    def crop_per_batch(centre, x, y, crop_size, depth_crop_size, resize):
+    def crop_per_batch(x, y, centre, crop_size, depth_crop_size, resize):
         if resize:
             original_height = tf.cast(tf.shape(x)[1], tf.float32)
             original_width = tf.cast(tf.shape(x)[2], tf.float32)
@@ -111,9 +111,13 @@ def apply_valid_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop
         dc, hc, wc = centre
         x = tf.slice(x, [dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
         y = tf.slice(y, [dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
-        return centre, x, y
-    centre = get_random_batch_centre(image_tensor, crop_size, depth_crop_size)
-    centre, image_tensor, label_tensor = tf.map_fn(lambda x: crop_per_batch(x[0], x[1], x[2], crop_size, depth_crop_size, resize), (centre, image_tensor, label_tensor))
+        return x, y, centre
+    
+    if random_shift:
+        centre = get_random_batch_centre(image_tensor, crop_size, depth_crop_size)
+        image_tensor, label_tensor, centre = tf.map_fn(lambda x: crop_per_batch(x[0], x[1], x[2], crop_size, depth_crop_size, resize), (image_tensor, label_tensor, centre))
+    else:
+        image_tensor, label_tensor = apply_centre_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size)
     return image_tensor, label_tensor
 
 

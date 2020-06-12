@@ -245,7 +245,8 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
     if crop_size is not None:
         if is_training:
             resize = "resize" in aug
-            parse_crop = partial(apply_valid_random_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size, resize=resize)
+            random_shift = "shift" in aug
+            parse_crop = partial(apply_valid_random_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size, resize=resize, random_shift=random_shift)
             dataset = dataset.map(map_func=parse_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
             if "bright" in aug:
                 dataset = dataset.map(apply_random_brightness_3d)
