@@ -80,6 +80,8 @@ flags.DEFINE_integer('output_stride', 16, 'final output stride (taking into acco
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
 flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
+flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
+
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
@@ -335,11 +337,10 @@ def main(argv):
         print("\n\nThe directories are:")
 
         storage_client = storage.Client()
-        bucket_name = 'oai-challenge-dataset'
-        weight_folder = 'checkpoints'
-        session_name = os.path.join(weight_folder, FLAGS.tpu, FLAGS.visual_file)
+        
+        session_name = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
 
-        blobs = storage_client.list_blobs(bucket_name) 
+        blobs = storage_client.list_blobs(FLAGS.bucket) 
         session_content = []
         for blob in blobs:
             if session_name in blob.name:
@@ -350,18 +351,24 @@ def main(argv):
             if '_weights' in item:
                 session_weights.append(item)
         
+
+        print(session_weights)
+        
+        print("--")
+
         print(session_weights[:])
         
-        for dirs in checkpoints:
-            print("\n", dirs)
-        print("+========================================================")
-        # from os import listdir:
-        #     chkp = listdir(path)
-        # print(chkp)
-        print("Hey Olivia")
-        print("+========================================================")
+        print("--")
+
+        for s in session_weights:
+            print(s)
+        print("--")
+
     else:
         # load the checkpoint in the FLAGS.weights_dir file
+        
+        # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
+
         model.load_weights(FLAGS.weights_dir).expect_partial()
         model.evaluate(valid_ds, steps=validation_steps)
         cm = np.zeros((num_classes, num_classes))
