@@ -327,7 +327,7 @@ def main(argv):
 
         """ add visualisation code here """
         path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
-        print(path)
+        print(training_history_dir)
         # checkpoints = glob(os.path.join(path, "*"))
         print("+========================================================")
         for e in checkpoints.iterdir():
