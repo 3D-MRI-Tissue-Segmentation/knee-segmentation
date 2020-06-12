@@ -324,6 +324,10 @@ def main(argv):
         print("+========================================================")
         print(checkpoints)
         print("+========================================================")
+        from os import listdir
+        chkp = listdir(os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file, "*"))
+        print(chkp)
+        print("+========================================================")
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         model.load_weights(FLAGS.weights_dir).expect_partial()
