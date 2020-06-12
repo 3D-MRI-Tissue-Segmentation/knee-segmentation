@@ -404,6 +404,19 @@ def main(argv):
                     print(pred_y.shape)
                     print("===============")
 
+<<<<<<< HEAD
+                    
+                    pred_vol = pred_vol[30:90, 114:174, 114:174, 0]
+                    pred_vol = np.stack((pred_vol,) * 3, axis=-1)
+
+                    fig = plot_volume(pred_vol)
+                    plt.savefig(f"results/hello-hello")
+                    plt.close('all')
+
+                    break
+
+=======
+>>>>>>> 344d8fde559e06c390cd22d9f7d44d9f44aafa09
                 print("=================")
 
                 if idx == 4:
