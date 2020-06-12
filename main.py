@@ -330,7 +330,7 @@ def main(argv):
         print(path)
         # checkpoints = glob(os.path.join(path, "*"))
         print("+========================================================")
-        print(checkpoints)
+        sorted(checkpoints)
         print("+========================================================")
         from os import listdir
         chkp = listdir(path)
