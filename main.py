@@ -380,6 +380,9 @@ def main(argv):
                 print(type(y))
                 print(y.shape)
 
+            
+                break
+
 
                 print("=================")
 
@@ -387,7 +390,7 @@ def main(argv):
                     sample_pred.append(pred)
                     sample_y.append(y)
                 else:
-                    remaining = 160 - len(sample_pred) * batch_size
+                    remaining = 160 - get_depth(sample_pred)
                     sample_pred.append(pred[:remaining])
                     sample_y.append(y[:remaining])
                     pred_vol = np.concatenate(sample_pred)
