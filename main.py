@@ -358,7 +358,7 @@ def main(argv):
 
         for chkpt in session_weights:
             name = chkpt.split('/')[-1]
-            name = name .split('.inde')[0]
+            name = name.split('.inde')[0]
             model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
             
             sample_x = []    # x for current 160,288,288 vol
@@ -404,6 +404,10 @@ def main(argv):
                     print(pred_vol.shape)
                     print(pred_y.shape)
                     print("===============")
+
+                    
+                    pred_vol = pred_vol[30:90, 114:174, 114:174, 0]
+                    pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
                     fig = plot_volume(pred_vol)
                     plt.savefig(f"results/hello-hello")
