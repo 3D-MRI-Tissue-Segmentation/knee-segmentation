@@ -348,21 +348,32 @@ def main(argv):
 
         session_weights = []
         for item in session_content:
-            if '_weights' in item:
+            if ('_weights' in item) and ('.ckpt.index' in item):
                 session_weights.append(item)
         
-
-        print(session_weights)
-        
-        print("--")
-
-        print(session_weights[:])
-        
-        print("--")
-
         for s in session_weights:
             print(s)
         print("--")
+
+        for chkpt in session_weights:
+            name = chkpt.split('/')[-1]
+            name = name .split('.inde')[0]
+            model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
+            for idx, ds in enumerate(valid_ds):
+                x, y = ds
+                print(type(x))
+                print(x.shape)
+                pred = model.predict(x)
+                print(type(pred))
+                print(pred.shape)
+                print(type(y))
+                print(y.shape)
+                print("=================")
+
+
+                ## we need to then merge into each (288,288,160) volume. Validation data should be in order
+
+            break
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file
