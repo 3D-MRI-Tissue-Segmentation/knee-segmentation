@@ -341,7 +341,7 @@ def main(argv):
 
         blobs = storage_client.list_blobs(bucket_name) 
         for blob in blobs:
-            if session_name in blob:
+            if session_name in blob.name:
                 print(blob.name)
         
         for dirs in checkpoints:
