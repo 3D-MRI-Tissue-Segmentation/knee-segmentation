@@ -359,7 +359,13 @@ def main(argv):
             name = chkpt.split('/')[-1]
             name = name .split('.inde')[0]
             model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
-            model.evaluate(valid_ds, steps=validation_steps)
+            for x,y in valid_ds:
+                print(x.shape)
+                pred = model.predict(x, steps=validation_steps)
+                print(pred.shape)
+
+                ## we need to then merge into each (288,288,160) volume. Validation data should be in order
+
             break
 
     else:
