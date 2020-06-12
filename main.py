@@ -345,11 +345,12 @@ def main(argv):
             if session_name in blob.name:
                 session_content.append(blob.name)
 
+        session_weights = []
         for item in session_content:
-            if '_weights' not in item:
-                session_content.remove(item)
+            if '_weights' in item:
+                session_weights.append(item)
         
-        print(session_content)
+        print(session_weights)
         
         for dirs in checkpoints:
             print("\n", dirs)
