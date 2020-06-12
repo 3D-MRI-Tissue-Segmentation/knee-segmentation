@@ -318,7 +318,7 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
-    elif not FLAGS.visual == "":
+    elif not FLAGS.visual_file == "":
         """ add visualisation code here """
         checkpoints = glob(os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual, "*"))
         print(checkpoints)
