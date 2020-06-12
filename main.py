@@ -16,7 +16,7 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
+from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
@@ -407,6 +407,8 @@ def main(argv):
                     dices.append(pred_vol_dice)
 
                     print("DICE:", pred_vol_dice)
+
+                    print("JOE DICE:", dice_loss(y_vol, pred_vol))
 
                     pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
                     pred_vol = np.stack((pred_vol,) * 3, axis=-1)

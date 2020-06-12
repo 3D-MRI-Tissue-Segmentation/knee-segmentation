@@ -15,6 +15,23 @@ def dice_coef(y_true, y_pred, smooth=1):
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f * y_true_f) + K.sum(y_pred_f * y_pred_f) + smooth)
 
+
+def dsc(y_true, y_pred):
+    # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
+    smooth = 1.
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    intersection = K.sum(y_true_f * y_pred_f)
+    score = (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+    return score
+
+def dice_loss(y_true, y_pred):
+    # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
+    loss = 1 - dsc(y_true, y_pred)
+    return loss
+
+
+
 def tversky_loss(y_true, y_pred, alpha=0.5, beta=0.5, smooth=1e-10):
     """ Tversky loss function.
     Parameters
