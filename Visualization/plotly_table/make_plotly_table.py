@@ -24,3 +24,5 @@ if __name__ == "__main__":
     ])
 
     fig.show()
+
+    fig.write_html(opt.output_html_pathname)

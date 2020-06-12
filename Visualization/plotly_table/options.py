@@ -18,7 +18,7 @@ class Options():
     def initialize(self):
         self.parser.add_argument('-in', '--input_data_path', type=str, default='', help='Path name of input csv.')
         self.parser.add_argument('-test', '--test', type=bool, default=False, help='Generates smol csv file to display a dummy table.')
-        
+        self.parser.add_argument('-out', '--output_html_pathname', type=str, default='plotly_table.html', help='Name of output html file, must have html ending.')
         self.initialized = True
 
     def parse(self):
@@ -28,7 +28,7 @@ class Options():
 
         # check that the input is of an acceptable format
         if self.opt.input_data_path:
-            assert is_acceptable(self.opt.input_data_path), 'Please input a file name of extension type ' + EXTENSIONS    
+            assert is_acceptable(self.opt.input_data_path), 'Please input a file name of extension type ' + EXTENSIONS[0]    
 
         if self.opt.test:
             import numpy as np
