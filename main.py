@@ -337,7 +337,8 @@ def main(argv):
         storage_client = storage.Client()
         bucket_name = 'oai-challenge'
         blobs = storage_client.list_blobs(bucket_name) 
-        print('blobs', blobs)
+        for blob in blobs:
+            print(blob.name)
         
         for dirs in checkpoints:
             print("\n", dirs)
