@@ -321,7 +321,9 @@ def main(argv):
     elif not FLAGS.visual_file == "":
         """ add visualisation code here """
         checkpoints = glob(os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file, "*"))
+        print("+========================================================")
         print(checkpoints)
+        print("+========================================================")
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         model.load_weights(FLAGS.weights_dir).expect_partial()
