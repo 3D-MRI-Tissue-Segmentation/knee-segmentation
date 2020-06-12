@@ -358,7 +358,7 @@ def main(argv):
         for chkpt in session_weights:
             name = chkpt.split('/')[-1]
             name = name .split('.inde')[0]
-            model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name).expect_partial()
+            model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
             model.evaluate(valid_ds, steps=validation_steps)
             break
 
