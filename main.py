@@ -9,6 +9,7 @@ from absl import app
 from absl import flags
 from absl import logging
 from glob import glob
+from google.cloud import storage
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
@@ -324,7 +325,8 @@ def main(argv):
         training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
         checkpoints = Path(training_history_dir).glob('*')
 
-        Path('test').mkdir(parents=True, exist_ok=True)
+        client = storage.Client()
+        
 
         """ add visualisation code here """
         #path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
