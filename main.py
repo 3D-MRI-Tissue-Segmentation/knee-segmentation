@@ -337,7 +337,7 @@ def main(argv):
         storage_client = storage.Client()
         bucket_name = 'oai-challenge-dataset'
         weight_folder = 'checkpoints'
-        session_name = os.path.join(weight_folder, FLAGS.tpu, FLAGS.visual_file)
+        session_name = os.path.join(weight_folder, FLAGS.tpu, FLAGS.visual_file, FLAGS.model_architecture, '_weights')
 
         blobs = storage_client.list_blobs(bucket_name) 
         for blob in blobs:
