@@ -318,28 +318,23 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
-    elif not FLAGS.visual_file == "":
+   elif not FLAGS.visual_file == "":
         #pit code
         training_history_dir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
-        # checkpoints = Path(training_history_dir).glob("/*")
-        checkpoints = list()
-        for x in Path(training_history_dir).iterdir():
-            if x.is_dir():
-                checkpoints.append(x)
-
-
+        checkpoints = Path(training_history_dir).glob('*')
 
         """ add visualisation code here """
-        path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
+        #path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
         print(training_history_dir)
         # checkpoints = glob(os.path.join(path, "*"))
         print("+========================================================")
-        print(checkpoints)
+        print(sorted(checkpoints))
         print("+========================================================")
         # from os import listdir:
         #     chkp = listdir(path)
         # print(chkp)
+        print("Hey Olivia")
         print("+========================================================")
     else:
         # load the checkpoint in the FLAGS.weights_dir file
