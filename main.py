@@ -329,7 +329,11 @@ def main(argv):
         print(training_history_dir)
         # checkpoints = glob(os.path.join(path, "*"))
         print("+========================================================")
-        print(sorted(checkpoints))
+        print(f"Does the selected path exist: {Path(training_history_dir).is_dir()}")
+        print(f"The glob object is: {checkpoints}")
+        print("\n\nThe directories are:")
+        for dirs in checkpoints:
+            print("\n", dirs)
         print("+========================================================")
         # from os import listdir:
         #     chkp = listdir(path)
