@@ -18,7 +18,7 @@ from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary
+from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 
 # Dataset/training options
@@ -357,12 +357,12 @@ def main(argv):
 
         for chkpt in session_weights:
             name = chkpt.split('/')[-1]
-            name = name .split('.inde')[0]
+            name = name.split('.inde')[0]
             model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
             
-            sample_x = []
-            sample_pred = []
-            sample_y = []
+            sample_x = []    # x for current 160,288,288 vol
+            sample_pred = [] # prediction for current 160,288,288 vol
+            sample_y = []    # y for current 160,288,288 vol
 
             for idx, ds in enumerate(valid_ds):
                 x, y = ds
@@ -380,14 +380,30 @@ def main(argv):
                 print(type(y))
                 print(y.shape)
 
+            
+                
+
 
                 print("=================")
 
-                sample_pred.append(pred)
-                sample_y.append(y)
+                if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
+                    sample_pred.append(pred)
+                    sample_y.append(y)
+                else:
+                    remaining = target - get_depth(sample_pred)
+                    sample_pred.append(pred[:remaining])
+                    sample_y.append(y[:remaining])
+                    pred_vol = np.concatenate(sample_pred)
+                    pred_y = np.concatenate(sample_pred)
+                    sample_pred = [pred[remaining:]]
+                    sample_y = [y[remaining:]]
 
-                print(sample_pred)
-                print(sample_y)
+                    print("===============")
+                    print("pred done")
+                    print(pred_vol.shape)
+                    print(pred_y.shape)
+                    print("===============")
+
                 print("=================")
 
                 if idx == 4:
