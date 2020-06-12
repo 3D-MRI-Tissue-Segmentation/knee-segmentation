@@ -381,16 +381,16 @@ def main(argv):
                 print(y.shape)
 
             
-                break
+                
 
 
                 print("=================")
 
-                if (get_depth(sample_pred) + batch_size) < 160:  # check if next batch will fit in volume (160)
+                if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
                     sample_pred.append(pred)
                     sample_y.append(y)
                 else:
-                    remaining = 160 - get_depth(sample_pred)
+                    remaining = target - get_depth(sample_pred)
                     sample_pred.append(pred[:remaining])
                     sample_y.append(y[:remaining])
                     pred_vol = np.concatenate(sample_pred)
