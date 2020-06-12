@@ -400,12 +400,6 @@ def main(argv):
                     print(pred_vol.shape)
                     print(pred_y.shape)
                     print("===============")
-                    
-
-                print(sample_pred)
-                print(sample_y)
-
-                
 
                 print("=================")
 
