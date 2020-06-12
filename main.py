@@ -350,7 +350,7 @@ def main(argv):
             if '_weights' in item:
                 session_weights.append(item)
         
-        print(session_weights)
+        print(session_weights[:])
         
         for dirs in checkpoints:
             print("\n", dirs)
