@@ -319,10 +319,16 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
+        #pit code
+        training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
+        training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
+        checkpoints = Path(training_history_dir).glob("*")
+
+
         """ add visualisation code here """
-        path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
+        # path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
         print(path)
-        checkpoints = glob(os.path.join(path, "*"))
+        # checkpoints = glob(os.path.join(path, "*"))
         print("+========================================================")
         print(checkpoints)
         print("+========================================================")
