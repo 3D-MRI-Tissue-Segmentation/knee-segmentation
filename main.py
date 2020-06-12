@@ -324,8 +324,9 @@ def main(argv):
         training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
         # checkpoints = Path(training_history_dir).glob("/*")
         checkpoints = list()
-        for x in Path(training_history_dir).iterdir() if x.is_dir():
-            checkpoints.append(x)
+        for x in Path(training_history_dir).iterdir():
+            if x.is_dir():
+                checkpoints.append(x)
 
 
 
