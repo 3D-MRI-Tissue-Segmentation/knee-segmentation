@@ -322,7 +322,8 @@ def main(argv):
         #pit code
         training_history_dir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
-        checkpoints = Path(training_history_dir).glob("/*")
+        # checkpoints = Path(training_history_dir).glob("/*")
+        checkpoints = x for x in Path(training_history_dir).iterdir() if x.is_dir()
 
 
         """ add visualisation code here """
@@ -330,7 +331,6 @@ def main(argv):
         print(training_history_dir)
         # checkpoints = glob(os.path.join(path, "*"))
         print("+========================================================")
-        list(checkpoints)
         print(list(checkpoints))
         print("+========================================================")
         # from os import listdir:
