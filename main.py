@@ -324,6 +324,8 @@ def main(argv):
         training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
         checkpoints = Path(training_history_dir).glob('*')
 
+        Path('test').mkdir(parents=True, exist_ok=True)
+
         """ add visualisation code here """
         #path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
         print(training_history_dir)
