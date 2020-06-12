@@ -93,7 +93,7 @@ FLAGS = flags.FLAGS
 
 def main(argv):
 
-    if FLAGS.visual:
+    if FLAGS.visual_file:
         assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
 
     del argv  # unused arg
