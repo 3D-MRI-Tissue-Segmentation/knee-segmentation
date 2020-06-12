@@ -299,7 +299,7 @@ def main(epochs,
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
         trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
-        
+
         # tf.print("starting")
         # for idx, data in enumerate(train_ds):
         #     x, y = data
@@ -322,63 +322,19 @@ if __name__ == "__main__":
     if not use_tpu:
         setup_gpu()
 
-    # a = tf.constant([100, 900])
-    # tf.print(a)
-    # b = a < 1000
-    # tf.print(b)
-    # c = tf.reduce_all(b)
-    # tf.print(c)
-    #tf.print(tf.reduce_sum(tf.constant([100, 1900]) < 1000))
-    #tf.print(tf.reduce_all((tf.constant([100, 1900]) < 1000)))
-
-    # def sq(x, idx, a):
-    #     tf.print("===========")
-    #     tf.print(x)
-    #     tf.print(idx)
-    #     tf.print(a)
-    #     idx += 1
-    #     tf.print(idx)
-    #     return x*x
-
-    # elems = np.array([1, 2, 3, 4])
-    # counter = tf.([0])
-    # squares = tf.map_fn(lambda x: sq(x, counter, "hello"), elems)
-    # tf.print(squares)
-
-    # a = tf.constant([[1,2,3],[4,5,6],[3,2,1]])
-    # b = tf.constant([[True, False, True]], dtype=tf.bool)
-
-    # c = tf.map_fn(lambda x: (x[0], x[1], x[2]), (a,b), dtype=(tf.int32, tf.bool))
-
-    # tf.print(c)
-
-    # def sq(idx, x, x2):
-    #     tf.print(idx, x, x2)
-    #     return idx, x*x, x2
-    
-    # # elems = np.array([3, 2, 6, 4])
-    # #idx = np.array([0,1,2,3])
-    # # idx = np.array(range(len(elems)))
-
-    # elems = tf.constant([3, 2, 6, 4])
-    # elems_2 = tf.constant([[2,23], [1,23], [4,16], [2,0]])
-    # idx = tf.constant(range(len(elems)))
-
-    # squares = tf.map_fn(lambda x: sq(x[0], x[1], x[2]), (idx, elems, elems_2))
-    # tf.print(squares)
-
+    debug = False
     es = 300
     main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
          num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip', 'rotate', 'resize'], use_transpose=False, debug=False, tpu=use_tpu)  # decent performance
+         aug=['flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)  # decent performance
 
     main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
          num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['flip', 'rotate', 'resize'], use_transpose=False, debug=True, tpu=use_tpu)  # decent performance
+         aug=[], use_transpose=False, debug=debug, tpu=use_tpu)  # decent performance
 
     main(epochs=es, lr=1e-4, dropout_rate=1e-6, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
          num_conv_layers=3, batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-         aug=['flip', 'rotate', 'resize'], use_transpose=True)  # just predicts background class
+         aug=['flip', 'rotate', 'resize'], use_transpose=True, debug=debug)  # just predicts background class

@@ -221,7 +221,7 @@ def apply_rotate_3d(image_tensor, label_tensor):
 
 
 def rotate_per_batch_3d(image_tensor, label_tensor):
-    tf.print("attempting to rotate:", tf.shape(image_tensor), tf.shape(label_tensor))
+    # tf.print("attempting to rotate:", tf.shape(image_tensor), tf.shape(label_tensor))
     k = tf.random.uniform([], minval=0, maxval=3, dtype=tf.int32)
     image_tensor = tf.image.rot90(image_tensor, k=k)
     label_tensor = tf.image.rot90(label_tensor, k=k)
