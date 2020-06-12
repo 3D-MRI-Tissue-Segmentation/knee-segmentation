@@ -335,6 +335,7 @@ def main(argv):
         print("\n\nThe directories are:")
 
         storage_client = storage.Client()
+        bucket_name = 'oai-challenge'
         blobs = storage_client.list_blobs(bucket_name) 
         print('blobs', blobs)
         
