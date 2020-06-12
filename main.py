@@ -18,7 +18,7 @@ from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary
+from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 
 # Dataset/training options
@@ -383,7 +383,7 @@ def main(argv):
 
                 print("=================")
 
-                if (len(sample_pred) + 1) * batch_size < 160:  # check if next batch will fit in volume (160)
+                if (get_depth(sample_pred) + batch_size) < 160:  # check if next batch will fit in volume (160)
                     sample_pred.append(pred)
                     sample_y.append(y)
                 else:
