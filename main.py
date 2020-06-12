@@ -330,7 +330,7 @@ def main(argv):
         print(training_history_dir)
         # checkpoints = glob(os.path.join(path, "*"))
         print("+========================================================")
-        for e in checkpoints.iterdir():
+        for e in checkpoints:
             print(e)
         print("+========================================================")
         from os import listdir
