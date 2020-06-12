@@ -360,9 +360,9 @@ def main(argv):
             name = name .split('.inde')[0]
             model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
             
-            sample_x = []
-            sample_pred = []
-            sample_y = []
+            sample_x = []    # x for current 160,288,288 vol
+            sample_pred = [] # prediction for current 160,288,288 vol
+            sample_y = []    # y for current 160,288,288 vol
 
             for idx, ds in enumerate(valid_ds):
                 x, y = ds
@@ -383,11 +383,30 @@ def main(argv):
 
                 print("=================")
 
-                sample_pred.append(pred)
-                sample_y.append(y)
+                if (len(sample_pred) + 1) * batch_size < 160:  # check if next batch will fit in volume (160)
+                    sample_pred.append(pred)
+                    sample_y.append(y)
+                else:
+                    remaining = 160 - len(sample_pred) * batch_size
+                    sample_pred.append(pred[:remaining])
+                    sample_y.append(y[:remaining])
+                    pred_vol = np.concatenate(sample_pred)
+                    pred_y = np.concatenate(sample_pred)
+                    sample_pred = [pred[remaining:]]
+                    sample_y = [y[remaining:]]
+
+                    print("===============")
+                    print("pred done")
+                    print(pred_vol.shape)
+                    print(pred_y.shape)
+                    print("===============")
+                    
 
                 print(sample_pred)
                 print(sample_y)
+
+                
+
                 print("=================")
 
                 if idx == 4:
