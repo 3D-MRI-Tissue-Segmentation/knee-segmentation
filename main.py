@@ -335,7 +335,8 @@ def main(argv):
         print("\n\nThe directories are:")
 
         storage_client = storage.Client()
-        bucket_name = 'oai-challenge-dataset'
+        bucket_name = 'oai-challenge-dataset/checkpoints'
+        session_name = os.path.join(bucket_name, FLAGS.tpu, FLAGS.visual_file)
         blobs = storage_client.list_blobs(bucket_name) 
         for blob in blobs:
             print(blob.name)
