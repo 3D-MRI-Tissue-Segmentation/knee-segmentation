@@ -333,9 +333,9 @@ def main(argv):
         for e in checkpoints:
             print(e)
         print("+========================================================")
-        from os import listdir
-        chkp = listdir(path)
-        print(chkp)
+        # from os import listdir:
+        #     chkp = listdir(path)
+        # print(chkp)
         print("+========================================================")
     else:
         # load the checkpoint in the FLAGS.weights_dir file
