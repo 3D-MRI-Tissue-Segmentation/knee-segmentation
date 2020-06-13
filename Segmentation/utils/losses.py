@@ -1,3 +1,4 @@
+import numpy as np
 from tensorflow.keras.losses import binary_crossentropy, categorical_crossentropy
 import tensorflow.keras.backend as K
 import tensorflow as tf
@@ -14,6 +15,20 @@ def dice_coef(y_true, y_pred, smooth=1):
 
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f * y_true_f) + K.sum(y_pred_f * y_pred_f) + smooth)
+
+def dsc(y_true, y_pred):
+    # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
+    smooth = 1.
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    intersection = K.sum(y_true_f * y_pred_f)
+    score = (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+    return score
+
+def dice_loss(y_true, y_pred):
+    # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
+    loss = 1 - dsc(y_true, y_pred)
+    return loss
 
 def tversky_loss(y_true, y_pred, alpha=0.5, beta=0.5, smooth=1e-10):
     """ Tversky loss function.
@@ -45,13 +60,21 @@ def tversky_crossentropy(y_true, y_pred):
 
     return tversky + crossentropy
 
-def iou_loss_core(y_true, y_pred, smooth=1):
+def iou_loss(y_true, y_pred, smooth=1):
     y_true = K.flatten(y_true)
     y_pred = K.flatten(y_pred)
     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
     union = K.sum(y_true, -1) + K.sum(y_pred, -1) - intersection
     iou = (intersection + smooth) / (union + smooth)
 
+    return iou
+
+def iou_eval(y_true, y_pred, drop_class_idx=0):
+
+    y_true = np.delete(y_true, drop_class_idx, axis=-1)
+    y_pred = np.delete(y_true, drop_class_idx, axis=-1)
+
+    iou = iou_loss(y_true, y_pred, smooth)
     return iou
 
 def bce_dice_loss(y_true, y_pred):

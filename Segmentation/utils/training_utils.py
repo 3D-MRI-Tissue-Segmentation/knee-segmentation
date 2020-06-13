@@ -39,7 +39,7 @@ def plot_train_history_loss(history, multi_class=True, savefig=None):
         plt.savefig(filename)
 
 def visualise_binary(y_true, y_pred, savefig=None):
-    
+
     batch_size = y_true.shape[0]
 
     for i in range(batch_size):

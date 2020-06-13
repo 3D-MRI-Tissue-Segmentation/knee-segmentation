@@ -8,16 +8,17 @@ from datetime import datetime
 from absl import app
 from absl import flags
 from absl import logging
+from glob import glob
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
+from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
+from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary
-from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -35,7 +36,7 @@ flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
+flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) ori binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
@@ -44,6 +45,7 @@ flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
+flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 
 # UNet parameters
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
@@ -58,7 +60,6 @@ flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after e
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
-flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
 
 # Deeplab parametersi
@@ -78,8 +79,11 @@ flags.DEFINE_integer('output_stride', 16, 'final output stride (taking into acco
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
 flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
+flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
+
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
+flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -90,6 +94,9 @@ flags.DEFINE_string('tpu', 'joe', 'Name of the TPU. Only used if use_gpu is Fals
 FLAGS = flags.FLAGS
 
 def main(argv):
+
+    if FLAGS.visual_file:
+        assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
 
     del argv  # unused arg
     # tf.random.set_seed(FLAGS.seed)
@@ -146,8 +153,7 @@ def main(argv):
                                  use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
 
         num_classes = 7 if FLAGS.multi_class else 1
-    
-    
+
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -282,13 +288,16 @@ def main(argv):
 
             model.summary()
         
-        model.compile(optimizer=optimiser,
-                      loss=loss_fn,
-                      metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
-       
-                          
-    if FLAGS.train:
+        if FLAGS.multi_class:
+            model.compile(optimizer=optimiser,
+                          loss=loss_fn,
+                          metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+        else:
+            model.compile(optimizer=optimiser, 
+                          loss=loss_fn,
+                          metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 
+    if FLAGS.train:
         # define checkpoints
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
         training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
@@ -313,30 +322,27 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
-
+    elif not FLAGS.visual_file == "":
+        plot_and_eval_3D(trained_model=model,
+                         logdir=FLAGS.logdir,
+                         visual_file=FLAGS.visual_file,
+                         tpu_name=FLAGS.tpu,
+                         bucket_name=FLAGS.bucket,
+                         weights_dir=FLAGS.weights_dir,
+                         is_multi_class=FLAGS.multi_class,
+                         dataset=valid_ds)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
-        model.load_weights(FLAGS.weights_dir).expect_partial()
-        model.evaluate(valid_ds, steps=validation_steps)
-        cm = np.zeros((num_classes, num_classes))
-        classes = ["Background",
-                   "Femoral",
-                   "Medial Tibial",
-                   "Lateral Tibial",
-                   "Patellar",
-                   "Lateral Meniscus",
-                   "Medial Meniscus"]
-        for step, (image, label) in enumerate(valid_ds):
-            print(step)
-            pred = model.predict(image)
-            visualise_binary(label, pred, FLAGS.fig_dir)
-            # cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+        # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
 
-            if step > validation_steps - 1:
-                break
+        confusion_matrix(trained_model=model,
+                         weights_dir=FLAGS.weights_dir,
+                         fig_dir=FLAGS.fig_dir,
+                         dataset=valid_ds,
+                         validation_steps=validation_steps,
+                         multi_class=FLAGS.multi_class,
+                         model_architecture=FLAGS.model_architecture,
+                         num_classes=num_classes)
 
-        # fig_file = FLAGS.model_architecture + '_matrix.png'
-        # fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
-        # plot_confusion_matrix(cm, fig_dir, classes=classes)
 if __name__ == '__main__':
     app.run(main)
