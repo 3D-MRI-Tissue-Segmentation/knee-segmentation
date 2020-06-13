@@ -38,15 +38,8 @@ def plot_train_history_loss(history, multi_class=True, savefig=None):
         filename = os.path.join(savefig, 'training_history.png')
         plt.savefig(filename)
 
-<<<<<<< HEAD
-def visualise_binary(y_true, y_pred):
-
-    print(y_true.shape)
-    print(y_pred.shape)
-=======
 def visualise_binary(y_true, y_pred, savefig=None):
     
->>>>>>> b78a4f7b79fc73153af9b9755073535c9dd1d804
     batch_size = y_true.shape[0]
 
     for i in range(batch_size):
