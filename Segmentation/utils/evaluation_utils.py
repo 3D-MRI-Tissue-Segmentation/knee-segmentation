@@ -145,8 +145,8 @@ def plot_and_eval_3D(trained_model,
                 # Save volume as numpy file for plotlyyy
                 fig_dir = "results"
                 vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
+                print("npy save as ", vol_name_npy)
                 np.save(pred_vol, vol_name_npy)
-                print("npy saved as ", vol_name_npy)
 
                 break
 

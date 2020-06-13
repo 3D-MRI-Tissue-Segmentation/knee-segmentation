@@ -38,7 +38,7 @@ if __name__ == "__main__":
     print("Generating figure")
 
     
-    for j in range(np.shape(data,0))
+    for j in range(np.shape(data)[0]):
         
         Voxels = VoxelData(data[j])
     
