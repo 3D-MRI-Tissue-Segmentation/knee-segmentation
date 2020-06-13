@@ -42,7 +42,6 @@ if __name__ == "__main__":
         
         Voxels = VoxelData(data[j])
     
-    
         # print("Voxels.data\n",Voxels.data)
         # print("Voxels.vertices\n",Voxels.vertices)
         # print("Voxels.triangles\n",Voxels.triangles)
@@ -71,20 +70,34 @@ if __name__ == "__main__":
                 ))
 
 
+
     num_classes = Voxels.num_classes
+
+    steps = []
+    for i in range(num_classes):
+        # Hide all traces
+        step = dict(
+            method = 'restyle',  
+            args = ['visible', [False] * len(fig.data)],
+        )
+        # Enable the two traces we want to see
+        step['args'][1][i:num_classes] = True
+        # step['args'][1][i+num_classes] = True
+        
+        # Add step to step list
+        steps.append(step)
+
     sliders = [dict(
-        active=[1:num_classes],
-        currentvalue={"prefix": "Frequency: "},
-        pad={"t": 50},
+        currentvalue={"prefix": "Epoch: "},
+        # pad={"t": 50},
         steps=steps
     )]
 
     fig.update_layout(
+        showlegend=True,
         sliders=sliders
     )
 
-
-    fig.update_layout(showlegend=True)
     fig.show()
 
     print("Used color vector ", colors)
