@@ -408,7 +408,7 @@ def main(argv):
 
                     print("DICE:", pred_vol_dice)
 
-                    print("JOE DICE:", dice_loss(y_vol, pred_vol))
+                    print("VOLUME DICE:", dice_loss(y_vol, pred_vol))
 
                     pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
                     pred_vol = np.stack((pred_vol,) * 3, axis=-1)
