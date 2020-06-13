@@ -275,10 +275,7 @@ class Nested_UNet(tf.keras.Model):
             right_idx = 0
             layer_list = []
             while right_idx <= sum_idx:
-                print(left_idx)
-                print(right_idx)
                 if left_idx == sum_idx:
-                    print('downsampling...')
                     if left_idx == 1 and right_idx == 0:
                         x = self.conv_block_lists[left_idx][right_idx](self.pool(block_list[left_idx - 1]),
                                                                        training=training)
@@ -286,7 +283,6 @@ class Nested_UNet(tf.keras.Model):
                         x = self.conv_block_lists[left_idx][right_idx](self.pool(block_list[left_idx - 1][right_idx]),
                                                                        training=training)
                 else:
-                    print('upsampling + concatenating...')
                     if not isinstance(block_list[left_idx], list):
                         x = self.conv_block_lists[left_idx][right_idx](tfkl.concatenate([self.up(x),
                                                                                         block_list[left_idx]]
@@ -297,7 +293,6 @@ class Nested_UNet(tf.keras.Model):
                                                                                         block_list[left_idx][0]]
                                                                                         ),
                                                                        training=training)
-                print(x.get_shape())
                 left_idx -= 1
                 right_idx += 1
                 layer_list.append(x)
