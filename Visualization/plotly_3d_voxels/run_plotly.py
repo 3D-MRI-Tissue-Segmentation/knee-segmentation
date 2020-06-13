@@ -21,11 +21,14 @@ import numpy as np
 if __name__ == "__main__":
     
     opt = Options().parse()
+    # colors = ["pink", "red", "orange", "yellow", "lightgreen", "lightblue", "purple"]
+    colors = colors.DEFAULT_PLOTLY_COLORS
+
+    for 
     data = load_data(opt)
 
     Voxels = VoxelData(data)
-    # colors = ["pink", "red", "orange", "yellow", "lightgreen", "lightblue", "purple"]
-    colors = colors.DEFAULT_PLOTLY_COLORS
+    
     if opt.shuffle_colors:
         # Two types of random, one roll one random shuffle
         # colors = np.roll(np.array(colors), np.random.randint(0,np.size(colors)))
