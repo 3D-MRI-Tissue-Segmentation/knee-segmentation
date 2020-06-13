@@ -38,7 +38,7 @@ flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
+flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) ori binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
@@ -47,6 +47,7 @@ flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
+flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 
 # UNet parameters
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
@@ -155,8 +156,7 @@ def main(argv):
                                  use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
 
         num_classes = 7 if FLAGS.multi_class else 1
-    
-    
+
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -290,14 +290,12 @@ def main(argv):
                 model.build((batch_size, 288, 288, 3))
 
             model.summary()
-        
+
         model.compile(optimizer=optimiser,
                       loss=loss_fn,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
-       
-                          
-    if FLAGS.train:
 
+    if FLAGS.train:
         # define checkpoints
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
         training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
@@ -323,13 +321,13 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
-        #pit code
+        # pit code
         training_history_dir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
         checkpoints = Path(training_history_dir).glob('*')
 
         """ add visualisation code here """
-        #path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
+        # path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
         print(training_history_dir)
         # checkpoints = glob(os.path.join(path, "*"))
         print("+========================================================")
@@ -338,10 +336,9 @@ def main(argv):
         print("\n\nThe directories are:")
 
         storage_client = storage.Client()
-        
         session_name = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
 
-        blobs = storage_client.list_blobs(FLAGS.bucket) 
+        blobs = storage_client.list_blobs(FLAGS.bucket)
         session_content = []
         for blob in blobs:
             if session_name in blob.name:
@@ -351,7 +348,7 @@ def main(argv):
         for item in session_content:
             if ('_weights' in item) and ('.ckpt.index' in item):
                 session_weights.append(item)
-        
+
         for s in session_weights:
             print(s)
         print("--")
@@ -359,10 +356,14 @@ def main(argv):
         for chkpt in reversed(session_weights):
             name = chkpt.split('/')[-1]
             name = name.split('.inde')[0]
-            model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
-            
+            model.load_weights('gs://' + os.path.join(FLAGS.bucket,
+                                                      FLAGS.weights_dir,
+                                                      FLAGS.tpu,
+                                                      FLAGS.visual_file,
+                                                      name)).expect_partial()
+
             sample_x = []    # x for current 160,288,288 vol
-            sample_pred = [] # prediction for current 160,288,288 vol
+            sample_pred = []  # prediction for current 160,288,288 vol
             sample_y = []    # y for current 160,288,288 vol
 
             dices = []
@@ -408,36 +409,27 @@ def main(argv):
 
                     print("DICE:", pred_vol_dice)
 
-                    print("JOE DICE:", dice_loss(y_vol, pred_vol))
+                    print("VOLUME DICE:", dice_loss(y_vol, pred_vol))
 
-                    num_mid_slices = 60
-                    pred_vol[]
                     pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
                     pred_vol = np.stack((pred_vol,) * 3, axis=-1)
-
-                    
-                    # Flatten channels into 3D volume
-                    if multi_class:
-                        
 
                     fig = plot_volume(pred_vol)
                     plt.savefig(f"results/hello-hello")
                     plt.close('all')
 
                     break
-
+                
                 print("=================")
 
 
 
                 if idx == 4:
                     break
-                ## we need to then merge into each (288,288,160) volume. Validation data should be in order
+                # # we need to then merge into each (288,288,160) volume. Validation data should be in order
 
             break
 
-    else:
-        # load the checkpoint in the FLAGS.weights_dir file
         model.load_weights(FLAGS.weights_dir).expect_partial()
         model.evaluate(valid_ds, steps=validation_steps)
         cm = np.zeros((num_classes, num_classes))
@@ -451,14 +443,17 @@ def main(argv):
         for step, (image, label) in enumerate(valid_ds):
             print(step)
             pred = model.predict(image)
-            visualise_binary(label, pred, FLAGS.fig_dir)
-            # cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+            if FLAGS.multi_class:
+                visualise_multi_class(label, pred)
+            else:
+                visualise_binary(label, pred, FLAGS.fig_dir)
+            cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
             if step > validation_steps - 1:
                 break
 
-        # fig_file = FLAGS.model_architecture + '_matrix.png'
-        # fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
-        # plot_confusion_matrix(cm, fig_dir, classes=classes)
+        fig_file = FLAGS.model_architecture + '_matrix.png'
+        fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
+        plot_confusion_matrix(cm, fig_dir, classes=classes)
 if __name__ == '__main__':
     app.run(main)

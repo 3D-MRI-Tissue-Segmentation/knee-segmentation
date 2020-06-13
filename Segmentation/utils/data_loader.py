@@ -189,7 +189,7 @@ def parse_fn_2d(example_proto, training, augmentation, multi_class=True, use_bfl
         seg = tf.slice(seg, [0, 0, 1], [-1, -1, 6])
         seg = tf.math.reduce_sum(seg, axis=-1)
         seg = tf.expand_dims(seg, axis=-1)
-        # seg = tf.clip_by_value(seg, 0, 1)
+        seg = tf.clip_by_value(seg, 0, 1)
 
     return (image, seg)
 
@@ -215,7 +215,7 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     seg = tf.cast(seg, tf.float32)
 
     if not multi_class:
-        seg = tf.slice(seg, [0, 0, 0, 1], [-1, -1 ,-1, 6])
+        seg = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])
         seg = tf.math.reduce_sum(seg, axis=-1)
         seg = tf.expand_dims(seg, axis=-1)
         seg = tf.clip_by_value(seg, 0, 1)
