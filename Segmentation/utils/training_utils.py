@@ -38,10 +38,15 @@ def plot_train_history_loss(history, multi_class=True, savefig=None):
         filename = os.path.join(savefig, 'training_history.png')
         plt.savefig(filename)
 
+<<<<<<< HEAD
 def visualise_binary(y_true, y_pred):
 
     print(y_true.shape)
     print(y_pred.shape)
+=======
+def visualise_binary(y_true, y_pred, savefig=None):
+    
+>>>>>>> b78a4f7b79fc73153af9b9755073535c9dd1d804
     batch_size = y_true.shape[0]
 
     for i in range(batch_size):
@@ -53,6 +58,8 @@ def visualise_binary(y_true, y_pred):
 
         fig.tight_layout()
         plt.show()
+        if savefig is not None:
+            plt.savefig(savefig)
 
 def visualise_multi_class(y_true, y_pred):
 
@@ -143,3 +150,9 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
             'steps_per_epoch': self.steps_per_epoch,
             'initial_learning_rate': self.initial_learning_rate,
         }
+
+def get_depth(conc):
+    depth = 0
+    for batch in conc:
+        depth += batch.shape[0]
+    return depth
