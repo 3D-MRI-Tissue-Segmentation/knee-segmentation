@@ -22,7 +22,7 @@ def plot_and_eval_3D(trained_model,
                      tpu_name,
                      bucket_name,
                      weights_dir,
-                     is_multi_class
+                     is_multi_class,
                      dataset):
 
     # load the checkpoints in the specified log directory
@@ -131,7 +131,7 @@ def plot_and_eval_3D(trained_model,
                     break
 
                 
-                if FLAGS.multi_class: # or np.shape(pred_vol)[-1] not 
+                if is_multi_class: # or np.shape(pred_vol)[-1] not 
                     pred_vol = np.argmax(pred_vol, axis=-1)
 
                 # Figure saving
