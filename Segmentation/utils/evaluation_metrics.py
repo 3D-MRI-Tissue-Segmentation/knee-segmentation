@@ -1,22 +1,35 @@
 import numpy as np
+import tensorflow as tf
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import itertools
 import os
 from Segmentation.utils.losses import dice_coef, iou_loss
 
-def iou_loss_eval(y_true, y_pred, drop_class_idx=0):
+def iou_loss_eval(y_true, y_pred):
 
-    y_true = np.delete(y_true, drop_class_idx, axis=-1)
-    y_pred = np.delete(y_true, drop_class_idx, axis=-1)
+    if tf.rank(y_true) == 4:
+        y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
+        y_pred = tf.slice(y_pred, [0, 0, 0, 1], [-1, -1, -1, 6])
+    elif tf.rank(y_true) == 5:
+        y_true = tf.slice(y_true, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+        y_pred = tf.slice(y_pred, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    else:
+        raise Exception("y_true and y_pred must have a rank of at least 4")
     iou = iou_loss(y_true, y_pred)
 
     return iou
 
-def dice_coef_eval(y_true, y_pred, drop_class_idx=0):
+def dice_coef_eval(y_true, y_pred):
 
-    y_true = np.delete(y_true, drop_class_idx, axis=-1)
-    y_pred = np.delete(y_true, drop_class_idx, axis=-1)
+    if tf.rank(y_true) == 4:
+        y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
+        y_pred = tf.slice(y_pred, [0, 0, 0, 1], [-1, -1, -1, 6])
+    elif tf.rank(y_true) == 5:
+        y_true = tf.slice(y_true, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+        y_pred = tf.slice(y_pred, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    else:
+        raise Exception("y_true and y_pred must have a rank of at least 4")
 
     dice = dice_coef(y_true, y_pred)
 
