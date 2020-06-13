@@ -143,9 +143,3 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
             'steps_per_epoch': self.steps_per_epoch,
             'initial_learning_rate': self.initial_learning_rate,
         }
-
-def get_depth(conc):
-    depth = 0
-    for batch in conc:
-        depth += batch.shape[0]
-    return depth

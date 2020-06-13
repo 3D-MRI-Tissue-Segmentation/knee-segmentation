@@ -18,7 +18,7 @@ from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
+from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D 
 
