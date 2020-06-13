@@ -40,8 +40,8 @@ def plot_train_history_loss(history, multi_class=True, savefig=None):
 
 def visualise_binary(y_true, y_pred):
 
-    y_true = np.expand_dims(y_true, axis=-1)
-    y_pred = np.expand_dims(y_pred, axis=-1)
+    print(y_true.shape)
+    print(y_pred.shape)
     batch_size = y_true.shape[0]
 
     for i in range(batch_size):
