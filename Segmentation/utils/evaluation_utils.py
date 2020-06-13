@@ -141,7 +141,7 @@ def plot_and_eval_3D(trained_model,
                 # Figure saving
                 fig_dir = "results"
                 fig = plot_volume(pred_vol)
-                plt.savefig(f"results/hello-hello")
+                plt.savefig(f"results/hello-hello2")
                 plt.close('all')
 
                 # Save volume as numpy file for plotlyyy
