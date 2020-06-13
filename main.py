@@ -18,9 +18,7 @@ from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
-from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
-from Segmentation.utils.evaluation_utils import plot_and_eval_3D
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -331,30 +329,14 @@ def main(argv):
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
 
-        model.load_weights(FLAGS.weights_dir).expect_partial()
-        model.evaluate(valid_ds, steps=validation_steps)
-        cm = np.zeros((num_classes, num_classes))
-        classes = ["Background",
-                   "Femoral",
-                   "Medial Tibial",
-                   "Lateral Tibial",
-                   "Patellar",
-                   "Lateral Meniscus",
-                   "Medial Meniscus"]
-        for step, (image, label) in enumerate(valid_ds):
-            print(step)
-            pred = model.predict(image)
-            if FLAGS.multi_class:
-                visualise_multi_class(label, pred)
-            else:
-                visualise_binary(label, pred, FLAGS.fig_dir)
-            cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+        confusion_matrix(trained_model=model,
+                         weights_dir=FLAGS.weights_dir,
+                         fig_dir=FLAGS.fig_dir,
+                         dataset=valid_ds,
+                         validation_steps=validation_steps,
+                         multi_class=FLAGS.multi_class,
+                         model_architecture=FLAGS.model_architecture,
+                         num_classes=num_classes)
 
-            if step > validation_steps - 1:
-                break
-
-        fig_file = FLAGS.model_architecture + '_matrix.png'
-        fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
-        plot_confusion_matrix(cm, fig_dir, classes=classes)
 if __name__ == '__main__':
     app.run(main)

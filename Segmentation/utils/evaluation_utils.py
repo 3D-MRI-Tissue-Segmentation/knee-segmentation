@@ -9,6 +9,8 @@ import os
 
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
+from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
+from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 
 def get_depth(conc):
     depth = 0
@@ -109,7 +111,7 @@ def plot_and_eval_3D(trained_model,
                 pred_vol_dice = dice_coef(y_vol, pred_vol)
 
                 print("DICE:", pred_vol_dice)
-                
+
                 # pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
                 # pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
@@ -137,12 +139,44 @@ def plot_and_eval_3D(trained_model,
 
         break
 
-def get_confusion_matrix(trained_model,
-                         weights_dir,
-                         fig_dir,
-                         dataset,
-                         validation_steps,
-                         multi_class,
-                         model_architecture):
-    
-    
+def confusion_matrix(trained_model,
+                     weights_dir,
+                     fig_dir,
+                     dataset,
+                     validation_steps,
+                     multi_class,
+                     model_architecture,
+                     num_classes=7):
+
+    trained_model.load_weights(weights_dir).expect_partial()
+    trained_model.evaluate(dataset, steps=validation_steps)
+
+    if multi_class:
+        cm = np.zeros((num_classes, num_classes))
+        classes = ["Background",
+                   "Femoral",
+                   "Medial Tibial",
+                   "Lateral Tibial",
+                   "Patellar",
+                   "Lateral Meniscus",
+                   "Medial Meniscus"]
+    else:
+        cm = np.zeros((2, 2))
+        classes = ["Background",
+                   "Cartilage"]
+
+    for step, (image, label) in enumerate(dataset):
+        print(step)
+        pred = trained_model.predict(image)
+        if multi_class:
+            visualise_multi_class(label, pred)
+        else:
+            visualise_binary(label, pred, fig_dir)
+        cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+
+        if step > validation_steps - 1:
+            break
+
+    fig_file = model_architecture + '_matrix.png'
+    fig_dir = os.path.join(fig_dir, fig_file)
+    plot_confusion_matrix(cm, fig_dir, classes=classes)
