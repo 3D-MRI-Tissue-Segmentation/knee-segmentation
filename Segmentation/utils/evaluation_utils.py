@@ -108,9 +108,8 @@ def plot_and_eval_3D(trained_model,
 
                 pred_vol_dice = dice_coef(y_vol, pred_vol)
 
-                print("DICE JOE:", dice_coef(y_vol, pred_vol))
                 print("DICE:", pred_vol_dice)
-
+                
                 # pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
                 # pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
@@ -126,7 +125,6 @@ def plot_and_eval_3D(trained_model,
                     print("BATCH pred SIZE:", batch_pred_vols.shape)
                     print("BATCH y SIZE:", batch_y_vols.shape)
 
-                    print("DICE JOE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
                     print("DICE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
 
                     break
