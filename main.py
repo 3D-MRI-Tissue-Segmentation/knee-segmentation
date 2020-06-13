@@ -367,6 +367,7 @@ def main(argv):
 
             dices = []
 
+            # Turn 2D slice batches into coherent 3D volumes
             for idx, ds in enumerate(valid_ds):
                 x, y = ds
                 batch_size = x.shape[0]
@@ -414,11 +415,19 @@ def main(argv):
                     pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
                     # Flatten channels into 3D
-                    
+                    if flags.multi_class: # or np.shape(pred_vol)[-1] not 
+                        pred_vol = np.argmax(pred_vol, axis=-1)
 
+
+                    # Figure saving
+                    fig_dir = "results"
                     fig = plot_volume(pred_vol)
                     plt.savefig(f"results/hello-hello")
                     plt.close('all')
+
+                    # Save volume as numpy file for plotlyyy
+                    vol_name_npy = os.path.join(fig_dir, FLAGS.visual_files + "_" + idx)
+                    np.save(pred_vol, vol_name_npy)
 
                     break
                 
