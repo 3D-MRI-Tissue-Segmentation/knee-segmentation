@@ -3,6 +3,24 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import itertools
 import os
+from Segmentation.utils.losses import dice_coef, iou_loss
+
+def iou_loss_eval(y_true, y_pred, drop_class_idx=0):
+
+    y_true = np.delete(y_true, drop_class_idx, axis=-1)
+    y_pred = np.delete(y_true, drop_class_idx, axis=-1)
+    iou = iou_loss(y_true, y_pred)
+
+    return iou
+
+def dice_coef_eval(y_true, y_pred, drop_class_idx=0):
+
+    y_true = np.delete(y_true, drop_class_idx, axis=-1)
+    y_pred = np.delete(y_true, drop_class_idx, axis=-1)
+
+    dice = dice_coef(y_true, y_pred)
+
+    return dice
 
 def get_confusion_matrix(y_true, y_pred, classes=None):
 
@@ -10,7 +28,7 @@ def get_confusion_matrix(y_true, y_pred, classes=None):
     y_pred = np.reshape(y_pred, (y_pred.shape[0] * y_pred.shape[1] * y_pred.shape[2], y_pred.shape[3]))
     y_true_max = np.argmax(y_true, axis=1)
     y_pred_max = np.argmax(y_pred, axis=1)
-    
+
     if classes is None:
         cm = confusion_matrix(y_true_max, y_pred_max)
     else:

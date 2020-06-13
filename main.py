@@ -16,10 +16,11 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
+from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
+from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D 
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -37,7 +38,7 @@ flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
+flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) ori binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
@@ -46,6 +47,7 @@ flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
+flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 
 # UNet parameters
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
@@ -60,7 +62,6 @@ flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after e
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
-flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
 
 # Deeplab parametersi
@@ -154,8 +155,7 @@ def main(argv):
                                  use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
 
         num_classes = 7 if FLAGS.multi_class else 1
-    
-    
+
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -289,14 +289,12 @@ def main(argv):
                 model.build((batch_size, 288, 288, 3))
 
             model.summary()
-        
+
         model.compile(optimizer=optimiser,
                       loss=loss_fn,
                       metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
-       
-                          
-    if FLAGS.train:
 
+    if FLAGS.train:
         # define checkpoints
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
         training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
@@ -322,99 +320,15 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
-        #pit code
-        training_history_dir = os.path.join(FLAGS.logdir, FLAGS.tpu)
-        training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
-        checkpoints = Path(training_history_dir).glob('*')
-
-        """ add visualisation code here """
-        #path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
-        print(training_history_dir)
-        # checkpoints = glob(os.path.join(path, "*"))
-        print("+========================================================")
-        print(f"Does the selected path exist: {Path(training_history_dir).is_dir()}")
-        print(f"The glob object is: {checkpoints}")
-        print("\n\nThe directories are:")
-
-        storage_client = storage.Client()
-        
-        session_name = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
-
-        blobs = storage_client.list_blobs(FLAGS.bucket) 
-        session_content = []
-        for blob in blobs:
-            if session_name in blob.name:
-                session_content.append(blob.name)
-
-        session_weights = []
-        for item in session_content:
-            if ('_weights' in item) and ('.ckpt.index' in item):
-                session_weights.append(item)
-        
-        for s in session_weights:
-            print(s)
-        print("--")
-
-        for chkpt in session_weights:
-            name = chkpt.split('/')[-1]
-            name = name.split('.inde')[0]
-            model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
-            
-            sample_x = []    # x for current 160,288,288 vol
-            sample_pred = [] # prediction for current 160,288,288 vol
-            sample_y = []    # y for current 160,288,288 vol
-
-            for idx, ds in enumerate(valid_ds):
-                x, y = ds
-                batch_size = x.shape[0]
-                target = 160
-                print(batch_size)
-                print(target)
-                x = np.array(x)
-                y = np.array(y)
-                print(type(x))
-                print(x.shape)
-                pred = model.predict(x)
-                print(type(pred))
-                print(pred.shape)
-                print(type(y))
-                print(y.shape)
-
-            
-                
-
-
-                print("=================")
-
-                if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
-                    sample_pred.append(pred)
-                    sample_y.append(y)
-                else:
-                    remaining = target - get_depth(sample_pred)
-                    sample_pred.append(pred[:remaining])
-                    sample_y.append(y[:remaining])
-                    pred_vol = np.concatenate(sample_pred)
-                    pred_y = np.concatenate(sample_pred)
-                    sample_pred = [pred[remaining:]]
-                    sample_y = [y[remaining:]]
-
-                    print("===============")
-                    print("pred done")
-                    print(pred_vol.shape)
-                    print(pred_y.shape)
-                    print("===============")
-
-                print("=================")
-
-                if idx == 4:
-                    break
-                ## we need to then merge into each (288,288,160) volume. Validation data should be in order
-
-            break
-
+        plot_and_eval_3D(trained_model=model,
+                         logdir=FLAGS.logdir,
+                         visual_file=FLAGS.visual_file,
+                         tpu_name=FLAGS.tpu,
+                         bucket_name=FLAGS.bucket,
+                         weights_dir=FLAGS.weights_dir,
+                         dataset=valid_ds)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
-        
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
 
         model.load_weights(FLAGS.weights_dir).expect_partial()
@@ -431,7 +345,7 @@ def main(argv):
             print(step)
             pred = model.predict(image)
             if FLAGS.multi_class:
-                visualise_multiclass(label, pred)
+                visualise_multi_class(label, pred)
             else:
                 visualise_binary(label, pred, FLAGS.fig_dir)
             cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
