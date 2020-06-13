@@ -1,11 +1,13 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import ArtistAnimation
 
 import glob
 from google.cloud import storage
 from pathlib import Path
 import os
+from datetime import datetime
 
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
@@ -74,6 +76,7 @@ def plot_and_eval_3D(trained_model,
         sample_y = []    # y for current 160,288,288 vol
 
         for idx, ds in enumerate(dataset):
+            print(f"the index is {idx}")
             x, y = ds
             batch_size = x.shape[0]
             target = 160
@@ -150,9 +153,32 @@ def plot_and_eval_3D(trained_model,
 
             if idx == 4:
                 break
-            # # we need to then merge into each (288,288,160) volume. Validation data should be in order
+            # we need to then merge into each (288,288,160) volume. Validation data should be in order
 
         break
+
+def pred_evolution_gif(frames_list,
+                       interval=200,
+                       save_dir='',
+                       file_name=''):
+
+    fig = plt.Figure()
+    gif = ArtistAnimation(fig, frames_list, interval) #create gif
+
+    # save file
+    save_dir = save_dir.replace("/", "\\\\")
+    save_dir = save_dir.replace("\\", "\\\\")
+
+    plt.rcParams['animation.ffmpeg_path'] = save_dir #change directory for animations
+
+    if not save_dir == '':
+        if file_name == '':
+            time = datetime.now().strftime("%Y%m%d-%H%M%S")
+            file_name = 'gif'+ time
+
+        gif.save(file_name)
+    else:
+        plt.show()
 
 def confusion_matrix(trained_model,
                      weights_dir,
