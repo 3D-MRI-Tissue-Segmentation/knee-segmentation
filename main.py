@@ -9,7 +9,6 @@ from absl import app
 from absl import flags
 from absl import logging
 from glob import glob
-from google.cloud import storage
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet

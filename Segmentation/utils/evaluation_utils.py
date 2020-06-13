@@ -183,10 +183,6 @@ def confusion_matrix(trained_model,
     for step, (image, label) in enumerate(dataset):
         print(step)
         pred = trained_model.predict(image)
-        if multi_class:
-            visualise_multi_class(label, pred)
-        else:
-            visualise_binary(label, pred, fig_dir)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
         if step > validation_steps - 1:
