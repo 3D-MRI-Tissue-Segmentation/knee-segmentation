@@ -324,6 +324,7 @@ def main(argv):
                          tpu_name=FLAGS.tpu,
                          bucket_name=FLAGS.bucket,
                          weights_dir=FLAGS.weights_dir,
+                         is_multi_class=FLAGS.multi_class,
                          dataset=valid_ds)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
