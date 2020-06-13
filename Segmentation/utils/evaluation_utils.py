@@ -163,13 +163,13 @@ def pred_evolution_gif(frames_list,
                        file_name=''):
 
     fig = plt.Figure()
-    gif = ArtistAnimation(fig, frames_list, interval) #create gif
+    gif = ArtistAnimation(fig, frames_list, interval) # create gif
 
     # save file
     save_dir = save_dir.replace("/", "\\\\")
     save_dir = save_dir.replace("\\", "\\\\")
 
-    plt.rcParams['animation.ffmpeg_path'] = save_dir #change directory for animations
+    plt.rcParams['animation.ffmpeg_path'] = save_dir # change directory for animations
 
     if not save_dir == '':
         if file_name == '':
