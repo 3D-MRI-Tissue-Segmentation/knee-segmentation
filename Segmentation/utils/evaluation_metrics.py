@@ -8,28 +8,16 @@ from Segmentation.utils.losses import dice_coef, iou_loss
 
 def iou_loss_eval(y_true, y_pred):
 
-    if tf.rank(y_true) == 4:
-        y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
-        y_pred = tf.slice(y_pred, [0, 0, 0, 1], [-1, -1, -1, 6])
-    elif tf.rank(y_true) == 5:
-        y_true = tf.slice(y_true, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
-        y_pred = tf.slice(y_pred, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
-    else:
-        raise Exception("y_true and y_pred must have a rank of at least 4")
+    y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
+    y_pred = tf.slice(y_pred, [0, 0, 0, 1], [-1, -1, -1, 6])
     iou = iou_loss(y_true, y_pred)
 
     return iou
 
 def dice_coef_eval(y_true, y_pred):
 
-    if tf.rank(y_true) == 4:
-        y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
-        y_pred = tf.slice(y_pred, [0, 0, 0, 1], [-1, -1, -1, 6])
-    elif tf.rank(y_true) == 5:
-        y_true = tf.slice(y_true, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
-        y_pred = tf.slice(y_pred, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
-    else:
-        raise Exception("y_true and y_pred must have a rank of at least 4")
+    y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
+    y_pred = tf.slice(y_pred, [0, 0, 0, 1], [-1, -1, -1, 6])
 
     dice = dice_coef(y_true, y_pred)
 
