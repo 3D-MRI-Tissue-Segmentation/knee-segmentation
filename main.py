@@ -287,10 +287,15 @@ def main(argv):
                 model.build((batch_size, 288, 288, 3))
 
             model.summary()
-
-        model.compile(optimizer=optimiser,
-                      loss=loss_fn,
-                      metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+        
+        if FLAGS.multi_class:
+            model.compile(optimizer=optimiser,
+                          loss=loss_fn,
+                          metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+        else:
+            model.compile(optimizer=optimiser, 
+                          loss=loss_fn,
+                          metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 
     if FLAGS.train:
         # define checkpoints
