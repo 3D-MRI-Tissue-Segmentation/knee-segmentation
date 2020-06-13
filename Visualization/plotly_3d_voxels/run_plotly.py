@@ -21,47 +21,68 @@ import numpy as np
 if __name__ == "__main__":
     
     opt = Options().parse()
+
+    # Colors
     # colors = ["pink", "red", "orange", "yellow", "lightgreen", "lightblue", "purple"]
     colors = colors.DEFAULT_PLOTLY_COLORS
-
-    for 
-    data = load_data(opt)
-
-    Voxels = VoxelData(data)
-    
     if opt.shuffle_colors:
         # Two types of random, one roll one random shuffle
         # colors = np.roll(np.array(colors), np.random.randint(0,np.size(colors)))
         random.shuffle(colors)
     background_seg = 0
-    # print("Voxels.data\n",Voxels.data)
-    # print("Voxels.vertices\n",Voxels.vertices)
-    # print("Voxels.triangles\n",Voxels.triangles)
 
-    print("Generating figure")
+    data = load_data(opt)
+
+
     fig = go.Figure()
+    print("Generating figure")
+
     
-    for i, seg_class in enumerate(Voxels.class_colors):
-        print("Making segmentation voxels ", i, "/", np.size(Voxels.class_colors))
-        if seg_class == background_seg:
-            continue
+    for j in range(np.shape(data,0))
+        
+        Voxels = VoxelData(data[j])
+    
+    
+        # print("Voxels.data\n",Voxels.data)
+        # print("Voxels.vertices\n",Voxels.vertices)
+        # print("Voxels.triangles\n",Voxels.triangles)
 
-        curr_class = RenderData(Voxels.get_class_voxels(seg_class))
-        curr_color = colors[i]
+    
+        for i, seg_class in enumerate(Voxels.class_colors):
+            print("Making segmentation voxels ", i, "/", np.size(Voxels.class_colors))
+            if seg_class == background_seg:
+                continue
 
-        fig.add_trace(go.Mesh3d(
-            # voxel vertices
-            x=curr_class.vertices[0],
-            y=curr_class.vertices[1],
-            z=curr_class.vertices[2],
-            # triangle vertices
-            i=curr_class.triangles[0],
-            j=curr_class.triangles[1],
-            k=curr_class.triangles[2],
-            color=curr_color,
-            opacity=0.7,
-            showlegend=True
-            ))
+            curr_class = RenderData(Voxels.get_class_voxels(seg_class))
+            curr_color = colors[i]
+
+            fig.add_trace(go.Mesh3d(
+                # voxel vertices
+                x=curr_class.vertices[0],
+                y=curr_class.vertices[1],
+                z=curr_class.vertices[2],
+                # triangle vertices
+                i=curr_class.triangles[0],
+                j=curr_class.triangles[1],
+                k=curr_class.triangles[2],
+                color=curr_color,
+                opacity=0.7,
+                showlegend=True
+                ))
+
+
+    num_classes = Voxels.num_classes
+    sliders = [dict(
+        active=[1:num_classes],
+        currentvalue={"prefix": "Frequency: "},
+        pad={"t": 50},
+        steps=steps
+    )]
+
+    fig.update_layout(
+        sliders=sliders
+    )
+
 
     fig.update_layout(showlegend=True)
     fig.show()

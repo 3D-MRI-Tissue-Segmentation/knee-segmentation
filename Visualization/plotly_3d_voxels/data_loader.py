@@ -65,7 +65,10 @@ def load_data(opt):
     else:
         assert data_paths, 'The directory %s does not contain files with valid extensions %s' % (opt.dataroot, EXTENSIONS)
         print("data_paths", data_paths)
-        data = np.load(data_paths)
+        data = []
+        for i, path in enumerate(data_paths):
+            data[i] = np.load(path)
+        
         
 
     return data
