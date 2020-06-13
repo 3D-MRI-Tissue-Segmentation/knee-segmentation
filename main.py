@@ -20,11 +20,8 @@ from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tver
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
-<<<<<<< HEAD
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D 
-=======
 from Segmentation.plotting.voxels import plot_volume
->>>>>>> dfbed74d2e1b28883e806ef2f0fa65db70e5bc61
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
