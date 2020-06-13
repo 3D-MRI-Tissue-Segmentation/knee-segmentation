@@ -16,10 +16,15 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
+from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
+<<<<<<< HEAD
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D 
+=======
+from Segmentation.plotting.voxels import plot_volume
+>>>>>>> dfbed74d2e1b28883e806ef2f0fa65db70e5bc61
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -61,7 +66,6 @@ flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after e
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
-flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
 
 # Deeplab parametersi
@@ -320,6 +324,18 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
+<<<<<<< HEAD
+        plot_and_eval_3D(trained_model=model,
+                         logdir=FLAGS.logdir,
+                         visual_file=FLAGS.visual_file,
+                         tpu_name=FLAGS.tpu,
+                         bucket_name=FLAGS.bucket,
+                         weights_dir=FLAGS.weights_dir,
+                         dataset=valid_ds)
+    else:
+        # load the checkpoint in the FLAGS.weights_dir file
+        # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
+=======
         # pit code
         training_history_dir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
@@ -352,7 +368,7 @@ def main(argv):
             print(s)
         print("--")
 
-        for chkpt in session_weights:
+        for chkpt in reversed(session_weights):
             name = chkpt.split('/')[-1]
             name = name.split('.inde')[0]
             model.load_weights('gs://' + os.path.join(FLAGS.bucket,
@@ -365,21 +381,24 @@ def main(argv):
             sample_pred = []  # prediction for current 160,288,288 vol
             sample_y = []    # y for current 160,288,288 vol
 
+            dices = []
+
+            # Turn 2D slice batches into coherent 3D volumes
             for idx, ds in enumerate(valid_ds):
                 x, y = ds
                 batch_size = x.shape[0]
                 target = 160
-                print(batch_size)
-                print(target)
+                print('batch_size',batch_size)
+                print('target',target)
                 x = np.array(x)
                 y = np.array(y)
-                print(type(x))
-                print(x.shape)
+                print('type(x)', type(x))
+                print('x.shape', x.shape)
                 pred = model.predict(x)
-                print(type(pred))
-                print(pred.shape)
-                print(type(y))
-                print(y.shape)
+                print('type(pred)', type(pred))
+                print('pred.shape', pred.shape)
+                print('type(y)', type(y))
+                print('y.shape', y.shape)
 
                 print("=================")
 
@@ -391,14 +410,14 @@ def main(argv):
                     sample_pred.append(pred[:remaining])
                     sample_y.append(y[:remaining])
                     pred_vol = np.concatenate(sample_pred)
-                    pred_y = np.concatenate(sample_pred)
+                    y_vol = np.concatenate(sample_y)
                     sample_pred = [pred[remaining:]]
                     sample_y = [y[remaining:]]
 
                     print("===============")
                     print("pred done")
-                    print(pred_vol.shape)
-                    print(pred_y.shape)
+                    print('pred_vol.shape', pred_vol.shape)
+                    print('y_vol.shape', y_vol.shape)
                     print("===============")
 
                     pred_vol_dice = dice_coef_loss(y_vol, pred_vol)
@@ -411,23 +430,33 @@ def main(argv):
                     pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
                     pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
+                    # Flatten channels into 3D
+                    if FLAGS.multi_class: # or np.shape(pred_vol)[-1] not 
+                        pred_vol = np.argmax(pred_vol, axis=-1)
+
+
+                    # Figure saving
+                    fig_dir = "results"
                     fig = plot_volume(pred_vol)
                     plt.savefig(f"results/hello-hello")
                     plt.close('all')
 
+                    # Save volume as numpy file for plotlyyy
+                    vol_name_npy = os.path.join(fig_dir, FLAGS.visual_files + "_" + idx)
+                    np.save(pred_vol, vol_name_npy)
+
                     break
                 
                 print("=================")
+
+
 
                 if idx == 4:
                     break
                 # # we need to then merge into each (288,288,160) volume. Validation data should be in order
 
             break
-
-    else:
-        # load the checkpoint in the FLAGS.weights_dir file
-        # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
+>>>>>>> dfbed74d2e1b28883e806ef2f0fa65db70e5bc61
 
         model.load_weights(FLAGS.weights_dir).expect_partial()
         model.evaluate(valid_ds, steps=validation_steps)
