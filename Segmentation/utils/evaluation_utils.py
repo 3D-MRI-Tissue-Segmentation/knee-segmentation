@@ -22,6 +22,7 @@ def plot_and_eval_3D(trained_model,
                      tpu_name,
                      bucket_name,
                      weights_dir,
+                     is_multi_class
                      dataset):
 
     # load the checkpoints in the specified log directory
