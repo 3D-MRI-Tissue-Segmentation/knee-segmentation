@@ -430,14 +430,17 @@ def main(argv):
         for step, (image, label) in enumerate(valid_ds):
             print(step)
             pred = model.predict(image)
-            visualise_binary(label, pred, FLAGS.fig_dir)
-            # cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+            if FLAGS.multi_class:
+                visualise_multiclass(label, pred)
+            else:
+                visualise_binary(label, pred, FLAGS.fig_dir)
+            cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
             if step > validation_steps - 1:
                 break
 
-        # fig_file = FLAGS.model_architecture + '_matrix.png'
-        # fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
-        # plot_confusion_matrix(cm, fig_dir, classes=classes)
+        fig_file = FLAGS.model_architecture + '_matrix.png'
+        fig_dir = os.path.join(FLAGS.fig_dir, fig_file)
+        plot_confusion_matrix(cm, fig_dir, classes=classes)
 if __name__ == '__main__':
     app.run(main)
