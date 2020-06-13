@@ -108,7 +108,7 @@ def plot_and_eval_3D(trained_model,
                 plt.close('all')
 
                 break
-            
+
             print("=================")
 
             if idx == 4:
