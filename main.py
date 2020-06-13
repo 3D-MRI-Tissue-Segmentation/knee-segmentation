@@ -20,6 +20,7 @@ from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D 
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -320,111 +321,13 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
-        # pit code
-        training_history_dir = os.path.join(FLAGS.logdir, FLAGS.tpu)
-        training_history_dir = os.path.join(training_history_dir, FLAGS.visual_file)
-        checkpoints = Path(training_history_dir).glob('*')
-
-        """ add visualisation code here """
-        # path = os.path.join(FLAGS.logdir, FLAGS.tpu, FLAGS.visual_file)
-        print(training_history_dir)
-        # checkpoints = glob(os.path.join(path, "*"))
-        print("+========================================================")
-        print(f"Does the selected path exist: {Path(training_history_dir).is_dir()}")
-        print(f"The glob object is: {checkpoints}")
-        print("\n\nThe directories are:")
-
-        storage_client = storage.Client()
-        session_name = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
-
-        blobs = storage_client.list_blobs(FLAGS.bucket)
-        session_content = []
-        for blob in blobs:
-            if session_name in blob.name:
-                session_content.append(blob.name)
-
-        session_weights = []
-        for item in session_content:
-            if ('_weights' in item) and ('.ckpt.index' in item):
-                session_weights.append(item)
-
-        for s in session_weights:
-            print(s)
-        print("--")
-
-        for chkpt in session_weights:
-            name = chkpt.split('/')[-1]
-            name = name.split('.inde')[0]
-            model.load_weights('gs://' + os.path.join(FLAGS.bucket,
-                                                      FLAGS.weights_dir,
-                                                      FLAGS.tpu,
-                                                      FLAGS.visual_file,
-                                                      name)).expect_partial()
-
-            sample_x = []    # x for current 160,288,288 vol
-            sample_pred = []  # prediction for current 160,288,288 vol
-            sample_y = []    # y for current 160,288,288 vol
-
-            for idx, ds in enumerate(valid_ds):
-                x, y = ds
-                batch_size = x.shape[0]
-                target = 160
-                print(batch_size)
-                print(target)
-                x = np.array(x)
-                y = np.array(y)
-                print(type(x))
-                print(x.shape)
-                pred = model.predict(x)
-                print(type(pred))
-                print(pred.shape)
-                print(type(y))
-                print(y.shape)
-
-                print("=================")
-
-                if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
-                    sample_pred.append(pred)
-                    sample_y.append(y)
-                else:
-                    remaining = target - get_depth(sample_pred)
-                    sample_pred.append(pred[:remaining])
-                    sample_y.append(y[:remaining])
-                    pred_vol = np.concatenate(sample_pred)
-                    pred_y = np.concatenate(sample_pred)
-                    sample_pred = [pred[remaining:]]
-                    sample_y = [y[remaining:]]
-
-                    print("===============")
-                    print("pred done")
-                    print(pred_vol.shape)
-                    print(pred_y.shape)
-                    print("===============")
-
-                    pred_vol_dice = dice_coef_loss(y_vol, pred_vol)
-                    dices.append(pred_vol_dice)
-
-                    print("DICE:", pred_vol_dice)
-
-                    print("VOLUME DICE:", dice_loss(y_vol, pred_vol))
-
-                    pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
-                    pred_vol = np.stack((pred_vol,) * 3, axis=-1)
-
-                    fig = plot_volume(pred_vol)
-                    plt.savefig(f"results/hello-hello")
-                    plt.close('all')
-
-                    break
-                
-                print("=================")
-
-                if idx == 4:
-                    break
-                # # we need to then merge into each (288,288,160) volume. Validation data should be in order
-
-            break
-
+        plot_and_eval_3D(trained_model=model,
+                         logdir=FLAGS.logdir,
+                         visual_file=FLAGS.visual_file,
+                         tpu_name=FLAGS.tpu,
+                         bucket_name=FLAGS.bucket,
+                         weights_dir=FLAGS.weights_dir,
+                         dataset=valid_ds)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
