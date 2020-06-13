@@ -16,11 +16,10 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tversky_loss
+from Segmentation.utils.losses import dice_coef, dice_coef_loss, tversky_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
-from Segmentation.plotting.voxels import plot_volume
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -356,7 +355,7 @@ def main(argv):
             print(s)
         print("--")
 
-        for chkpt in reversed(session_weights):
+        for chkpt in session_weights:
             name = chkpt.split('/')[-1]
             name = name.split('.inde')[0]
             model.load_weights('gs://' + os.path.join(FLAGS.bucket, FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file, name)).expect_partial()
@@ -364,8 +363,6 @@ def main(argv):
             sample_x = []    # x for current 160,288,288 vol
             sample_pred = [] # prediction for current 160,288,288 vol
             sample_y = []    # y for current 160,288,288 vol
-
-            dices = []
 
             for idx, ds in enumerate(valid_ds):
                 x, y = ds
@@ -383,6 +380,10 @@ def main(argv):
                 print(type(y))
                 print(y.shape)
 
+            
+                
+
+
                 print("=================")
 
                 if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
@@ -393,31 +394,15 @@ def main(argv):
                     sample_pred.append(pred[:remaining])
                     sample_y.append(y[:remaining])
                     pred_vol = np.concatenate(sample_pred)
-                    y_vol = np.concatenate(sample_y)
+                    pred_y = np.concatenate(sample_pred)
                     sample_pred = [pred[remaining:]]
                     sample_y = [y[remaining:]]
 
                     print("===============")
                     print("pred done")
                     print(pred_vol.shape)
-                    print(y_vol.shape)
+                    print(pred_y.shape)
                     print("===============")
-
-                    pred_vol_dice = dice_coef_loss(y_vol, pred_vol)
-                    dices.append(pred_vol_dice)
-
-                    print("DICE:", pred_vol_dice)
-
-                    print("JOE DICE:", dice_loss(y_vol, pred_vol))
-
-                    pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
-                    pred_vol = np.stack((pred_vol,) * 3, axis=-1)
-
-                    fig = plot_volume(pred_vol)
-                    plt.savefig(f"results/hello-hello")
-                    plt.close('all')
-
-                    break
 
                 print("=================")
 
