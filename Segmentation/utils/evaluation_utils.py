@@ -128,6 +128,20 @@ def plot_and_eval_3D(trained_model,
                     print("DICE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
 
                     break
+
+                
+                if FLAGS.multi_class: # or np.shape(pred_vol)[-1] not 
+                    pred_vol = np.argmax(pred_vol, axis=-1)
+
+                # Figure saving
+                fig_dir = "results"
+                fig = plot_volume(pred_vol)
+                plt.savefig(f"results/hello-hello")
+                plt.close('all')
+
+                # Save volume as numpy file for plotlyyy
+                vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + idx))
+                np.save(pred_vol, vol_name_npy)
             
             print("=================")
 
