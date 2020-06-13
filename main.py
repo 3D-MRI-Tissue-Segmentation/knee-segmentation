@@ -21,7 +21,6 @@ from Segmentation.utils.training_utils import plot_train_history_loss, LearningR
 from Segmentation.utils.training_utils import visualise_multi_class, visualise_binary, get_depth
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D 
-from Segmentation.plotting.voxels import plot_volume
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
