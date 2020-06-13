@@ -8,6 +8,7 @@ from pathlib import Path
 import os
 
 from Segmentation.utils.losses import dice_coef
+from Segmentation.plotting.voxels import plot_volume
 
 def plot_and_eval_3D(trained_model,
                      logdir,
