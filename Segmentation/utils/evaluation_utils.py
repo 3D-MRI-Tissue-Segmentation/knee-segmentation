@@ -136,3 +136,13 @@ def plot_and_eval_3D(trained_model,
             # # we need to then merge into each (288,288,160) volume. Validation data should be in order
 
         break
+
+def get_confusion_matrix(trained_model,
+                         weights_dir,
+                         fig_dir,
+                         dataset,
+                         validation_steps,
+                         multi_class,
+                         model_architecture):
+    
+    
