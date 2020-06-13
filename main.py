@@ -62,7 +62,6 @@ flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after e
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
-flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
 flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
 
 # Deeplab parametersi
@@ -413,6 +412,9 @@ def main(argv):
 
                     pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
                     pred_vol = np.stack((pred_vol,) * 3, axis=-1)
+
+                    # Flatten channels into 3D
+                    
 
                     fig = plot_volume(pred_vol)
                     plt.savefig(f"results/hello-hello")
