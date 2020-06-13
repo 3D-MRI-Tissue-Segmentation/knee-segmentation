@@ -130,7 +130,7 @@ def plot_and_eval_3D(trained_model,
 
                     print("DICE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
 
-                    break
+                    
 
                 print('is_multi_class', is_multi_class)
                 if is_multi_class:  # or np.shape(pred_vol)[-1] not
@@ -146,6 +146,8 @@ def plot_and_eval_3D(trained_model,
                 vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + idx))
                 np.save(pred_vol, vol_name_npy)
                 print("npy saved as ", vol_name_npy)
+
+                break
 
             print("=================")
 
