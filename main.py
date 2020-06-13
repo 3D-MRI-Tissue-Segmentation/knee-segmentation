@@ -401,6 +401,22 @@ def main(argv):
                     print(pred_y.shape)
                     print("===============")
 
+                    pred_vol_dice = dice_coef_loss(y_vol, pred_vol)
+                    dices.append(pred_vol_dice)
+
+                    print("DICE:", pred_vol_dice)
+
+                    print("VOLUME DICE:", dice_loss(y_vol, pred_vol))
+
+                    pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
+                    pred_vol = np.stack((pred_vol,) * 3, axis=-1)
+
+                    fig = plot_volume(pred_vol)
+                    plt.savefig(f"results/hello-hello")
+                    plt.close('all')
+
+                    break
+                
                 print("=================")
 
                 if idx == 4:
