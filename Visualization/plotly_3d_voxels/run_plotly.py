@@ -38,9 +38,21 @@ if __name__ == "__main__":
     print("Generating figure")
 
     
-    for j in range(np.shape(data)[0]):
+    data_is_3d = len(np.shape(data)) <=3
+    if data_is_3d:
+        num_samples = 1
+    else:
+        num_samples = np.shape(data)[0]
+
+
+    for j in range(num_samples):
         
-        Voxels = VoxelData(data[j])
+        if data_is_3d:
+            curr_data = data
+        else:
+            curr_data = data[j]
+        
+        Voxels = VoxelData(curr_data)
     
         # print("Voxels.data\n",Voxels.data)
         # print("Voxels.vertices\n",Voxels.vertices)
