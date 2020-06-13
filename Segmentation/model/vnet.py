@@ -54,7 +54,8 @@ class VNet(tf.keras.Model):
             self.activation = tf.keras.layers.Activation(activation)
 
         self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), padding='same', data_format=data_format)
-        self.output_act = 'sigmoid' if num_classes == 1 else 'softmax'
+        
+        self.output_act = tf.keras.layers.Activation('sigmoid' if num_classes == 1 else 'softmax')
 
 
     def call(self, inputs, training):
@@ -80,7 +81,7 @@ class VNet(tf.keras.Model):
         output = self.conv_1x1(output)
         if self.predict_slice:
             if self.slice_format == "mean":
-                output = tf.reduce_sum(output, -4)
+                output = tf.reduce_mean(output, -4)
                 output = tf.expand_dims(output, 1)
         output = self.output_act(output)
         return output

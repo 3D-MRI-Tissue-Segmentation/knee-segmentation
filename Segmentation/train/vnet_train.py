@@ -138,13 +138,11 @@ class Train:
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    # img = get_mid_slice(x_train, y_train, pred, multi_class)
                     img = get_mid_slice(x_train.values[0], y_train.values[0], pred.values[0], multi_class)
                     with slice_writer.as_default():
                         tf.summary.image("Train - Slice", img, step=epoch)
                     if epoch % vol_visual_freq == 0:
                         if not predict_slice:
-                            # img = get_mid_vol(y_train, pred, multi_class)
                             img = get_mid_vol(y_train.values[0], pred.values[0], multi_class)
                             with vol_writer.as_default():
                                 tf.summary.image("Train - Volume", img, step=epoch)
@@ -159,13 +157,11 @@ class Train:
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    # img = get_mid_slice(x_valid, y_valid, pred, multi_class)
                     img = get_mid_slice(x_valid.values[0], y_valid.values[0], pred.values[0], multi_class)
                     with slice_writer.as_default():
                         tf.summary.image("Validation - Slice", img, step=epoch)
                     if epoch % vol_visual_freq == 0:
                         if not predict_slice:
-                            # img = get_mid_vol(y_valid, pred, multi_class)
                             img = get_mid_vol(y_valid.values[0], pred.values[0], multi_class)
                             with vol_writer.as_default():
                                 tf.summary.image("Validation - Volume", img, step=epoch)
@@ -182,7 +178,7 @@ class Train:
         log_dir_now = self.log_dir + name + db + mc + datetime.datetime.now().strftime("/%Y%m%d/%H%M%S")
         train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
         test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation')
-        min_loss_summary_writer = tf.summary.create_file_writer(log_dir_now + '/min_loss')
+        test_min_summary_writer = tf.summary.create_file_writer(log_dir_now + '/min_validation')
         train_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/slice')
         test_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/slice')
         train_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/vol')
@@ -201,6 +197,7 @@ class Train:
             with train_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', train_loss, step=e)
 
+            distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, multi_class, test_img_slice_writer, test_img_vol_writer, vol_visual_freq, self.predict_slice)
             test_loss = distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, multi_class, test_img_slice_writer, test_img_vol_writer, vol_visual_freq, self.predict_slice)
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
@@ -209,7 +206,9 @@ class Train:
             with lr_summary_writer.as_default():
                 tf.summary.scalar('epoch_lr', current_lr, step=e)
             print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}")
-  
+
+            print("EPOCH")
+
             if best_loss is None:
                 self.checkpoint.write(file_prefix=os.path.join(log_dir_now + f'/chkp/best_weights'))
                 best_loss = test_loss
@@ -217,8 +216,8 @@ class Train:
                 if test_loss < best_loss:
                     self.checkpoint.write(file_prefix=os.path.join(log_dir_now + f'/chkp/best_weights'))
                     best_loss = test_loss
-            with min_loss_summary_writer.as_default():
-                    tf.summary.scalar('epoch_min_loss', best_loss, step=e)
+            with test_min_summary_writer.as_default():
+                    tf.summary.scalar('epoch_loss', best_loss, step=e)
 
 
 def load_datasets(batch_size, buffer_size,
@@ -237,12 +236,14 @@ def load_datasets(batch_size, buffer_size,
         'buffer_size': buffer_size,
         'multi_class': multi_class,
         'use_keras_fit': False,
-        'crop_size': crop_size,
+        'crop_size': crop_size, 
         'depth_crop_size': depth_crop_size,
         'aug': aug,
     }
     train_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'train_3d/'),
-                                is_training=True, predict_slice=predict_slice, **args)
+                                is_training=True, predict_slice=predict_slice,
+                                # crop_size=crop_size, depth_crop_size=depth_crop_size,
+                                **args)
     valid_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
                                 is_training=False, predict_slice=predict_slice, **args)
     return train_ds, valid_ds
@@ -299,7 +300,8 @@ def main(epochs,
         strategy = tf.distribute.MirroredStrategy()
     # strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
     with strategy.scope():
-        loss_func = tversky_loss if multi_class else dice_loss
+        # loss_func = tversky_loss if multi_class else dice_loss
+        loss_func = dice_loss
 
         lr_manager = LearningRateUpdate(lr, lr_drop, lr_drop_freq, warmup=lr_warmup)
 
@@ -314,20 +316,6 @@ def main(epochs,
 
         trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
 
-        # tf.print("starting")
-        # for idx, data in enumerate(train_ds):
-        #     x, y = data
-        #     print(type(x))
-        #     print(type(y))
-        #     print("==========================")
-        #     # tf.print(idx, "x", tf.shape(x), tf.reduce_max(x))
-        #     # tf.print(idx, "y", tf.shape(y), tf.reduce_sum(y))
-        #     tf.print(idx, "y", tf.shape(y.values[0]), tf.reduce_sum(y.values[0]), tf.reduce_sum(y.values[1]))
-        #     tf.print("=====================")
-        #     # pred = model(x, training=True)
-        #     # print("p", tf.shape(pred.values[0]))
-        #     # model.summary()
-
     print(f"{time() - t0:.02f}")
 
 
@@ -336,45 +324,45 @@ if __name__ == "__main__":
     if not use_tpu:
         setup_gpu()
 
-    debug = False
-    es = 70
+    debug = True
+    es = 30
     
     main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
          num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
          aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)  # decent performance
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['shift'], use_transpose=False, debug=debug, tpu=use_tpu)
+    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['shift'], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-         aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
+    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=True, debug=debug)  # just predicts background class
+    # main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
+    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=True, debug=debug)  # just predicts background class
 
-    main(epochs=es, lr=5e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=1, num_channels=32, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 7, 7),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2))
+    # main(epochs=es, lr=5e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=1, num_channels=32, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 7, 7),
+    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2))
 
-    main(epochs=es, lr=5e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=1, num_channels=32, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 7, 7),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2))
+    # main(epochs=es, lr=5e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=1, num_channels=32, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 7, 7),
+    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2))
 
-    main(epochs=es, lr=5e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=1, num_channels=32, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 7, 7),
-         aug=[], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2))
+    # main(epochs=es, lr=5e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=1, num_channels=32, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=16, multi_class=False, kernel_size=(3, 7, 7),
+    #      aug=[], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2))
 
-    main(epochs=es, lr=5e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=128, depth_crop_size=1, num_channels=32, lr_drop_freq=5,
-         num_conv_layers=3, batch_size=8, multi_class=False, kernel_size=(3, 7, 7),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2))
+    # main(epochs=es, lr=5e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=128, depth_crop_size=1, num_channels=32, lr_drop_freq=5,
+    #      num_conv_layers=3, batch_size=8, multi_class=False, kernel_size=(3, 7, 7),
+    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2))
