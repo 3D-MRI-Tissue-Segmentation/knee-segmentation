@@ -415,7 +415,7 @@ def main(argv):
                     pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
                     # Flatten channels into 3D
-                    if flags.multi_class: # or np.shape(pred_vol)[-1] not 
+                    if FLAGS.multi_class: # or np.shape(pred_vol)[-1] not 
                         pred_vol = np.argmax(pred_vol, axis=-1)
 
 
