@@ -269,7 +269,7 @@ class Nested_UNet(tf.keras.Model):
 
         block_list = []
         x = self.conv_block_lists[0][0](input, training=training)
-        block_list.append(x)
+        block_list.append([x])
         for sum_idx in range(1, len(self.conv_block_lists)):
             left_idx = sum_idx
             right_idx = 0
@@ -278,26 +278,20 @@ class Nested_UNet(tf.keras.Model):
                 print(left_idx)
                 print(right_idx)
                 if left_idx == sum_idx:
-                    print('downsampling...')
-                    if left_idx == 1 and right_idx == 0:
-                        x = self.conv_block_lists[left_idx][right_idx](self.pool(block_list[left_idx - 1]),
-                                                                       training=training)
-                    else:
-                        x = self.conv_block_lists[left_idx][right_idx](self.pool(block_list[left_idx - 1][right_idx]),
-                                                                       training=training)
+                    x = self.conv_block_lists[left_idx][right_idx](self.pool(block_list[left_idx - 1][right_idx]),
+                                                                   training=training)
                 else:
-                    print('upsampling + concatenating...')
-                    if not isinstance(block_list[left_idx], list):
+                    if not isinstance(block_list[left_idx], list) and right_idx <= 1:
                         x = self.conv_block_lists[left_idx][right_idx](tfkl.concatenate([self.up(x),
                                                                                         block_list[left_idx]]
                                                                                         ),
                                                                        training=training)
-                    else:
-                        x = self.conv_block_lists[left_idx][right_idx](tfkl.concatenate([self.up(x),
-                                                                                        block_list[left_idx][0]]
-                                                                                        ),
+                    elif isinstance(block_list[left_idx], list):
+                        concat_list = [self.up(x)]
+                        for idx in range(1, right_idx + 1):
+                            concat_list.append(block_list[left_idx + idx - 1][-1 + idx])
+                        x = self.conv_block_lists[left_idx][right_idx](tfkl.concatenate(concat_list),
                                                                        training=training)
-                print(x.get_shape())
                 left_idx -= 1
                 right_idx += 1
                 layer_list.append(x)
