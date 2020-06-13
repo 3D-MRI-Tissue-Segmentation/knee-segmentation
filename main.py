@@ -15,7 +15,7 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tversky_loss
+from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tversky_loss, iou_loss
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix
 
@@ -289,7 +289,7 @@ def main(argv):
 
         model.compile(optimizer=optimiser,
                       loss=loss_fn,
-                      metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
+                      metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 
     if FLAGS.train:
         # define checkpoints
