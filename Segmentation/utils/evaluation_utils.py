@@ -132,6 +132,7 @@ def plot_and_eval_3D(trained_model,
 
                     break
 
+                print('is_multi_class', is_multi_class)
                 if is_multi_class:  # or np.shape(pred_vol)[-1] not
                     pred_vol = np.argmax(pred_vol, axis=-1)
 
