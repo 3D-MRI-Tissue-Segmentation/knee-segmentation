@@ -2,6 +2,32 @@
 from VoxelData import VoxelData
 import numpy as np
 
+
+def get_steps(num_samples, num_traces, num_classes):
+    steps = []
+    print('num_samples',num_samples)
+    print('num_traces',num_traces)
+    print('num_classes', num_classes)
+
+    # Loop through number of samples and for each make a 'step' with the 'visible' vector set True for each trace that's part of 1 volume
+    for i in range(num_samples):
+        # Hide all traces
+        step = dict(
+            method = 'restyle',  
+            args = ['visible', [False] * num_traces],
+        )
+
+        # Enable the traces we want to see
+        for k in range(i*num_classes, (i+1)*num_classes):
+            step['args'][1][k] = True
+
+        
+        print('step',step)
+        # Add step to step list
+        steps.append(step)
+
+    return steps
+
 class RenderData(VoxelData):
 
     def __init__(self,seg_data):

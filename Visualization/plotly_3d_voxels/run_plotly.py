@@ -10,6 +10,7 @@ from options import Options
 from data_loader import load_data
 from VoxelData import VoxelData
 from RenderData import RenderData
+from RenderData import get_steps
 import chart_studio.plotly
 import plotly.io as pio
 import plotly.graph_objects as go
@@ -83,46 +84,10 @@ if __name__ == "__main__":
 
 
 
-    num_classes = 2 # Voxels.num_classes
-
-    steps = []
-    # curr_sample=1
-
-    # Loop through number of samples and for each make a 'step' with the 'visible' vector set True for each trace that's part of 1 volume
-    num_samples = 6
-    for i in range(num_samples):
-        step = dict(
-            method = 'restyle',  
-            args = ['visible', [False] * len(fig.data)],
-        )
-
-        for 
-        step['args'][1][k] = True
-
-
-
-
-        curr_sample = int(np.ceil((i+1)/num_classes))
-        print('curr_sample', curr_sample)
-        # Hide all traces
-        step = dict(
-            method = 'restyle',  
-            args = ['visible', [False] * len(fig.data)],
-        )
-        # Enable the traces we want to see
-        print('range(curr_sample, (curr_sample+num_classes))',range(curr_sample, (curr_sample+num_classes)))
-        for k in range(curr_sample, (curr_sample+num_classes)):
-            step['args'][1][k] = True
-
-
-
-        # if (i < curr_sample*num_classes) & ((curr_sample-1)*num_classes < i):
-        #     for k in range(num_classes):
-        #         step['args'][1][(curr_sample-1) * k] = True
-        
-        print('step',step)
-        # Add step to step list
-        steps.append(step)
+    num_traces = len(fig.data)
+    num_classes = Voxels.num_classes - 1
+    
+    steps = get_steps(num_samples, num_traces, num_classes) 
 
     sliders = [dict(
         currentvalue={"prefix": "Epoch: "},
