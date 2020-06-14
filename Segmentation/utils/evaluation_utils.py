@@ -143,7 +143,7 @@ def plot_and_eval_3D(trained_model,
 
 
                 # Figure saving
-                pred_vol = pred_vol[50:110, 114:174, 114:174]
+                # pred_vol = pred_vol[50:110, 114:174, 114:174]
                 # print(pred_vol.shape)
                 # fig_dir = "results"
                 # fig = plot_volume(pred_vol)
@@ -171,7 +171,7 @@ def plot_and_eval_3D(trained_model,
                     for i in range(pred_vol.shape[0]):
                         print(f"{pred_vol.shape[0]} and {i}")
                         slices.append(pred_vol[i, :, :])
-                        if i == 100:
+                        if i == 10:
                             break
                     pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
                     print('done')
