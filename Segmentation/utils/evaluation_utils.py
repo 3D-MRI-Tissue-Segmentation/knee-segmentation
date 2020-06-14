@@ -169,6 +169,7 @@ def plot_and_eval_3D(trained_model,
                     print("creating the gif ...")
                     slices = []
                     for i in range(pred_vol.shape[0]):
+                        print("sclice")
                         slices.append(pred_vol[i, :, :])
                         if i == 10:
                             break
@@ -216,7 +217,14 @@ def pred_evolution_gif(frames_list,
                        file_name=''):
 
     fig = plt.Figure()
-    gif = ArtistAnimation(fig, frames_list, interval) # create gif
+
+    images = []
+    for i in range(frames_list.shape[0]):
+        im = plt.imshow(frames_list[i], animated=True)
+        images.append([im])
+
+
+    gif = ArtistAnimation(fig, images, interval) # create gif
 
     # save file
     # save_dir = save_dir.replace("/", "\\\\")
