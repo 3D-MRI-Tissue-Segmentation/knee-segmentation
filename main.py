@@ -9,14 +9,14 @@ from absl import app
 from absl import flags
 from absl import logging
 from glob import glob
-from google.cloud import storage
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
 from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.losses import dice_coef, dice_coef_loss, dice_loss, tversky_loss
+from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
+from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix
 
@@ -287,10 +287,15 @@ def main(argv):
                 model.build((batch_size, 288, 288, 3))
 
             model.summary()
-
-        model.compile(optimizer=optimiser,
-                      loss=loss_fn,
-                      metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
+        
+        if FLAGS.multi_class:
+            model.compile(optimizer=optimiser,
+                          loss=loss_fn,
+                          metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+        else:
+            model.compile(optimizer=optimiser, 
+                          loss=loss_fn,
+                          metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 
     if FLAGS.train:
         # define checkpoints
