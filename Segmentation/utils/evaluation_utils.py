@@ -153,14 +153,20 @@ def plot_and_eval_3D(trained_model,
                 # print("npy saved as ", vol_name_npy)
 
                 #create gif
+                print("\n\n\n\n=================")
+                print("creating the gif ...")
                 slices = []
                 for i in range(pred_vol.shape[0]):
                     slices.append(pred_vol[i, :, :])
                     if i == 10:
                         break
-                pred_evolution_gif(slices)
+                pred_evolution_gif(slices, save_dir='results', file_name='gif1.gif')
+                print('done')
+                print("=================\n\n\n\n")
 
             print("=================")
+
+            break
 
             if idx == 4:
                 break
@@ -185,9 +191,10 @@ def pred_evolution_gif(frames_list,
     if not save_dir == '':
         if file_name == '':
             time = datetime.now().strftime("%Y%m%d-%H%M%S")
-            file_name = 'gif'+ time + '.mp4'
+            file_name = 'gif'+ time + '.gif'
 
         gif.save(file_name)
+        plt.close('all')
     else:
         plt.show()
 
