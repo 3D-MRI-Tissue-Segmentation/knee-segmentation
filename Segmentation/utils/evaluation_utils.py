@@ -168,6 +168,7 @@ def plot_and_eval_3D(trained_model,
                     print(f"ffmpeg found:{os.path.isfile('./../../../opt/conda/bin/ffmpeg')} ")
                     print("creating the gif ...")
                     slices = []
+                    pred_vol = pred_vol/6
                     for i in range(pred_vol.shape[0]):
                         slices.append(pred_vol[i, :, :])
                         if i == 100:
