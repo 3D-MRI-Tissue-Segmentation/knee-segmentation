@@ -135,13 +135,16 @@ def plot_and_eval_3D(trained_model,
 
                     print("DICE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
 
-                    break
+                    
 
+                print('is_multi_class', is_multi_class)
                 if is_multi_class:  # or np.shape(pred_vol)[-1] not
                     pred_vol = np.argmax(pred_vol, axis=-1)
+                    print('pred_vol.shape', np.shape(pred_vol))
+
 
                 # Figure saving
-                pred_vol = pred_vol[50:110, 114:174, 114:174]
+#                 pred_vol = pred_vol[50:110, 114:174, 114:174]
                 # print(pred_vol.shape)
                 # fig_dir = "results"
                 # fig = plot_volume(pred_vol)
@@ -154,34 +157,58 @@ def plot_and_eval_3D(trained_model,
                 # np.save(pred_vol, vol_name_npy)
                 # print("npy saved as ", vol_name_npy)
 
-                #create gif
-                print("\n\n\n\n=================")
-                print("checking for ffmpeg...")
-                if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
-                    print("please 'pip install ffmpeg' to create gif")
-                    print("gif not created")
+#                 #create gif
+#                 print("\n\n\n\n=================")
+#                 print("checking for ffmpeg...")
+#                 if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
+#                     print("please 'pip install ffmpeg' to create gif")
+#                     print("gif not created")
                     
-                else:
-                    print("ffmpeg found")
-                    print(f"ffmpeg found:{os.path.isfile('./../../../opt/conda/bin/ffmpeg')} ")
-                    print("creating the gif ...")
-                    slices = []
-                    for i in range(pred_vol.shape[0]):
-                        slices.append(pred_vol[i, :, :])
-                        if i == 10:
-                            break
-                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
-                    print('done')
-                print("=================\n\n\n\n")
+#                 else:
+#                     print("ffmpeg found")
+#                     print(f"ffmpeg found:{os.path.isfile('./../../../opt/conda/bin/ffmpeg')} ")
+#                     print("creating the gif ...")
+#                     slices = []
+#                     for i in range(pred_vol.shape[0]):
+#                         slices.append(pred_vol[i, :, :])
+#                         if i == 10:
+#                             break
+#                     pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
+#                     print('done')
+#                 print("=================\n\n\n\n")
+
+                # # Figure saving
+                # fig_dir = "results"
+                # fig = plot_volume(pred_vol)
+                # plt.savefig(f"results/hello-hello")
+                # plt.close('all')
+
+                # Save volume as numpy file for plotlyyy
+                fig_dir = "results"
+                vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
+                print("npy save as ", vol_name_npy)
+
+
+                # Get middle 60 slices cuz 288x288x160 too big
+                d1,d2,d3 = np.shape(pred_vol)[0:3]
+                d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+                roi = int(50 / 2)
+                pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                np.save(vol_name_npy,pred_vol_np)
+
+
+#             break
+
+#             if idx == 4:
+#                 break
+#             # we need to then merge into each (288,288,160) volume. Validation data should be in order
+
+                
 
             print("=================")
 
-            break
 
-            if idx == 4:
-                break
-            # we need to then merge into each (288,288,160) volume. Validation data should be in order
-
+            
         break
 
 def pred_evolution_gif(frames_list,
