@@ -196,6 +196,7 @@ def pred_evolution_gif(frames_list,
 
         
         #gif.save(file_name, writer='ffmpeg')
+        writergif = animation.PillowWriter(fps=30)
         gif.save(file_name, writer=writergif)
         plt.close('all')
     else:
