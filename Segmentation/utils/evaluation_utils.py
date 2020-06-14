@@ -193,7 +193,7 @@ def pred_evolution_gif(frames_list,
             time = datetime.now().strftime("%Y%m%d-%H%M%S")
             file_name = 'gif'+ time + '.gif'
 
-        gif.save(file_name)
+        gif.save(file_name, writer='ffmpeg')
         plt.close('all')
     else:
         plt.show()
