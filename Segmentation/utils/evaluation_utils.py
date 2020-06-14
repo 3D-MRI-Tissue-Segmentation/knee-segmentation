@@ -183,17 +183,20 @@ def pred_evolution_gif(frames_list,
     gif = ArtistAnimation(fig, frames_list, interval) # create gif
 
     # save file
-    save_dir = save_dir.replace("/", "\\\\")
-    save_dir = save_dir.replace("\\", "\\\\")
+    # save_dir = save_dir.replace("/", "\\\\")
+    # save_dir = save_dir.replace("\\", "\\\\")
 
-    plt.rcParams['animation.ffmpeg_path'] = save_dir # change directory for animations
+    # plt.rcParams['animation.ffmpeg_path'] = save_dir # change directory for animations
+    save_dir = save_dir + '/' + file_name
 
     if not save_dir == '':
         if file_name == '':
             time = datetime.now().strftime("%Y%m%d-%H%M%S")
             file_name = 'gif'+ time + '.gif'
 
-        gif.save(file_name, writer='ffmpeg')
+        
+        #gif.save(file_name, writer='ffmpeg')
+        gif.save(file_name, writer=writergif)
         plt.close('all')
     else:
         plt.show()
