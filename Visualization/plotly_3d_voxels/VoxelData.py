@@ -47,17 +47,14 @@ class VoxelData():
             unique_classes = np.unique(self.data)
 
         # print("unique_classes",unique_classes)
-        
         num_classes = np.shape(unique_classes)[0]
-        keys = np.arange(num_classes)
-        # class_colors = dict(zip(keys, unique_colors))
 
         return unique_classes, num_classes
 
 
     def get_class_voxels(self, seg_class):
         """ Mask over voxel data only returning voxels from that segmentation class """
-        print('Getting volume of', seg_class)
+        print('Getting volume of class', int(seg_class))
         seg_voxels =  np.where(self.data == seg_class, 1,0)
     
         return seg_voxels

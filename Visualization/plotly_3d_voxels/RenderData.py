@@ -53,7 +53,7 @@ class RenderData(VoxelData):
     def get_coords(self):
         indices = np.nonzero(self.data)
         indices = np.stack((indices[0], indices[1],indices[2]))
-        print('Number of non-background pixels:', len(indices))
+        print('Number of non-background voxels:', np.size(indices),'/',self.voxel_tot)
         return indices
 
     def has_voxel(self,neighbor_coord):
@@ -145,8 +145,8 @@ class RenderData(VoxelData):
         # make only outer vertices 
         print('Making voxel vertices')
         edge_verts = np.zeros((np.size(self.xyz, 0),1))
-        # num_voxels = np.size(self.xyz, 1)
-        for voxel in range(self.voxel_tot):
+        num_nonzero_voxels = np.size(self.xyz, 1)
+        for voxel in range(num_nonzero_voxels):
             cube = self.make_cube_verts(voxel)          # passing voxel num rather than 
             edge_verts = np.append(edge_verts, cube, axis=1)
         edge_verts = np.delete(edge_verts, 0,1)

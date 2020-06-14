@@ -63,14 +63,16 @@ def load_data(opt):
         data = data[1:2,:,:,:]
         
     else:
-        assert data_paths, 'The directory %s does not contain files with valid extensions %s' % (opt.dataroot, EXTENSIONS)
-        print("data_paths", data_paths)
+        assert data_paths, 'The directory %s does not contain files with valid extensions %s' % (opt.dataroot, EXTENSIONS)        
         data = []
-        if len(np.shape(data_paths)) > 1:
-            for i, path in enumerate(data_paths):
-                data[i] = np.load(path)
-        else:
+        if len(data_paths) == 1:
             data = np.load(data_paths)
+        else:
+            for i, path in enumerate(data_paths):
+                should_get_loaded = np.mod(i,opt.slider_interval) == 0
+                if should_get_loaded or i==0:
+                    data.append(np.load(path))
+            
         
 
     return data

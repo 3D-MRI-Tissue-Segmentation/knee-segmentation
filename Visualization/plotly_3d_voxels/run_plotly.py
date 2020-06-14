@@ -34,23 +34,25 @@ if __name__ == "__main__":
 
     data = load_data(opt)
 
+    
+    print('np.shape(data)',np.shape(data))
+
 
     fig = go.Figure()
     print("Generating figure")
 
     
-    data_is_3d = len(np.shape(data)) <=3
-    if data_is_3d:
-        num_samples = 1
-    else:
-        num_samples = np.shape(data)[0]
-
+    is_multiple_samples = type(data) == list
+    num_samples = len(data)
+    num_classes = 
 
     for j in range(num_samples):
         
-        if data_is_3d:
+        if not is_multiple_samples:
+            print('1 samplpe')
             curr_data = data
         else:
+            print('multiple samples')
             curr_data = data[j]
         
         Voxels = VoxelData(curr_data)
@@ -59,10 +61,11 @@ if __name__ == "__main__":
         # print("Voxels.vertices\n",Voxels.vertices)
         # print("Voxels.triangles\n",Voxels.triangles)
 
-    
+        has_background = False
         for i, seg_class in enumerate(Voxels.class_colors):
             print("Making segmentation voxels ", i, "/", np.size(Voxels.class_colors))
             if seg_class == background_seg:
+                has_background = True
                 continue
 
             curr_class = RenderData(Voxels.get_class_voxels(seg_class))
@@ -82,14 +85,18 @@ if __name__ == "__main__":
                 opacity=0.7,
                 showlegend=True
                 ))
+            
+
+       
+        if has_background:
+            num_classes.append(Voxels.num_classes-1)
+        else:
+            num_classes.append(Voxels.num_classes)
 
 
 
     num_traces = len(fig.data)
-    num_classes = Voxels.num_classes - 1
-    
     steps = get_steps(num_samples, num_traces, num_classes) 
-
     sliders = [dict(
         currentvalue={"prefix": "Epoch: "},
         pad={"t": 50},
