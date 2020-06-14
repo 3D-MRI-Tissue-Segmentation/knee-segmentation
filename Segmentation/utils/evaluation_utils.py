@@ -169,6 +169,7 @@ def plot_and_eval_3D(trained_model,
                     print("creating the gif ...")
                     slices = []
                     pred_vol = pred_vol/6
+                    print(pred_vol[80,:,:])
                     for i in range(pred_vol.shape[0]):
                         slices.append(pred_vol[i, :, :])
                         if i == 100:
