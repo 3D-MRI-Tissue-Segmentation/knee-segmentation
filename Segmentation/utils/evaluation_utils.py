@@ -140,17 +140,25 @@ def plot_and_eval_3D(trained_model,
 
                 # Figure saving
                 pred_vol = pred_vol[50:110, 114:174, 114:174]
-                print(pred_vol.shape)
-                fig_dir = "results"
-                fig = plot_volume(pred_vol)
-                print("shabem")
-                plt.savefig(f"results/hello-hello2")
-                plt.close('all')
+                # print(pred_vol.shape)
+                # fig_dir = "results"
+                # fig = plot_volume(pred_vol)
+                # print("shabem")
+                # plt.savefig(f"results/hello-hello2")
+                # plt.close('all')
 
-                # Save volume as numpy file for plotlyyy
-                vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + idx))
-                np.save(pred_vol, vol_name_npy)
-                print("npy saved as ", vol_name_npy)
+                # # Save volume as numpy file for plotlyyy
+                # vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
+                # np.save(pred_vol, vol_name_npy)
+                # print("npy saved as ", vol_name_npy)
+
+                #create gif
+                slices = []
+                for i in range(pred_vol.shape[0]):
+                    slices.append(pred_vol[i, :, :])
+                    if i == 10:
+                        break
+                pred_evolution_gif(slices)
 
             print("=================")
 
