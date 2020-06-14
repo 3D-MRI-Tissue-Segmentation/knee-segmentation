@@ -170,7 +170,7 @@ def plot_and_eval_3D(trained_model,
                         slices.append(pred_vol[i, :, :])
                         if i == 10:
                             break
-                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.gif')
+                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
                     print('done')
                 print("=================\n\n\n\n")
 
@@ -198,6 +198,7 @@ def pred_evolution_gif(frames_list,
 
     plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # change directory for animations
     save_dir = save_dir + '/' + file_name
+    print(save_dir)
 
     if not save_dir == '':
         if file_name == '':
