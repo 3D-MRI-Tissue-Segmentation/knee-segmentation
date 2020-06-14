@@ -77,9 +77,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                                                              use_dropout=False))
         
         for idx in range(len(self.layers_per_block) - 1, 0, -1):
-            print(idx)
             num_conv_layers = layers_per_block[idx - 1]
-            print(num_conv_layers)
             num_filters = num_conv_layers * growth_rate
             self.up_transition_list.append(up_transition(num_conv_layers,
                                                          num_channels=num_filters,
@@ -98,7 +96,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
 
         for i, up in enumerate(self.up_transition_list):
             x = up(x, blocks[- i - 1], training=training)
-            print(x.get_shape()) 
+
         # x = self.final_dense_block(x)
         x = self.conv_1x1(x)
         if self.num_classes == 1:

@@ -33,6 +33,7 @@ htmlcov/
 *.tfrecords
 *.cfg
 *.sh
+*.zsh
 
 # IDE
 .vscode/
@@ -49,3 +50,5 @@ checkpoints/
 # Unignore
 !/results/
 !/results/**
+
+ok.py
