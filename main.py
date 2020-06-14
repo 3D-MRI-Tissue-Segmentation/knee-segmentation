@@ -10,7 +10,7 @@ from absl import flags
 from absl import logging
 from glob import glob
 
-from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
+from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet, Nested_UNet_v2
 from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
@@ -215,14 +215,14 @@ def main(argv):
 
         elif FLAGS.model_architecture == 'unet++':
 
-            model = Nested_UNet(FLAGS.num_filters,
-                                num_classes,
-                                FLAGS.num_conv,
-                                FLAGS.kernel_size,
-                                FLAGS.activation,
-                                FLAGS.use_batchnorm,
-                                FLAGS.use_bias,
-                                FLAGS.channel_order)
+            model = Nested_UNet_v2(FLAGS.num_filters,
+                                   num_classes,
+                                   FLAGS.num_conv,
+                                   FLAGS.kernel_size,
+                                   FLAGS.activation,
+                                   FLAGS.use_batchnorm,
+                                   FLAGS.use_bias,
+                                   FLAGS.channel_order)
 
         elif FLAGS.model_architecture == '100-Layer-Tiramisu':
 
@@ -287,13 +287,13 @@ def main(argv):
                 model.build((batch_size, 288, 288, 3))
 
             model.summary()
-        
+
         if FLAGS.multi_class:
             model.compile(optimizer=optimiser,
                           loss=loss_fn,
                           metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
         else:
-            model.compile(optimizer=optimiser, 
+            model.compile(optimizer=optimiser,
                           loss=loss_fn,
                           metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 
