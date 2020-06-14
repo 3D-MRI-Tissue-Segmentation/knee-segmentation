@@ -60,12 +60,17 @@ def load_data(opt):
 
         data = td.volume
         # data = data[:,:,:,1]
-        data = data[:,:,:,1]
+        data = data[1:2,:,:,:]
         
     else:
         assert data_paths, 'The directory %s does not contain files with valid extensions %s' % (opt.dataroot, EXTENSIONS)
         print("data_paths", data_paths)
-        data = np.load(data_paths)
+        data = []
+        if len(np.shape(data_paths)) > 1:
+            for i, path in enumerate(data_paths):
+                data[i] = np.load(path)
+        else:
+            data = np.load(data_paths)
         
 
     return data

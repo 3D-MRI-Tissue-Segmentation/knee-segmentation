@@ -18,7 +18,7 @@ class Options():
         self.parser.add_argument('-out_name', '--output_html_pathname', type=str, default='segmentation_plotly.html', help='Name of output file pathname; must end with html')
         self.parser.add_argument('-shuff', '--shuffle_colors', type=bool, default=True, help='Shuffle the list of colors corresponding to each segmentation class (copy paste in the output if you prefer it)')
         self.parser.add_argument('-toy', '--toy_dataset', type=int, default=False, help='To test voxel graphics with random voxel cube, input cube dimension (1 int)')
-        self.parser.add_argument('-slide')
+        self.parser.add_argument('-slide', '--slider_data_interval', type=int, default=1, help='Sampling interval for number of input files. Only set if loading more than one file.')
         # self.parser.add_argument('-t', '--test', default='hullo', help="testestets")
 
         self.initialized = True
