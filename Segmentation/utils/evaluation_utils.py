@@ -169,11 +169,11 @@ def plot_and_eval_3D(trained_model,
                     print("creating the gif ...")
                     slices = []
                     for i in range(pred_vol.shape[0]):
-                        print("sclice")
+                        print(i)
                         slices.append(pred_vol[i, :, :])
                         if i == 100:
                             break
-                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.gif')
+                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
                     print('done')
                 print("=================\n\n\n\n")
 
