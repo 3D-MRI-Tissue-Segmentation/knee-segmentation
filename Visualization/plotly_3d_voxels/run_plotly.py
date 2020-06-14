@@ -67,6 +67,7 @@ if __name__ == "__main__":
 
             curr_class = RenderData(Voxels.get_class_voxels(seg_class))
             curr_color = colors[i]
+            print(i, 'curr_color',curr_color)
 
             fig.add_trace(go.Mesh3d(
                 # voxel vertices

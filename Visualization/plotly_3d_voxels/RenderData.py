@@ -39,7 +39,7 @@ class RenderData(VoxelData):
         self.x_length = np.size(self.data,0)
         self.y_length = np.size(self.data,1)
         self.z_length = np.size(self.data,2)
-        self.class_colors, self.num_classes = self.get_class_names()
+        # self.class_colors, self.num_classes = self.get_class_names()
 
         self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
         self.xyz = self.get_coords()
@@ -142,9 +142,10 @@ class RenderData(VoxelData):
 
     def make_edge_verts(self):
         # make only outer vertices 
+        print('Making voxel vertices')
         edge_verts = np.zeros((np.size(self.xyz, 0),1))
-        num_voxels = np.size(self.xyz, 1)
-        for voxel in range(num_voxels):
+        # num_voxels = np.size(self.xyz, 1)
+        for voxel in range(self.voxel_tot):
             cube = self.make_cube_verts(voxel)          # passing voxel num rather than 
             edge_verts = np.append(edge_verts, cube, axis=1)
         edge_verts = np.delete(edge_verts, 0,1)
