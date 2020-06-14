@@ -150,13 +150,10 @@ def plot_and_eval_3D(trained_model,
 
                 # Get middle 60 slices cuz 288x288x160 too big
                 d1,d2,d3 = np.shape(pred_vol)[0:3]
-                print('d1, d2, d3', d1, d2, d3)
                 d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
-                print('d1, d2, d3', d1, d2, d3)
                 roi = int(60 / 2)
-                print('(d1-roi)',(d1-roi))
-                pred_vol = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                np.save(vol_name_npy,pred_vol)
+                pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                np.save(vol_name_npy,pred_vol_np)
 
                 break
 

@@ -33,9 +33,9 @@ class RenderData(VoxelData):
     def __init__(self,seg_data):
         self.data = seg_data
         if np.size(np.shape(self.data)) > 3:
-            self.voxel_tot = sum(np.shape(self.data)[0:-1])  
+            self.voxel_tot = np.prod(np.shape(self.data)[0:-1])  
         else:
-            self.voxel_tot = sum(np.shape(self.data))  
+            self.voxel_tot = np.prod(np.shape(self.data))  
         self.x_length = np.size(self.data,0)
         self.y_length = np.size(self.data,1)
         self.z_length = np.size(self.data,2)
@@ -53,6 +53,7 @@ class RenderData(VoxelData):
     def get_coords(self):
         indices = np.nonzero(self.data)
         indices = np.stack((indices[0], indices[1],indices[2]))
+        print('Number of non-background pixels:', len(indices))
         return indices
 
     def has_voxel(self,neighbor_coord):
