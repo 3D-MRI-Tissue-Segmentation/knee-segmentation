@@ -135,7 +135,7 @@ def plot_and_eval_3D(trained_model,
                 print('is_multi_class', is_multi_class)
                 if is_multi_class:  # or np.shape(pred_vol)[-1] not
                     pred_vol = np.argmax(pred_vol, axis=-1)
-                    print('pred_vol.shape', pred_vol.shape)
+                    print('pred_vol.shape', np.shape(pred_vol))
 
                 # # Figure saving
                 # fig_dir = "results"
@@ -153,7 +153,7 @@ def plot_and_eval_3D(trained_model,
                 print('d1, d2, d3', d1, d2, d3)
                 d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
                 print('d1, d2, d3', d1, d2, d3)
-                roi = 60 / 2
+                roi = int(60 / 2)
                 print('(d1-roi)',(d1-roi))
                 pred_vol = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
                 np.save(vol_name_npy,pred_vol)
