@@ -171,9 +171,9 @@ def plot_and_eval_3D(trained_model,
                     for i in range(pred_vol.shape[0]):
                         print("sclice")
                         slices.append(pred_vol[i, :, :])
-                        if i == 10:
+                        if i == 100:
                             break
-                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
+                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.gif')
                     print('done')
                 print("=================\n\n\n\n")
 
@@ -184,9 +184,9 @@ def plot_and_eval_3D(trained_model,
                 # plt.close('all')
 
                 # Save volume as numpy file for plotlyyy
-                fig_dir = "results"
-                vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
-                print("npy save as ", vol_name_npy)
+                # fig_dir = "results"
+                # vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
+                # print("npy save as ", vol_name_npy)
 
 
                 # Get middle 60 slices cuz 288x288x160 too big
