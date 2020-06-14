@@ -170,6 +170,7 @@ def plot_and_eval_3D(trained_model,
                     slices = []
                     for i in range(pred_vol.shape[0]):
                         print(f"{pred_vol.shape[0]} and {i}")
+                        print(pred_vol[i,:,:])
                         slices.append(pred_vol[i, :, :])
                         if i == 10:
                             break
