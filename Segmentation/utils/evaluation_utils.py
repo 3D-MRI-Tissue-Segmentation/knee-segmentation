@@ -156,6 +156,11 @@ def plot_and_eval_3D(trained_model,
                 # np.save(pred_vol, vol_name_npy)
                 # print("npy saved as ", vol_name_npy)
 
+                print("eccoli\n\n\n\n\n\n\n\n\n")
+                print(0 in pred_vol)
+                print(7 in pred_vol)
+
+
                 #create gif
                 print("\n\n\n\n=================")
                 print("checking for ffmpeg...")
