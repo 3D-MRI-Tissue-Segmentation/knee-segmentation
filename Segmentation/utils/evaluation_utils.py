@@ -219,7 +219,7 @@ def pred_evolution_gif(frames_list,
     fig = plt.Figure()
 
     images = []
-    for i in range(frames_list.shape[0]):
+    for i in range(len(frames_list)):
         im = plt.imshow(frames_list[i], animated=True)
         images.append([im])
 
