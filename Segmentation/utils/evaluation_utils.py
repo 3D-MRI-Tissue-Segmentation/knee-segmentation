@@ -169,7 +169,7 @@ def plot_and_eval_3D(trained_model,
                     print("creating the gif ...")
                     slices = []
                     for i in range(pred_vol.shape[0]):
-                        print(i)
+                        print(f"{pred_vol.shape[0]} and {i}")
                         slices.append(pred_vol[i, :, :])
                         if i == 100:
                             break
@@ -190,11 +190,11 @@ def plot_and_eval_3D(trained_model,
 
 
                 # Get middle 60 slices cuz 288x288x160 too big
-                d1,d2,d3 = np.shape(pred_vol)[0:3]
-                d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
-                roi = int(50 / 2)
-                pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                np.save(vol_name_npy,pred_vol_np)
+                # d1,d2,d3 = np.shape(pred_vol)[0:3]
+                # d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+                # roi = int(50 / 2)
+                # pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                # np.save(vol_name_npy,pred_vol_np)
 
 
             break
