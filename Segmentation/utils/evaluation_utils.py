@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.animation import ArtistAnimation
+import os.path
 
 import glob
 from google.cloud import storage
@@ -156,6 +157,7 @@ def plot_and_eval_3D(trained_model,
                 #create gif
                 print("\n\n\n\n=================")
                 print("creating the gif ...")
+                print(f"ffmpeg:{os.path.isfile('./../../../opt/conda/bin/ffmpeg')} ")
                 slices = []
                 for i in range(pred_vol.shape[0]):
                     slices.append(pred_vol[i, :, :])
@@ -187,7 +189,7 @@ def pred_evolution_gif(frames_list,
     # save_dir = save_dir.replace("/", "\\\\")
     # save_dir = save_dir.replace("\\", "\\\\")
 
-    plt.rcParams['animation.ffmpeg_path'] = '//opt//conda//bin//ffmpeg'  # change directory for animations
+    plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg//bin//ffmpeg.exe'  # change directory for animations
     save_dir = save_dir + '/' + file_name
 
     if not save_dir == '':
