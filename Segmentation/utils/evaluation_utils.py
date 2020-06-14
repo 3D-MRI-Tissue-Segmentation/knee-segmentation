@@ -219,7 +219,7 @@ def pred_evolution_gif(frames_list,
 
     images = []
     for i in range(len(frames_list)):
-        im = plt.imshow(frames_list[i], animated=True)
+        im = plt.imshow(frames_list[i], cmap='viridis', animated=True)
         images.append([im])
 
 
@@ -233,23 +233,21 @@ def pred_evolution_gif(frames_list,
     save_dir = save_dir + '/' + file_name
     print(save_dir)
 
-    # if not save_dir == '':
-    #     if file_name == '':
-    #         time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    #         file_name = 'gif'+ time + '.gif'
+    if not save_dir == '':
+        if file_name == '':
+            time = datetime.now().strftime("%Y%m%d-%H%M%S")
+            file_name = 'gif'+ time + '.gif'
 
         
-    #     ffmwriter = PillowWriter(fps=15)
-    #     # Writer = animation.writers['ffmpeg']
-    #     # ffmwriter = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
-    #     #ffmwriter = animation.FFMpegWriter()
-    #     gif.save(save_dir, writer=ffmwriter)
-    #     plt.close('all')
+        # ffmwriter = PillowWriter(fps=15)
+        Writer = animation.writers['ffmpeg']
+        ffmwriter = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        #ffmwriter = animation.FFMpegWriter()
+        gif.save(save_dir, writer=ffmwriter)
+        plt.close('all')
 
-    plt.savefig(save_dir)
-
-    # else:
-    #     plt.show()
+    else:
+        plt.show()
 
 def confusion_matrix(trained_model,
                      weights_dir,
