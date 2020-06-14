@@ -177,7 +177,7 @@ def pred_evolution_gif(frames_list,
     if not save_dir == '':
         if file_name == '':
             time = datetime.now().strftime("%Y%m%d-%H%M%S")
-            file_name = 'gif'+ time
+            file_name = 'gif'+ time + '.mp4'
 
         gif.save(file_name)
     else:
