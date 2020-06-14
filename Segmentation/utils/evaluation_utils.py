@@ -160,7 +160,7 @@ def plot_and_eval_3D(trained_model,
                     slices.append(pred_vol[i, :, :])
                     if i == 10:
                         break
-                pred_evolution_gif(slices, save_dir='results', file_name='gif1.gif')
+                pred_evolution_gif(slices, save_dir='results', file_name='gif1')
                 print('done')
                 print("=================\n\n\n\n")
 
