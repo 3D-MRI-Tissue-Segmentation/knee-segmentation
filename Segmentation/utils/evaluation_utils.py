@@ -155,14 +155,11 @@ def plot_and_eval_3D(trained_model,
                 pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
                 np.save(vol_name_npy,pred_vol_np)
 
-                break
+                
 
             print("=================")
 
-            if idx == 4:
-                break
-            # # we need to then merge into each (288,288,160) volume. Validation data should be in order
-
+            
         break
 
 def confusion_matrix(trained_model,
