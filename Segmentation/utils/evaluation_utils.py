@@ -139,7 +139,7 @@ def plot_and_eval_3D(trained_model,
                     pred_vol = np.argmax(pred_vol, axis=-1)
 
                 # Figure saving
-                pred_vol = pred_vol[50:110, 114:174, 114:174
+                pred_vol = pred_vol[50:110, 114:174, 114:174]
                 fig_dir = "results"
                 fig = plot_volume(pred_vol)
                 plt.savefig(f"results/hello-hello2")
