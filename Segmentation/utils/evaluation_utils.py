@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib.animation import ArtistAnimation
+from matplotlib.animation import ArtistAnimation, PillowWriter
 
 import glob
 from google.cloud import storage
@@ -156,11 +156,6 @@ def plot_and_eval_3D(trained_model,
                 # np.save(pred_vol, vol_name_npy)
                 # print("npy saved as ", vol_name_npy)
 
-                print("eccoli\n\n\n\n\n\n\n\n\n")
-                print(0 in pred_vol)
-                print(7 in pred_vol)
-
-
                 #create gif
                 print("\n\n\n\n=================")
                 print("checking for ffmpeg...")
@@ -179,7 +174,7 @@ def plot_and_eval_3D(trained_model,
                         slices.append(pred_vol[i, :, :])
                         if i == 10:
                             break
-                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
+                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.gif')
                     print('done')
                 print("=================\n\n\n\n")
 
@@ -227,6 +222,7 @@ def pred_evolution_gif(frames_list,
     images = []
     for i in range(len(frames_list)):
         im = plt.imshow(frames_list[i], animated=True)
+        print(im)
         images.append([im])
 
 
@@ -246,10 +242,9 @@ def pred_evolution_gif(frames_list,
             file_name = 'gif'+ time + '.gif'
 
         
-        #gif.save(file_name, writer='ffmpeg')
-        #writergif = animation.PillowWriter(fps=30)
-        Writer = animation.writers['ffmpeg']
-        ffmwriter = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        ffmwriter = PillowWriter(fps=15)
+        # Writer = animation.writers['ffmpeg']
+        # ffmwriter = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
         #ffmwriter = animation.FFMpegWriter()
         gif.save(save_dir, writer=ffmwriter)
         plt.close('all')
