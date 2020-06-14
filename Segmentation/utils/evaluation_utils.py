@@ -208,7 +208,9 @@ def pred_evolution_gif(frames_list,
         
         #gif.save(file_name, writer='ffmpeg')
         #writergif = animation.PillowWriter(fps=30)
-        ffmwriter = animation.FFMpegWriter()
+        Writer = animation.writers['ffmpeg']
+        ffmwriter = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        #ffmwriter = animation.FFMpegWriter()
         gif.save(save_dir, writer=ffmwriter)
         plt.close('all')
     else:
