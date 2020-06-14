@@ -156,15 +156,22 @@ def plot_and_eval_3D(trained_model,
 
                 #create gif
                 print("\n\n\n\n=================")
-                print("creating the gif ...")
-                print(f"ffmpeg:{os.path.isfile('./../../../opt/conda/bin/ffmpeg')} ")
-                slices = []
-                for i in range(pred_vol.shape[0]):
-                    slices.append(pred_vol[i, :, :])
-                    if i == 10:
-                        break
-                pred_evolution_gif(slices, save_dir='results', file_name='gif1.gif')
-                print('done')
+                print("checking for ffmpeg...")
+                if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
+                    print("please 'pip install ffmpeg' to create gif")
+                    print("gif not created")
+                    
+                else:
+                    print("ffmpeg found")
+                    print(f"ffmpeg found:{os.path.isfile('./../../../opt/conda/bin/ffmpeg')} ")
+                    print("creating the gif ...")
+                    slices = []
+                    for i in range(pred_vol.shape[0]):
+                        slices.append(pred_vol[i, :, :])
+                        if i == 10:
+                            break
+                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.gif')
+                    print('done')
                 print("=================\n\n\n\n")
 
             print("=================")
@@ -189,7 +196,7 @@ def pred_evolution_gif(frames_list,
     # save_dir = save_dir.replace("/", "\\\\")
     # save_dir = save_dir.replace("\\", "\\\\")
 
-    plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg//bin//ffmpeg.exe'  # change directory for animations
+    plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # change directory for animations
     save_dir = save_dir + '/' + file_name
 
     if not save_dir == '':
