@@ -238,7 +238,7 @@ def main(argv):
                                            FLAGS.padding)
 
         elif FLAGS.model_architecture == 'deeplabv3':
-
+            
             model = Deeplabv3(num_classes,
                               FLAGS.kernel_size_initial_conv,
                               FLAGS.num_filters_atrous,
