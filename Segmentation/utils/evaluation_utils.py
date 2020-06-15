@@ -21,14 +21,15 @@ def get_depth(conc):
         depth += batch.shape[0]
     return depth
 
-def plot_and_eval_3D(trained_model_in,
+def plot_and_eval_3D(model,
                      logdir,
                      visual_file,
                      tpu_name,
                      bucket_name,
                      weights_dir,
                      is_multi_class,
-                     dataset, *model_args):
+                     dataset,
+                     *model_args):
 
     # trained_model = 5
 
@@ -76,7 +77,7 @@ def plot_and_eval_3D(trained_model_in,
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
             # del trained_model
-            trained_model = trained_model_in(*model_args)
+            trained_model = model(*model_args)
             trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                               weights_dir,
                                                               tpu_name,

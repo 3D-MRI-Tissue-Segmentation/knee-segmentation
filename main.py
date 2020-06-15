@@ -168,51 +168,105 @@ def main(argv):
     # set model architecture
 
     model_fn = None
+    model_args = []
+
     if FLAGS.model_architecture == 'unet':
         model_args = [FLAGS.num_filters,
-                        num_classes,
-                        FLAGS.backbone_architecture,
-                        FLAGS.num_conv,
-                        FLAGS.kernel_size,
-                        FLAGS.activation,
-                        FLAGS.use_attention,
-                        FLAGS.use_batchnorm,
-                        FLAGS.use_bias,
-                        FLAGS.use_dropout,
-                        FLAGS.dropout_rate,
-                        FLAGS.use_spatial,
-                        FLAGS.channel_order]
+                      num_classes,
+                      FLAGS.backbone_architecture,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      FLAGS.use_attention,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.use_dropout,
+                      FLAGS.dropout_rate,
+                      FLAGS.use_spatial,
+                      FLAGS.channel_order]
+
         model_fn = UNet
+
     elif FLAGS.model_architecture == 'r2unet':
         model_args = [FLAGS.num_filters,
-                        num_classes,
-                        FLAGS.num_conv,
-                        FLAGS.kernel_size,
-                        FLAGS.activation,
-                        2,
-                        FLAGS.use_attention,
-                        FLAGS.use_batchnorm,
-                        FLAGS.use_bias,
-                        FLAGS.channel_order]
+                      num_classes,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      2,
+                      FLAGS.use_attention,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order]
+
         model_fn = R2_UNet
+
     elif FLAGS.model_architecture == 'segnet':
         model_args = [FLAGS.num_filters,
-                        num_classes,
-                        FLAGS.backbone_architecture,
-                        FLAGS.kernel_size,
-                        (2, 2),
-                        FLAGS.activation,
-                        FLAGS.use_batchnorm,
-                        FLAGS.use_bias,
-                        FLAGS.use_transpose,
-                        FLAGS.use_dropout,
-                        FLAGS.dropout_rate,
-                        FLAGS.use_spatial,
-                        FLAGS.channel_order]
-        model_fn = SegNet
-    
+                      num_classes,
+                      FLAGS.backbone_architecture,
+                      FLAGS.kernel_size,
+                      (2, 2),
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.use_transpose,
+                      FLAGS.use_dropout,
+                      FLAGS.dropout_rate,
+                      FLAGS.use_spatial,
+                      FLAGS.channel_order]
 
-    model_args = []
+        model_fn = SegNet
+
+    elif FLAGS.model_architecture == 'unet++':
+        model_args = [FLAGS.num_filters,
+                      num_classes,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order]
+
+        model_fn = Nested_UNet
+
+        elif FLAGS.model_architecture == '100-Layer-Tiramisu':
+            model_args = [FLAGS.growth_rate,
+                          FLAGS.layers_per_block,
+                          FLAGS.init_num_channels,
+                          num_classes,
+                          FLAGS.kernel_size,
+                          FLAGS.pool_size,
+                          FLAGS.activation,
+                          FLAGS.dropout_rate,
+                          FLAGS.strides,
+                          FLAGS.padding]
+
+            model_fn = Hundred_Layer_Tiramisu
+
+        elif FLAGS.model_architecture == 'deeplabv3':
+            model_args = [num_classes,
+                          FLAGS.kernel_size_initial_conv,
+                          FLAGS.num_filters_atrous,
+                          FLAGS.num_filters_DCNN,
+                          FLAGS.num_filters_ASPP,
+                          FLAGS.kernel_size_atrous,
+                          FLAGS.kernel_size_DCNN,
+                          FLAGS.kernel_size_ASPP,
+                          'same',
+                          FLAGS.activation,
+                          FLAGS.use_batchnorm,
+                          FLAGS.use_bias,
+                          FLAGS.channel_order,
+                          FLAGS.MultiGrid,
+                          FLAGS.rate_ASPP,
+                          FLAGS.output_stride]
+
+            model_fn = Deeplabv3
+
+            else:
+                logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
+    
     with strategy.scope():
         model = model_fn(*model_args)
 
@@ -246,67 +300,64 @@ def main(argv):
         #                     FLAGS.channel_order]
         #     model = R2_UNet(*model_args)
 
-        elif FLAGS.model_architecture == 'segnet':
-            model_args = [FLAGS.num_filters,
-                           num_classes,
-                           FLAGS.backbone_architecture,
-                           FLAGS.kernel_size,
-                           (2, 2),
-                           FLAGS.activation,
-                           FLAGS.use_batchnorm,
-                           FLAGS.use_bias,
-                           FLAGS.use_transpose,
-                           FLAGS.use_dropout,
-                           FLAGS.dropout_rate,
-                           FLAGS.use_spatial,
-                           FLAGS.channel_order]
-            model = SegNet(*model_args)
+        # elif FLAGS.model_architecture == 'segnet':
+        #     model_args = [FLAGS.num_filters,
+        #                    num_classes,
+        #                    FLAGS.backbone_architecture,
+        #                    FLAGS.kernel_size,
+        #                    (2, 2),
+        #                    FLAGS.activation,
+        #                    FLAGS.use_batchnorm,
+        #                    FLAGS.use_bias,
+        #                    FLAGS.use_transpose,
+        #                    FLAGS.use_dropout,
+        #                    FLAGS.dropout_rate,
+        #                    FLAGS.use_spatial,
+        #                    FLAGS.channel_order]
+        #     model = SegNet(*model_args)
 
-        elif FLAGS.model_architecture == 'unet++':
-            model_args = [FLAGS.num_filters,
-                                num_classes,
-                                FLAGS.num_conv,
-                                FLAGS.kernel_size,
-                                FLAGS.activation,
-                                FLAGS.use_batchnorm,
-                                FLAGS.use_bias,
-                                FLAGS.channel_order]
-            model = Nested_UNet(*model_args)
+        # elif FLAGS.model_architecture == 'unet++':
+        #     model_args = [FLAGS.num_filters,
+        #                         num_classes,
+        #                         FLAGS.num_conv,
+        #                         FLAGS.kernel_size,
+        #                         FLAGS.activation,
+        #                         FLAGS.use_batchnorm,
+        #                         FLAGS.use_bias,
+        #                         FLAGS.channel_order]
+        #     model = Nested_UNet(*model_args)
 
-        elif FLAGS.model_architecture == '100-Layer-Tiramisu':
-            model_args = [FLAGS.growth_rate,
-                          FLAGS.layers_per_block,
-                          FLAGS.init_num_channels,
-                          num_classes,
-                          FLAGS.kernel_size,
-                          FLAGS.pool_size,
-                          FLAGS.activation,
-                          FLAGS.dropout_rate,
-                          FLAGS.strides,
-                          FLAGS.padding]
-            model = Hundred_Layer_Tiramisu(*model_args)
+        # elif FLAGS.model_architecture == '100-Layer-Tiramisu':
+        #     model_args = [FLAGS.growth_rate,
+        #                   FLAGS.layers_per_block,
+        #                   FLAGS.init_num_channels,
+        #                   num_classes,
+        #                   FLAGS.kernel_size,
+        #                   FLAGS.pool_size,
+        #                   FLAGS.activation,
+        #                   FLAGS.dropout_rate,
+        #                   FLAGS.strides,
+        #                   FLAGS.padding]
+        #     model = Hundred_Layer_Tiramisu(*model_args)
 
-        elif FLAGS.model_architecture == 'deeplabv3':
-            model_args = [num_classes,
-                          FLAGS.kernel_size_initial_conv,
-                          FLAGS.num_filters_atrous,
-                          FLAGS.num_filters_DCNN,
-                          FLAGS.num_filters_ASPP,
-                          FLAGS.kernel_size_atrous,
-                          FLAGS.kernel_size_DCNN,
-                          FLAGS.kernel_size_ASPP,
-                          'same',
-                          FLAGS.activation,
-                          FLAGS.use_batchnorm,
-                          FLAGS.use_bias,
-                          FLAGS.channel_order,
-                          FLAGS.MultiGrid,
-                          FLAGS.rate_ASPP,
-                          FLAGS.output_stride]
-            model = Deeplabv3(*model_args)
-
-        else:
-            logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
+        # elif FLAGS.model_architecture == 'deeplabv3':
+        #     model_args = [num_classes,
+        #                   FLAGS.kernel_size_initial_conv,
+        #                   FLAGS.num_filters_atrous,
+        #                   FLAGS.num_filters_DCNN,
+        #                   FLAGS.num_filters_ASPP,
+        #                   FLAGS.kernel_size_atrous,
+        #                   FLAGS.kernel_size_DCNN,
+        #                   FLAGS.kernel_size_ASPP,
+        #                   'same',
+        #                   FLAGS.activation,
+        #                   FLAGS.use_batchnorm,
+        #                   FLAGS.use_bias,
+        #                   FLAGS.channel_order,
+        #                   FLAGS.MultiGrid,
+        #                   FLAGS.rate_ASPP,
+        #                   FLAGS.output_stride]
+        #     model = Deeplabv3(*model_args)
 
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
@@ -372,14 +423,15 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
-        plot_and_eval_3D(trained_model_in=model,
+        plot_and_eval_3D(model=model_fn,
                          logdir=FLAGS.logdir,
                          visual_file=FLAGS.visual_file,
                          tpu_name=FLAGS.tpu,
                          bucket_name=FLAGS.bucket,
                          weights_dir=FLAGS.weights_dir,
                          is_multi_class=FLAGS.multi_class,
-                         dataset=valid_ds, *model_args)
+                         dataset=valid_ds,
+                         *model_args)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
