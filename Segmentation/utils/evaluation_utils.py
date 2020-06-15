@@ -63,6 +63,7 @@ def plot_and_eval_3D(trained_model,
     for chkpt in session_weights:
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
+        print(f"\n\n\n\n\n\n\nthe name is : {name}")
         trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                           weights_dir,
                                                           tpu_name,
