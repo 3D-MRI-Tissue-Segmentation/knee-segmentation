@@ -45,10 +45,7 @@ def validate_best_model(model, val_batch_size, buffer_size, tfrec_dir, multi_cla
         y_crop = tf.cast(crop_3d(x, 144, 80, centre), tf.float32)
         mean_pred = np.ones(tf.shape(y_crop))
         counter = np.ones(tf.shape(y_crop))
-        c = 0
         for pad, centre in zip(vad_padding, val_coord):
-            print(c, pad, centre)
-            c += 1
             x_model_crop = crop_3d(x, crop_size, depth_crop_size, centre)
             pred = model.predict(x_model_crop)
             del x_model_crop
@@ -69,4 +66,4 @@ def validate_best_model(model, val_batch_size, buffer_size, tfrec_dir, multi_cla
         if idx == 4:
             break
     total_loss /= total_count
-    print("LOSS:", total_loss)
+    print("Dice Loss:", total_loss)
