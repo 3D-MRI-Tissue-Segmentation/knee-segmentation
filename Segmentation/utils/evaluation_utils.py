@@ -46,6 +46,9 @@ def plot_and_eval_3D(trained_model,
 
     storage_client = storage.Client()
 
+    print('weights_dir == "checkpoint"',weights_dir == "checkpoint")
+    print('weights_dir',weights_dir)
+
     if weights_dir == "checkpoint":
         session_name = os.path.join(weights_dir, tpu_name, visual_file)
     else:
