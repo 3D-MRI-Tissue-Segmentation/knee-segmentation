@@ -36,10 +36,8 @@ def plot_and_eval_3D(trained_model,
     checkpoints = Path(train_hist_dir).glob('*')
 
     """ Add the visualisation code here """
-    print("Training history directory: {}".format(train_hist_dir))
+    print("\n\nTraining history directory: {}".format(train_hist_dir))
     print("+========================================================")
-    print(f"Does the selected path exist: {Path(train_hist_dir).is_dir()}")
-    print(f"The glob object is: {checkpoints}")
     print("\n\nThe directories are:")
 
     storage_client = storage.Client()
@@ -57,13 +55,17 @@ def plot_and_eval_3D(trained_model,
             session_weights.append(item)
 
     for s in session_weights:
-        print(s)
+        print(s) #print all the checkpoint directories
     print("--")
+
+    #figure for gif
+    fig, ax = plt.subplots()
+    images_gif = []
 
     for chkpt in session_weights:
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
-        print(f"\n\n\n\n\n\n\nthe name is : {name}")
+        print(f"\n\nLoading weights from {name.split('.')[1]} epoch")
         trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                           weights_dir,
                                                           tpu_name,
@@ -78,7 +80,6 @@ def plot_and_eval_3D(trained_model,
         sample_y = []    # y for current 160,288,288 vol
 
         for idx, ds in enumerate(dataset):
-            print(f"the index is {idx}")
             x, y = ds
             batch_size = x.shape[0]
             target = 160
@@ -157,21 +158,8 @@ def plot_and_eval_3D(trained_model,
                 # np.save(pred_vol, vol_name_npy)
                 # print("npy saved as ", vol_name_npy)
 
-                #create gif
-                print("\n\n\n\n=================")
-                print("checking for ffmpeg...")
-                if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
-                    print("please 'pip install ffmpeg' to create gif")
-                    print("gif not created")
-                    
-                else:
-                    print("ffmpeg found")
-                    print("creating the gif ...\n")
-
-                    pred_evolution_gif(pred_vol/6, save_dir='results/gif2.gif')
-
-                    print('\ndone')
-                print("=================\n\n\n\n")
+                #append image to use for gif
+                images_gif.append([ax.imshow(pred_vol[80,:,:]/6, cmap='gray', animated=True)])
 
                 # # Figure saving
                 # fig_dir = "results"
@@ -199,46 +187,55 @@ def plot_and_eval_3D(trained_model,
 #                 break
 #             # we need to then merge into each (288,288,160) volume. Validation data should be in order
 
-                
-
             print("=================")
 
 
             
         break
 
-def pred_evolution_gif(frames_list,
+    print("\n\n\n\n=================")
+    print("checking for ffmpeg...")
+    if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
+        print("please 'pip install ffmpeg' to create gif")
+        print("gif not created")
+        
+    else:
+        print("ffmpeg found")
+        print("creating the gif ...\n")
+
+        pred_evolution_gif(fig, images_gif, save_dir='results/gif2.gif', save=False)
+
+        print('\ndone')
+    print("=================\n\n\n\n")
+
+def pred_evolution_gif(fig,
+                       frames_list,
                        interval=200,
                        save_dir='',
-                       cmap='gray',
+                       save=True,
                        show=False):
 
-    fig, ax = plt.subplots()
+    gif = ArtistAnimation(fig, frames_list, interval, repeat=True) # create gif
 
-    images = []
-    for i in range(len(frames_list)):
-        im = ax.imshow(frames_list[i], cmap='gray', animated=True)
-        images.append([im])
+    if save:
+        if save_dir == '':
+            time = datetime.now().strftime("%Y%m%d-%H%M%S")
+            save_dir = 'results/gif'+ time + '.gif'
 
-    gif = ArtistAnimation(fig, images, interval, repeat=True) # create gif
+        plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # set directory of ffmpeg binary file
+        Writer = animation.writers['ffmpeg']
+        ffmwriter = Writer(fps=1000//interval, metadata=dict(artist='Me'), bitrate=1800) #set the save writer
+        gif.save('results/temp_video.mp4', writer=ffmwriter)
 
-    if save_dir == '':
-        time = datetime.now().strftime("%Y%m%d-%H%M%S")
-        save_dir = 'results/gif'+ time + '.gif'
+        codeBASH = f"ffmpeg -i 'results/temp_video.mp4' -loop 0 {save_dir}" #convert mp4 to gif
+        os.system(codeBASH)
+        os.remove("results/temp_video.mp4")
 
-    plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # set directory of ffmpeg binary file
-    Writer = animation.writers['ffmpeg']
-    ffmwriter = Writer(fps=1000//interval, metadata=dict(artist='Me'), bitrate=1800) #set the save writer
-    gif.save('results/temp_video.mp4', writer=ffmwriter)
-
-    codeBASH = f"ffmpeg -i 'results/temp_video.mp4' -loop 0 {save_dir}" #convert mp4 to gif
-    os.system(codeBASH)
-    os.remove("results/temp_video.mp4")
-
-    plt.close('all')
+        plt.close('all')
 
     if show:
         plt.show()
+        plt.close('all')
 
 def confusion_matrix(trained_model,
                      weights_dir,
