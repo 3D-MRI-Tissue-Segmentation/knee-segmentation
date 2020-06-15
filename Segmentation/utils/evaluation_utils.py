@@ -217,7 +217,7 @@ def pred_evolution_gif(frames_list,
                        save_dir='',
                        file_name=''):
 
-    fig, ax = lt.subplots()
+    fig, ax = plt.subplots()
 
     images = []
     for i in range(len(frames_list)):
