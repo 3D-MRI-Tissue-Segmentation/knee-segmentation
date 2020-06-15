@@ -65,7 +65,12 @@ def plot_and_eval_3D(trained_model,
     for chkpt in session_weights:
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
-        print(f"\n\nLoading weights from {name.split('.')[1]} epoch")
+
+        print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+        print(f"\t\t\t{name}")
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n")
+
         trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                           weights_dir,
                                                           tpu_name,
@@ -189,9 +194,8 @@ def plot_and_eval_3D(trained_model,
 
             print("=================")
 
-
-            
        #  break
+
 
     print("\n\n\n\n=================")
     print("checking for ffmpeg...")
