@@ -21,7 +21,7 @@ def get_depth(conc):
         depth += batch.shape[0]
     return depth
 
-def plot_and_eval_3D(trained_model,
+def plot_and_eval_3D(trained_model_in,
                      logdir,
                      visual_file,
                      tpu_name,
@@ -77,12 +77,12 @@ def plot_and_eval_3D(trained_model,
 
             # del trained_model
             # trained_model = trained_model_in
-            with tf.Session() as sess:
-                trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                                  weights_dir,
-                                                                  tpu_name,
-                                                                  visual_file,
-                                                                  name)).expect_partial()
+            trained_model = trained_model_in
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                              weights_dir,
+                                                              tpu_name,
+                                                              visual_file,
+                                                              name)).expect_partial()
 
             pred_vols = []
             y_vols = []
