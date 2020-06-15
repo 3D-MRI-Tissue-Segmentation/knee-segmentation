@@ -232,35 +232,35 @@ def main(argv):
 
     elif FLAGS.model_architecture == '100-Layer-Tiramisu':
         model_args = [FLAGS.growth_rate,
-                        FLAGS.layers_per_block,
-                        FLAGS.init_num_channels,
-                        num_classes,
-                        FLAGS.kernel_size,
-                        FLAGS.pool_size,
-                        FLAGS.activation,
-                        FLAGS.dropout_rate,
-                        FLAGS.strides,
-                        FLAGS.padding]
+                      FLAGS.layers_per_block,
+                      FLAGS.init_num_channels,
+                      num_classes,
+                      FLAGS.kernel_size,
+                      FLAGS.pool_size,
+                      FLAGS.activation,
+                      FLAGS.dropout_rate,
+                      FLAGS.strides,
+                      FLAGS.padding]
 
         model_fn = Hundred_Layer_Tiramisu
 
     elif FLAGS.model_architecture == 'deeplabv3':
         model_args = [num_classes,
-                        FLAGS.kernel_size_initial_conv,
-                        FLAGS.num_filters_atrous,
-                        FLAGS.num_filters_DCNN,
-                        FLAGS.num_filters_ASPP,
-                        FLAGS.kernel_size_atrous,
-                        FLAGS.kernel_size_DCNN,
-                        FLAGS.kernel_size_ASPP,
-                        'same',
-                        FLAGS.activation,
-                        FLAGS.use_batchnorm,
-                        FLAGS.use_bias,
-                        FLAGS.channel_order,
-                        FLAGS.MultiGrid,
-                        FLAGS.rate_ASPP,
-                        FLAGS.output_stride]
+                      FLAGS.kernel_size_initial_conv,
+                      FLAGS.num_filters_atrous,
+                      FLAGS.num_filters_DCNN,
+                      FLAGS.num_filters_ASPP,
+                      FLAGS.kernel_size_atrous,
+                      FLAGS.kernel_size_DCNN 
+                      FLAGS.kernel_size_ASPP,
+                      'same',
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order,
+                      FLAGS.MultiGrid,
+                      FLAGS.rate_ASPP,
+                      FLAGS.output_stride]
 
         model_fn = Deeplabv3
 
@@ -436,7 +436,7 @@ def main(argv):
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
 
-        confusion_matrix(trained_model=model_fn,
+        confusion_matrix(trained_model=model,
                          weights_dir=FLAGS.weights_dir,
                          fig_dir=FLAGS.fig_dir,
                          dataset=valid_ds,
