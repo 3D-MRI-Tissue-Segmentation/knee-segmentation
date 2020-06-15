@@ -77,13 +77,12 @@ def plot_and_eval_3D(trained_model,
 
             # del trained_model
             # trained_model = trained_model_in
-            strategy = tf.distribute.MirroredStrategy()
-            with strategy.scope():
-                trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                                  weights_dir,
-                                                                  tpu_name,
-                                                                  visual_file,
-                                                                  name)).expect_partial()
+            trained_model.compile
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                              weights_dir,
+                                                              tpu_name,
+                                                              visual_file,
+                                                              name)).expect_partial()
 
             pred_vols = []
             y_vols = []
