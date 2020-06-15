@@ -72,11 +72,18 @@ def plot_and_eval_3D(trained_model,
     for chkpt in session_weights:
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
-        trained_model.load_weights('gs://' + os.path.join(bucket_name,
+        if weights_dir == "checkpoint":
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                           weights_dir,
                                                           tpu_name,
                                                           visual_file,
                                                           name)).expect_partial()
+        else:
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                          weights_dir,
+                                                          visual_file,
+                                                          name)).expect_partial()
+        
 
         pred_vols = []
         y_vols = []
