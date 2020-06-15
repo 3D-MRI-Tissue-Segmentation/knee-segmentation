@@ -230,42 +230,42 @@ def main(argv):
 
         model_fn = Nested_UNet
 
-        elif FLAGS.model_architecture == '100-Layer-Tiramisu':
-            model_args = [FLAGS.growth_rate,
-                          FLAGS.layers_per_block,
-                          FLAGS.init_num_channels,
-                          num_classes,
-                          FLAGS.kernel_size,
-                          FLAGS.pool_size,
-                          FLAGS.activation,
-                          FLAGS.dropout_rate,
-                          FLAGS.strides,
-                          FLAGS.padding]
+    elif FLAGS.model_architecture == '100-Layer-Tiramisu':
+        model_args = [FLAGS.growth_rate,
+                        FLAGS.layers_per_block,
+                        FLAGS.init_num_channels,
+                        num_classes,
+                        FLAGS.kernel_size,
+                        FLAGS.pool_size,
+                        FLAGS.activation,
+                        FLAGS.dropout_rate,
+                        FLAGS.strides,
+                        FLAGS.padding]
 
-            model_fn = Hundred_Layer_Tiramisu
+        model_fn = Hundred_Layer_Tiramisu
 
-        elif FLAGS.model_architecture == 'deeplabv3':
-            model_args = [num_classes,
-                          FLAGS.kernel_size_initial_conv,
-                          FLAGS.num_filters_atrous,
-                          FLAGS.num_filters_DCNN,
-                          FLAGS.num_filters_ASPP,
-                          FLAGS.kernel_size_atrous,
-                          FLAGS.kernel_size_DCNN,
-                          FLAGS.kernel_size_ASPP,
-                          'same',
-                          FLAGS.activation,
-                          FLAGS.use_batchnorm,
-                          FLAGS.use_bias,
-                          FLAGS.channel_order,
-                          FLAGS.MultiGrid,
-                          FLAGS.rate_ASPP,
-                          FLAGS.output_stride]
+    elif FLAGS.model_architecture == 'deeplabv3':
+        model_args = [num_classes,
+                        FLAGS.kernel_size_initial_conv,
+                        FLAGS.num_filters_atrous,
+                        FLAGS.num_filters_DCNN,
+                        FLAGS.num_filters_ASPP,
+                        FLAGS.kernel_size_atrous,
+                        FLAGS.kernel_size_DCNN,
+                        FLAGS.kernel_size_ASPP,
+                        'same',
+                        FLAGS.activation,
+                        FLAGS.use_batchnorm,
+                        FLAGS.use_bias,
+                        FLAGS.channel_order,
+                        FLAGS.MultiGrid,
+                        FLAGS.rate_ASPP,
+                        FLAGS.output_stride]
 
-            model_fn = Deeplabv3
+        model_fn = Deeplabv3
 
-            else:
-                logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
+    else:
+        logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
     
     with strategy.scope():
         model = model_fn(*model_args)
