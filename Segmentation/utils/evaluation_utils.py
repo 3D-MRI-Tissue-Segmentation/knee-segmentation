@@ -69,7 +69,7 @@ def plot_and_eval_3D(model,
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
 
-        if int(name.split('.')[1]) == 49:
+        if int(name.split('.')[1]) <= epoch_limit:
 
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
@@ -171,9 +171,9 @@ def plot_and_eval_3D(model,
                     # print("npy saved as ", vol_name_npy)
 
                     #append image to use for gif
-                    for i in range(pred_vol.shape[0]):
+                    for i in range(y.shape[0]):
                         print(i)
-                        images_gif.append([ax.imshow(pred_vol[i,:,:], cmap=gif_cmap, animated=True)])
+                        images_gif.append([ax.imshow(y[i,:,:], cmap=gif_cmap, animated=True)])
 
                     # # Figure saving
                     # fig_dir = "results"
