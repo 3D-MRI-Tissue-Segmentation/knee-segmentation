@@ -210,7 +210,8 @@ def plot_and_eval_3D(trained_model,
                 if should_save_np:
                     # Save volume as numpy file for plotlyyy
                     fig_dir = "results"
-                    vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx_vol)))
+                    leading_zeros = np.zeros(3-len(str(idx_vol)))
+                    vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx_vol).zfill(3)))
                     print("npy save as ", vol_name_npy)
 
 
