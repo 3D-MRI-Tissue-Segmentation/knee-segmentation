@@ -76,7 +76,6 @@ def plot_and_eval_3D(trained_model_in,
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
             # del trained_model
-
             trained_model = trained_model_in(*model_args)
             trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                               weights_dir,
