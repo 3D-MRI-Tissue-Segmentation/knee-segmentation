@@ -29,12 +29,14 @@ def plot_and_eval_3D(model,
                      weights_dir,
                      is_multi_class,
                      dataset,
-                     model_args):
+                     model_args,
+                     epoch_limit=1000,
+                     gif_dir='',
+                     gif_cmap='gray'):
 
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
     train_hist_dir = os.path.join(train_hist_dir, visual_file)
-    checkpoints = Path(train_hist_dir).glob('*')
 
     """ Add the visualisation code here """
     print("\n\nTraining history directory: {}".format(train_hist_dir))
@@ -67,7 +69,7 @@ def plot_and_eval_3D(model,
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
 
-        if int(name.split('.')[1]) >= 47:
+        if int(name.split('.')[1]) <= epoch_limit:
 
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
@@ -169,7 +171,8 @@ def plot_and_eval_3D(model,
                     # print("npy saved as ", vol_name_npy)
 
                     #append image to use for gif
-                    images_gif.append([ax.imshow(pred_vol[100,:,:], cmap='gray', animated=True)])
+                    for i in range(pred_vol.shape[0]):
+                        images_gif.append([ax.imshow(pred_vol[i,:,:], cmap=gif_cmap, animated=True)])
 
                     # # Figure saving
                     # fig_dir = "results"
@@ -201,25 +204,25 @@ def plot_and_eval_3D(model,
 
     #  break
 
+    if not gif_dir == '':
+        print("\n\n\n\n=================")
+        print("checking for ffmpeg...")
+        if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
+            print("please 'pip install ffmpeg' to create gif")
+            print("gif not created")
+            
+        else:
+            print("ffmpeg found")
+            print("creating the gif ...\n")
 
-    print("\n\n\n\n=================")
-    print("checking for ffmpeg...")
-    if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
-        print("please 'pip install ffmpeg' to create gif")
-        print("gif not created")
-        
-    else:
-        print("ffmpeg found")
-        print("creating the gif ...\n")
+            pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True)
 
-        pred_evolution_gif(fig, images_gif, save_dir='results/epoch.gif', save=True)
-
-        print('\ndone')
-    print("=================\n\n\n\n")
+            print('\ndone')
+        print("=================\n\n\n\n")
 
 def pred_evolution_gif(fig,
                        frames_list,
-                       interval=200,
+                       interval=300,
                        save_dir='',
                        save=True,
                        show=False):

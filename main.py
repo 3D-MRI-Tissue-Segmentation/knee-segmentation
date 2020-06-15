@@ -84,6 +84,9 @@ flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storag
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
+flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
+flags.DEFINE_integer('gif_epochs', 1000, 'Number of epochs to include in the creation of the gifS')
+flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -432,7 +435,10 @@ def main(argv):
                          weights_dir=FLAGS.weights_dir,
                          is_multi_class=FLAGS.multi_class,
                          dataset=valid_ds,
-                         model_args=model_args)
+                         model_args=model_args,
+                         epoch_limit=FLAGS.gif_epochs,
+                         gif_dir=FLAGS.gif_directory,
+                         gif_cmap=FLAGS.gif_cmap)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
