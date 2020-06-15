@@ -6,7 +6,8 @@ import tensorflow as tf
 import numpy as np
 from time import time
 
-from Segmentation.train.utils import setup_gpu, LearningRateUpdate
+from Segmentation.train.utils import setup_gpu, LearningRateUpdate, get_paddings
+from Segmentation.train.validation import validate_best_model
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.losses import dice_loss, tversky_loss
 from Segmentation.plotting.voxels import plot_volume, plot_slice, plot_to_image
@@ -24,6 +25,7 @@ colour_maps = {
 class Train:
     def __init__(self, epochs, batch_size, enable_function,
                  model, optimizer, loss_func, lr_manager, predict_slice,
+                 crop_size, depth_crop_size,
                  tfrec_dir='./Data/tfrecords/', log_dir="logs/"):
         self.epochs = epochs
         self.batch_size = batch_size
@@ -36,6 +38,9 @@ class Train:
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
         self.checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
+        self.crop_size = crop_size
+        self.depth_crop_size = depth_crop_size
+        self.vad_padding, self.val_coord = get_paddings(crop_size, depth_crop_size)
 
     def train_step(self, x_train, y_train, visualise):
         with tf.GradientTape() as tape:
@@ -178,7 +183,7 @@ class Train:
         log_dir_now = self.log_dir + name + db + mc + datetime.datetime.now().strftime("/%Y%m%d/%H%M%S")
         train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
         test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation')
-        test_min_summary_writer = tf.summary.create_file_writer(log_dir_now + '/min_validation')
+        test_min_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation_min')
         train_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/slice')
         test_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/slice')
         train_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/vol')
@@ -207,8 +212,6 @@ class Train:
                 tf.summary.scalar('epoch_lr', current_lr, step=e)
             print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}")
 
-            print("EPOCH")
-
             if best_loss is None:
                 self.checkpoint.write(file_prefix=os.path.join(log_dir_now + f'/chkp/best_weights'))
                 best_loss = test_loss
@@ -218,6 +221,7 @@ class Train:
                     best_loss = test_loss
             with test_min_summary_writer.as_default():
                     tf.summary.scalar('epoch_loss', best_loss, step=e)
+        return log_dir_now
 
 
 def load_datasets(batch_size, buffer_size,
@@ -309,14 +313,21 @@ def main(epochs,
         model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
 
         trainer = Train(epochs, batch_size, enable_function,
-                        model, optimizer, loss_func, lr_manager, predict_slice, tfrec_dir=tfrec_dir)
+                        model, optimizer, loss_func, lr_manager, predict_slice,
+                        crop_size, depth_crop_size, tfrec_dir=tfrec_dir)
 
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-        trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
+        log_dir_now = trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
 
     print(f"{time() - t0:.02f}")
+
+    chkpt_file = os.path.join(log_dir_now + f'/chkp/best_weights')
+    
+    validate_best_model
+
+    
 
 
 if __name__ == "__main__":
