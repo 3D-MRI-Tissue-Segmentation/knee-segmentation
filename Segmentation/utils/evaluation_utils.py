@@ -73,6 +73,7 @@ def plot_and_eval_3D(trained_model,
             print(f"\t\t     {name}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n")
 
+            tf.disposeVariables()
             trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                             weights_dir,
                                                             tpu_name,
