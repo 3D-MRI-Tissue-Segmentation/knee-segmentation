@@ -202,6 +202,9 @@ def plot_and_eval_3D(trained_model,
 
                 # Save if save frequency
                 should_save_np = np.mod(idx_vol, save_freq) == 0
+                print('should_save_np',should_save_np)
+                print('np.mod(idx_vol, save_freq)',np.mod(idx_vol, save_freq))
+                print('idx_vol',idx_vol)
                 if should_save_np:
                     # Save volume as numpy file for plotlyyy
                     fig_dir = "results"
@@ -214,6 +217,7 @@ def plot_and_eval_3D(trained_model,
                     d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
                     roi = int(50 / 2)
                     pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                    print('pred_vol.shape', np.shape(pred_vol))
                     np.save(vol_name_npy,pred_vol_np)
                     idx_vol += idx_vol
 
