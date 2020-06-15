@@ -42,6 +42,7 @@ class LearningRateUpdate:
         else:
             return new_lr
 
+
 def get_validation_stride_coords(pad, full_shape, iterator, strides_required):
     coords = [pad]
     last_coord = full_shape - pad
@@ -100,6 +101,6 @@ def get_paddings(crop_size, depth_crop_size, full_shape=(160,288,288)):
         assert height[0] + height[1] + (crop_size * 2) == full_shape[1]
         assert width[0] + width[1] + (crop_size * 2) == full_shape[2]
 
-        padding = [depth, height, width, [0, 0]]
+        padding = [[0, 0], depth, height, width, [0, 0]]
         paddings.append(padding)
     return paddings, coords

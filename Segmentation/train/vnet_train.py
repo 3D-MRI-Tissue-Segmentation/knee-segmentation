@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 from time import time
 
-from Segmentation.train.utils import setup_gpu, LearningRateUpdate, get_paddings
+from Segmentation.train.utils import setup_gpu, LearningRateUpdate
 from Segmentation.train.validation import validate_best_model
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.losses import dice_loss, tversky_loss
@@ -25,7 +25,6 @@ colour_maps = {
 class Train:
     def __init__(self, epochs, batch_size, enable_function,
                  model, optimizer, loss_func, lr_manager, predict_slice,
-                 crop_size, depth_crop_size,
                  tfrec_dir='./Data/tfrecords/', log_dir="logs/"):
         self.epochs = epochs
         self.batch_size = batch_size
@@ -38,9 +37,6 @@ class Train:
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
         self.checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
-        self.crop_size = crop_size
-        self.depth_crop_size = depth_crop_size
-        self.vad_padding, self.val_coord = get_paddings(crop_size, depth_crop_size)
 
     def train_step(self, x_train, y_train, visualise):
         with tf.GradientTape() as tape:
@@ -213,11 +209,11 @@ class Train:
             print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}")
 
             if best_loss is None:
-                self.checkpoint.write(file_prefix=os.path.join(log_dir_now + f'/chkp/best_weights'))
+                self.model.save_weights(os.path.join(log_dir_now + f'/best_weights.tf'))
                 best_loss = test_loss
             else:
                 if test_loss < best_loss:
-                    self.checkpoint.write(file_prefix=os.path.join(log_dir_now + f'/chkp/best_weights'))
+                    self.model.save_weights(os.path.join(log_dir_now + f'/best_weights.tf'))
                     best_loss = test_loss
             with test_min_summary_writer.as_default():
                     tf.summary.scalar('epoch_loss', best_loss, step=e)
@@ -245,9 +241,7 @@ def load_datasets(batch_size, buffer_size,
         'aug': aug,
     }
     train_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'train_3d/'),
-                                is_training=True, predict_slice=predict_slice,
-                                # crop_size=crop_size, depth_crop_size=depth_crop_size,
-                                **args)
+                                is_training=True, predict_slice=predict_slice, **args)
     valid_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
                                 is_training=False, predict_slice=predict_slice, **args)
     return train_ds, valid_ds
@@ -263,6 +257,7 @@ def build_model(num_channels, num_classes, **kwargs):
 
 def main(epochs,
          batch_size=2,
+         val_batch_size=2,
          lr=1e-4,
          lr_drop=0.9,
          lr_drop_freq=5,
@@ -304,8 +299,7 @@ def main(epochs,
         strategy = tf.distribute.MirroredStrategy()
     # strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
     with strategy.scope():
-        # loss_func = tversky_loss if multi_class else dice_loss
-        loss_func = dice_loss
+        loss_func = tversky_loss if multi_class else dice_loss
 
         lr_manager = LearningRateUpdate(lr, lr_drop, lr_drop_freq, warmup=lr_warmup)
 
@@ -314,20 +308,24 @@ def main(epochs,
 
         trainer = Train(epochs, batch_size, enable_function,
                         model, optimizer, loss_func, lr_manager, predict_slice,
-                        crop_size, depth_crop_size, tfrec_dir=tfrec_dir)
+                        tfrec_dir=tfrec_dir)
 
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
         log_dir_now = trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
-
-    print(f"{time() - t0:.02f}")
-
-    chkpt_file = os.path.join(log_dir_now + f'/chkp/best_weights')
+    train_time = time() - t0
+    print(f"Train Time: {train_time:.02f}")
+    t1 = time()
+    with strategy.scope():
+        model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
+        model.load_weights(os.path.join(log_dir_now + f'/best_weights.tf')).expect_partial()
     
-    validate_best_model
-
-    
+    validate_best_model(model, val_batch_size, buffer_size, tfrec_dir, multi_class,
+                        crop_size, depth_crop_size, predict_slice)
+    print(f"Train Time: {train_time:.02f}")
+    print(f"Validation Time: {time() - t1:.02f}")                 
+    print(f"Total Time: {time() - t0:.02f}")
 
 
 if __name__ == "__main__":
@@ -336,11 +334,16 @@ if __name__ == "__main__":
         setup_gpu()
 
     debug = True
-    es = 30
+    es = 1
     
     main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+         num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)  # decent performance
+
+    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+         crop_size=128, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
+         num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
          aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)  # decent performance
 
     # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,

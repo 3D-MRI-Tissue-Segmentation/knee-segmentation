@@ -1,7 +1,6 @@
 import tensorflow as tf
 from functools import partial
 import random
-# import tensorflow_addons as tfa
 
 
 def flip_randomly_left_right_image_pair_2d(image_tensor, label_tensor):
@@ -179,13 +178,6 @@ def apply_random_gamma_3d(image_tensor, label_tensor):
     return image_tensor, label_tensor
 
 
-# def normalise(image_tensor, label_tensor):
-#     mean = tf.math.reduce_mean(image_tensor)
-#     std = tf.math.reduce_std(image_tensor)
-#     image_tensor = tf.divide(tf.math.subtract(image_tensor, mean), std)
-#     return image_tensor, label_tensor
-
-
 def normalise(image_tensor, label_tensor):
     image_tensor = tf.map_fn(lambda x: normalise_per_batch(x), image_tensor)
     return image_tensor, label_tensor
@@ -205,13 +197,6 @@ def apply_flip_3d_axis(image_tensor, label_tensor, axis):
     return image_tensor, label_tensor
 
 
-# def apply_flip_3d(image_tensor, label_tensor):
-#     image_tensor, label_tensor = apply_flip_3d_axis(image_tensor, label_tensor, axis=-2)
-#     image_tensor, label_tensor = apply_flip_3d_axis(image_tensor, label_tensor, axis=-3)
-#     image_tensor, label_tensor = apply_flip_3d_axis(image_tensor, label_tensor, axis=-4)
-#     return image_tensor, label_tensor
-
-
 def apply_flip_3d(image_tensor, label_tensor):
     image_tensor, label_tensor = tf.map_fn(lambda x: apply_flip_3d_axis(x[0], x[1], axis=-2), (image_tensor, label_tensor))
     image_tensor, label_tensor = tf.map_fn(lambda x: apply_flip_3d_axis(x[0], x[1], axis=-3), (image_tensor, label_tensor))
@@ -225,7 +210,6 @@ def apply_rotate_3d(image_tensor, label_tensor):
 
 
 def rotate_per_batch_3d(image_tensor, label_tensor):
-    # tf.print("attempting to rotate:", tf.shape(image_tensor), tf.shape(label_tensor))
     k = tf.random.uniform([], minval=0, maxval=3, dtype=tf.int32)
     image_tensor = tf.image.rot90(image_tensor, k=k)
     label_tensor = tf.image.rot90(label_tensor, k=k)
