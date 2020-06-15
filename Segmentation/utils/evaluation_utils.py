@@ -169,7 +169,7 @@ def plot_and_eval_3D(model,
                     # print("npy saved as ", vol_name_npy)
 
                     #append image to use for gif
-                    images_gif.append([ax.imshow(pred_vol[100,:,:]/6, cmap='gray', animated=True)])
+                    images_gif.append([ax.imshow(pred_vol[100,:,:], cmap='gray', animated=True)])
 
                     # # Figure saving
                     # fig_dir = "results"
