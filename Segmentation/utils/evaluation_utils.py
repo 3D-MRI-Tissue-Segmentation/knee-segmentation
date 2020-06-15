@@ -165,17 +165,11 @@ def plot_and_eval_3D(trained_model,
                     
                 else:
                     print("ffmpeg found")
-                    print(f"ffmpeg found:{os.path.isfile('./../../../opt/conda/bin/ffmpeg')} ")
-                    print("creating the gif ...")
-                    slices = []
-                    pred_vol = pred_vol/6
-                    print(pred_vol[80,:,:])
-                    for i in range(pred_vol.shape[0]):
-                        slices.append(pred_vol[i, :, :])
-                        if i == 100:
-                            break
-                    pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
-                    print('done')
+                    print("creating the gif ...\n")
+
+                    pred_evolution_gif(pred_vol/6, save_dir='results/gif1.mp4')
+
+                    print('\ndone')
                 print("=================\n\n\n\n")
 
                 # # Figure saving
@@ -215,7 +209,8 @@ def plot_and_eval_3D(trained_model,
 def pred_evolution_gif(frames_list,
                        interval=200,
                        save_dir='',
-                       file_name=''):
+                       cmap='gray',
+                       show=False):
 
     fig, ax = plt.subplots()
 
@@ -224,31 +219,19 @@ def pred_evolution_gif(frames_list,
         im = ax.imshow(frames_list[i], cmap='gray', animated=True)
         images.append([im])
 
+    gif = ArtistAnimation(fig, images, interval, repeat=True) # create gif
 
-    gif = ArtistAnimation(fig, images, interval) # create gif
+    if save_dir == '':
+        time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        file_name = 'results/gif'+ time + '.mp4'
 
-    # save file
-    # save_dir = save_dir.replace("/", "\\\\")
-    # save_dir = save_dir.replace("\\", "\\\\")
+    plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # set directory of ffmpeg binary file
+    Writer = animation.writers['ffmpeg']
+    ffmwriter = Writer(fps=1000//interval, metadata=dict(artist='Me'), bitrate=1800) #set the save writer
+    gif.save(save_dir, writer=ffmwriter)
+    plt.close('all')
 
-    plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # change directory for animations
-    save_dir = save_dir + '/' + file_name
-    print(save_dir)
-
-    if not save_dir == '':
-        if file_name == '':
-            time = datetime.now().strftime("%Y%m%d-%H%M%S")
-            file_name = 'gif'+ time + '.gif'
-
-        
-        # ffmwriter = PillowWriter(fps=15)
-        Writer = animation.writers['ffmpeg']
-        ffmwriter = Writer(fps=1, metadata=dict(artist='Me'), bitrate=1800)
-        #ffmwriter = animation.FFMpegWriter()
-        gif.save(save_dir, writer=ffmwriter)
-        plt.close('all')
-
-    else:
+    if show:
         plt.show()
 
 def confusion_matrix(trained_model,
