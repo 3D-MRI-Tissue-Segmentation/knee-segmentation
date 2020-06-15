@@ -30,6 +30,8 @@ def plot_and_eval_3D(trained_model_in,
                      is_multi_class,
                      dataset):
 
+    trained_model = trained_model_in
+
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
     train_hist_dir = os.path.join(train_hist_dir, visual_file)
@@ -71,7 +73,7 @@ def plot_and_eval_3D(trained_model_in,
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
             print(f"\t\t     {name}")
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
             del trained_model
             trained_model = trained_model_in
