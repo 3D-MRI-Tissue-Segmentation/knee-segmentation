@@ -232,7 +232,7 @@ def pred_evolution_gif(frames_list,
 
     codeBASH = f"ffmpeg -i 'results/temp_video.mp4' -loop 0 {save_dir}" #convert mp4 to gif
     os.system(codeBASH)
-    os.remove("in.mp4")
+    os.remove("results/temp_video.mp4")
 
     plt.close('all')
 
