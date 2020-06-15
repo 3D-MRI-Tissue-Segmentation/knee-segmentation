@@ -67,7 +67,7 @@ def plot_and_eval_3D(model,
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
 
-        if int(name.split('.')[1]) <= 2:
+        if int(name.split('.')[1]) <= 1000:
 
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
@@ -212,7 +212,7 @@ def plot_and_eval_3D(model,
         print("ffmpeg found")
         print("creating the gif ...\n")
 
-        pred_evolution_gif(fig, images_gif, save_dir='results/gif2.gif', save=False)
+        pred_evolution_gif(fig, images_gif, save_dir='results/epoch.gif', save=True)
 
         print('\ndone')
     print("=================\n\n\n\n")
