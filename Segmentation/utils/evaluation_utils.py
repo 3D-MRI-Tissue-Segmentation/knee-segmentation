@@ -172,6 +172,7 @@ def plot_and_eval_3D(model,
 
                     #append image to use for gif
                     for i in range(pred_vol.shape[0]):
+                        print(i)
                         images_gif.append([ax.imshow(pred_vol[i,:,:], cmap=gif_cmap, animated=True)])
 
                     # # Figure saving
