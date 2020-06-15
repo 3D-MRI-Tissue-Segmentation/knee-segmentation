@@ -92,6 +92,8 @@ def plot_and_eval_3D(trained_model,
         sample_pred = []  # prediction for current 160,288,288 vol
         sample_y = []    # y for current 160,288,288 vol
 
+        idx_vol= 0 # how many numpies have been save
+
         for idx, ds in enumerate(dataset):
             print(f"the index is {idx}")
             x, y = ds
@@ -198,18 +200,26 @@ def plot_and_eval_3D(trained_model,
                 # plt.savefig(f"results/hello-hello")
                 # plt.close('all')
 
-                # Save volume as numpy file for plotlyyy
-                fig_dir = "results"
-                vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
-                print("npy save as ", vol_name_npy)
+                # Save if save frequency
+                should_save_np = np.mod(idx_vol, save_freq) == 0
+                print('should_save_np',should_save_np)
+                print('np.mod(idx_vol, save_freq)',np.mod(idx_vol, save_freq))
+                print('idx_vol',idx_vol)
+                if should_save_np:
+                    # Save volume as numpy file for plotlyyy
+                    fig_dir = "results"
+                    vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx_vol)))
+                    print("npy save as ", vol_name_npy)
 
 
-                # Get middle 60 slices cuz 288x288x160 too big
-                d1,d2,d3 = np.shape(pred_vol)[0:3]
-                d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
-                roi = int(50 / 2)
-                pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                # np.save(vol_name_npy,pred_vol_np)
+                    # Get middle 60 slices cuz 288x288x160 too big
+                    d1,d2,d3 = np.shape(pred_vol)[0:3]
+                    d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+                    roi = int(50 / 2)
+                    pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                    print('pred_vol.shape', np.shape(pred_vol))
+                    np.save(vol_name_npy,pred_vol_np)
+                    idx_vol += idx_vol
 
                 
 
