@@ -191,7 +191,7 @@ def plot_and_eval_3D(trained_model,
 
 
             
-        break
+       #  break
 
     print("\n\n\n\n=================")
     print("checking for ffmpeg...")
