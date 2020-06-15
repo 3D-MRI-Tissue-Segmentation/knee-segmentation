@@ -45,7 +45,11 @@ def plot_and_eval_3D(trained_model,
     print("\n\nThe directories are:")
 
     storage_client = storage.Client()
-    session_name = os.path.join(weights_dir, tpu_name, visual_file)
+
+    if weights_dir is not "checkpoint":
+        session_name = os.path.join(weights_dir, visual_file)
+    else:
+        session_name = os.path.join(weights_dir, tpu_name, visual_file)
 
     blobs = storage_client.list_blobs(bucket_name)
     session_content = []
