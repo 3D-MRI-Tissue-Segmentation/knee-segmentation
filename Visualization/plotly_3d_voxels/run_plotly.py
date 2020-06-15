@@ -44,7 +44,8 @@ if __name__ == "__main__":
     
     is_multiple_samples = type(data) == list
     num_samples = len(data)
-    num_classes = 
+    num_classes_all = []
+    num_traces = 0
 
     for j in range(num_samples):
         
@@ -56,6 +57,7 @@ if __name__ == "__main__":
             curr_data = data[j]
         
         Voxels = VoxelData(curr_data)
+        print('np.sum(curr_data)',np.sum(curr_data))
     
         # print("Voxels.data\n",Voxels.data)
         # print("Voxels.vertices\n",Voxels.vertices)
@@ -66,6 +68,7 @@ if __name__ == "__main__":
             print("Making segmentation voxels ", i, "/", np.size(Voxels.class_colors))
             if seg_class == background_seg:
                 has_background = True
+                num_traces += 1
                 continue
 
             curr_class = RenderData(Voxels.get_class_voxels(seg_class))
@@ -89,14 +92,14 @@ if __name__ == "__main__":
 
        
         if has_background:
-            num_classes.append(Voxels.num_classes-1)
+            num_classes_all.append(Voxels.num_classes-1)
         else:
-            num_classes.append(Voxels.num_classes)
+            num_classes_all.append(Voxels.num_classes)
 
 
 
-    num_traces = len(fig.data)
-    steps = get_steps(num_samples, num_traces, num_classes) 
+    num_traces += len(fig.data)
+    steps = get_steps(num_samples, num_traces, num_classes_all) 
     sliders = [dict(
         currentvalue={"prefix": "Epoch: "},
         pad={"t": 50},

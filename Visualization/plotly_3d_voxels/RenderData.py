@@ -3,22 +3,27 @@ from VoxelData import VoxelData
 import numpy as np
 
 
-def get_steps(num_samples, num_traces, num_classes):
+def get_steps(num_samples, num_traces, num_classes_all):
     steps = []
+    num_classes = np.amax(num_classes_all)
+    if num_traces < num_samples:
+        num_traces = num_samples
     print('num_samples',num_samples)
     print('num_traces',num_traces)
     print('num_classes', num_classes)
 
     # Loop through number of samples and for each make a 'step' with the 'visible' vector set True for each trace that's part of 1 volume
-    for i in range(num_samples):
+    for sample in range(num_samples):
         # Hide all traces
         step = dict(
             method = 'restyle',  
             args = ['visible', [False] * num_traces],
         )
 
+        print('prestep',step)
         # Enable the traces we want to see
-        for k in range(i*num_classes, (i+1)*num_classes):
+        for k in range(sample*num_classes, (sample+1)*num_classes):
+            print('k',k)
             step['args'][1][k] = True
 
         

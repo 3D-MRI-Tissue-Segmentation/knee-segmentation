@@ -118,7 +118,7 @@ def plot_and_eval_3D(trained_model,
                 sample_pred.append(pred[:remaining])
                 sample_y.append(y[:remaining])
                 pred_vol = np.concatenate(sample_pred)
-                y_vol = np.concatenate(sample_pred)
+                y_vol = np.concatenate(sample_y)
                 sample_pred = [pred[remaining:]]
                 sample_y = [y[remaining:]]
 
@@ -157,7 +157,9 @@ def plot_and_eval_3D(trained_model,
                 print('is_multi_class', is_multi_class)
                 if is_multi_class:  # or np.shape(pred_vol)[-1] not
                     pred_vol = np.argmax(pred_vol, axis=-1)
-                    print('pred_vol.shape', np.shape(pred_vol))
+                    y_vol = np.argmax(y_vol, axis=-1)
+                    print('np.shape(pred_vol)', np.shape(pred_vol))
+                    print('np.shape(y_vol)',np.shape(y_vol))
 
 
                 # Figure saving
@@ -217,8 +219,13 @@ def plot_and_eval_3D(trained_model,
                     d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
                     roi = int(50 / 2)
                     pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                    print('pred_vol.shape', np.shape(pred_vol_np))
-                    np.save(vol_name_npy,pred_vol_np)
+                    d1,d2,d3 = np.shape(y_vol)[0:3]
+                    d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+                    roi = int(50 / 2)
+                    y_vol_np = y_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                    y_pred_vol = np.concatenate((y_vol_np,pred_vol_np), axis=1)
+                    print('y_pred_vol.shape', np.shape(y_pred_vol))
+                    np.save(vol_name_npy,y_pred_vol)
                     idx_vol += 1
 
                 
