@@ -171,6 +171,7 @@ def plot_and_eval_3D(model,
                     # print("npy saved as ", vol_name_npy)
 
                     #append image to use for gif
+                    y = np.argmax(y, axis=-1)
                     for i in range(y.shape[0]):
                         print(i)
                         images_gif.append([ax.imshow(y[i,:,:], cmap=gif_cmap, animated=True)])
