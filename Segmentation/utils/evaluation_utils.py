@@ -30,6 +30,7 @@ def plot_and_eval_3D(model,
                      is_multi_class,
                      dataset,
                      model_args,
+                     which_slice,
                      epoch_limit=1000,
                      gif_dir='',
                      gif_cmap='gray'):
@@ -171,10 +172,7 @@ def plot_and_eval_3D(model,
                     # print("npy saved as ", vol_name_npy)
 
                     #append image to use for gif
-                    y = np.argmax(y, axis=-1)
-                    for i in range(y.shape[0]):
-                        print(i)
-                        images_gif.append([ax.imshow(y[i,:,:], cmap=gif_cmap, animated=True)])
+                    images_gif.append([ax.imshow(pred_vol[which_slice,:,:], cmap=gif_cmap, animated=True)])
 
                     # # Figure saving
                     # fig_dir = "results"
