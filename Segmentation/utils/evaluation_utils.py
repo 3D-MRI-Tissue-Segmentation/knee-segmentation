@@ -67,7 +67,7 @@ def plot_and_eval_3D(model,
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
 
-        if int(name.split('.')[1]) <= 4:
+        if int(name.split('.')[1]) >= 47:
 
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
