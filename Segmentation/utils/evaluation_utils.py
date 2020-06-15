@@ -30,7 +30,7 @@ def plot_and_eval_3D(trained_model_in,
                      is_multi_class,
                      dataset):
 
-    trained_model = trained_model_in
+    #trained_model = trained_model_in
 
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
