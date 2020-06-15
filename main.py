@@ -323,7 +323,7 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
-        plot_and_eval_3D(trained_model=model,
+        plot_and_eval_3D(trained_model_in=model,
                          logdir=FLAGS.logdir,
                          visual_file=FLAGS.visual_file,
                          tpu_name=FLAGS.tpu,
