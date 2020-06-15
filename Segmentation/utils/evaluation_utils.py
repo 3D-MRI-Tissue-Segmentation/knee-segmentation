@@ -21,7 +21,7 @@ def get_depth(conc):
         depth += batch.shape[0]
     return depth
 
-def plot_and_eval_3D(trained_model_in,
+def plot_and_eval_3D(trained_model,
                      logdir,
                      visual_file,
                      tpu_name,
@@ -30,7 +30,7 @@ def plot_and_eval_3D(trained_model_in,
                      is_multi_class,
                      dataset):
 
-    trained_model = 5
+    # trained_model = 5
 
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
@@ -68,20 +68,22 @@ def plot_and_eval_3D(trained_model_in,
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
 
-        if int(name.split('.')[1]) == 2:
+        if int(name.split('.')[1]) <= 2:
 
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
-            print(f"\t\t     {name}")
+            print(f"\t\t  {name}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
-            del trained_model
-            trained_model = trained_model_in
-            trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                            weights_dir,
-                                                            tpu_name,
-                                                            visual_file,
-                                                            name)).expect_partial()
+            # del trained_model
+            # trained_model = trained_model_in
+            strategy = tf.distribute.MirroredStrategy()
+            with strategy.scope():
+                trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                                  weights_dir,
+                                                                  tpu_name,
+                                                                  visual_file,
+                                                                  name)).expect_partial()
 
             pred_vols = []
             y_vols = []
