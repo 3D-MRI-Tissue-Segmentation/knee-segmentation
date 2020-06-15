@@ -29,6 +29,7 @@ def plot_and_eval_3D(trained_model,
                      bucket_name,
                      weights_dir,
                      is_multi_class,
+                     save_freq,
                      dataset):
 
     # load the checkpoints in the specified log directory
@@ -194,14 +195,7 @@ def plot_and_eval_3D(trained_model,
                 d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
                 roi = int(50 / 2)
                 pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                np.save(vol_name_npy,pred_vol_np)
-
-
-#             break
-
-#             if idx == 4:
-#                 break
-#             # we need to then merge into each (288,288,160) volume. Validation data should be in order
+                # np.save(vol_name_npy,pred_vol_np)
 
                 
 

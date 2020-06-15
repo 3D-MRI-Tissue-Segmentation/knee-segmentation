@@ -80,6 +80,7 @@ flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords f
 flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
+flags.DEFINE_integer('save_freq', 10, 'Save every x volumes as npy')
 
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
@@ -330,6 +331,7 @@ def main(argv):
                          bucket_name=FLAGS.bucket,
                          weights_dir=FLAGS.weights_dir,
                          is_multi_class=FLAGS.multi_class,
+                         save_freq=FLAGS.save_freq,
                          dataset=valid_ds)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
