@@ -217,11 +217,11 @@ def pred_evolution_gif(frames_list,
                        save_dir='',
                        file_name=''):
 
-    fig = plt.Figure()
+    fig, ax = lt.subplots()
 
     images = []
     for i in range(len(frames_list)):
-        im = plt.imshow(frames_list[i], cmap='viridis', animated=True)
+        im = ax.imshow(frames_list[i], cmap='gray', animated=True)
         images.append([im])
 
 
@@ -243,7 +243,7 @@ def pred_evolution_gif(frames_list,
         
         # ffmwriter = PillowWriter(fps=15)
         Writer = animation.writers['ffmpeg']
-        ffmwriter = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        ffmwriter = Writer(fps=1, metadata=dict(artist='Me'), bitrate=1800)
         #ffmwriter = animation.FFMpegWriter()
         gif.save(save_dir, writer=ffmwriter)
         plt.close('all')
