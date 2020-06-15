@@ -251,7 +251,7 @@ def main(argv):
                       FLAGS.num_filters_DCNN,
                       FLAGS.num_filters_ASPP,
                       FLAGS.kernel_size_atrous,
-                      FLAGS.kernel_size_DCNN 
+                      FLAGS.kernel_size_DCNN, 
                       FLAGS.kernel_size_ASPP,
                       'same',
                       FLAGS.activation,
