@@ -167,7 +167,7 @@ def plot_and_eval_3D(trained_model,
                     print("ffmpeg found")
                     print("creating the gif ...\n")
 
-                    pred_evolution_gif(pred_vol/6, save_dir='results/gif1.mp4')
+                    pred_evolution_gif(pred_vol/6, save_dir='results/gif2.gif')
 
                     print('\ndone')
                 print("=================\n\n\n\n")
@@ -223,12 +223,17 @@ def pred_evolution_gif(frames_list,
 
     if save_dir == '':
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
-        file_name = 'results/gif'+ time + '.mp4'
+        save_dir = 'results/gif'+ time + '.gif'
 
     plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # set directory of ffmpeg binary file
     Writer = animation.writers['ffmpeg']
     ffmwriter = Writer(fps=1000//interval, metadata=dict(artist='Me'), bitrate=1800) #set the save writer
-    gif.save(save_dir, writer=ffmwriter)
+    gif.save('results/temp_video.mp4', writer=ffmwriter)
+
+    codeBASH = f"ffmpeg -i 'results/temp_video.mp4' -loop 0 {save_dir}" #convert mp4 to gif
+    os.system(codeBASH)
+    os.remove("in.mp4")
+
     plt.close('all')
 
     if show:
