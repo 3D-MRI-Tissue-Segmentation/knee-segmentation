@@ -432,7 +432,7 @@ def main(argv):
                          weights_dir=FLAGS.weights_dir,
                          is_multi_class=FLAGS.multi_class,
                          dataset=valid_ds,
-                         model_args)
+                         model_args=model_args)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
