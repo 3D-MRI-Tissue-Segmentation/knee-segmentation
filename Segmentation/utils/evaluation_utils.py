@@ -219,7 +219,7 @@ def plot_and_eval_3D(trained_model,
                     pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
                     print('pred_vol.shape', np.shape(pred_vol_np))
                     np.save(vol_name_npy,pred_vol_np)
-                    idx_vol += idx_vol
+                    idx_vol += 1
 
                 
 
