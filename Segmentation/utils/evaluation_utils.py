@@ -103,8 +103,9 @@ def plot_and_eval_3D(trained_model,
         sample_y = []    # y for current 160,288,288 vol
 
         idx_vol= 0 # how many numpies have been save
+        target = 160
 
-        for idx, ds in enumerate(dataset):
+        for idx, ds in enumerate(dataset[:target]):
             if volume_recorded:
                 print('break slice making')
                 continue
@@ -113,7 +114,7 @@ def plot_and_eval_3D(trained_model,
             print('Current chkpt name',name)
             x, y = ds
             batch_size = x.shape[0]
-            target = 160
+            
             print("Current batch size set to {}. Target depth is {}".format(batch_size, target))
 
             x = np.array(x)
