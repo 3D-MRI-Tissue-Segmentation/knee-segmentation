@@ -71,10 +71,10 @@ def plot_and_eval_3D(trained_model,
 
     # Only use shard of dataset
     print('len(list(dataset))',len(list(dataset)))
-    dataset_shard = dataset.shard(num_shards=1, index=0) 
+    tot_samples = len(list(dataset))
+    dataset_shard = dataset.shard(num_shards=tot_samples, index=0) 
 
     for i, chkpt in enumerate(session_weights):
-        volume_recorded = False
         should_save_np = np.mod(i, save_freq) == 0
         print('should_save_np',should_save_np)
         print('checkpoint enum i',i)
@@ -256,7 +256,6 @@ def plot_and_eval_3D(trained_model,
                 del pred_vol
                 del y_vol
 
-                volume_recorded = True
 
                 
 
