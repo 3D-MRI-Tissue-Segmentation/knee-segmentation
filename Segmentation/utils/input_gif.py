@@ -39,10 +39,7 @@ def create_single_input_gif(which_volume,
             x = np.squeeze(x, axis=-1)
             print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
-            # fig, ax = plt.subplots()
-            fig = plt.figure(frameon=False)
-            ax = plt.Axes(fig, [0., 0., 1., 1.])
-            fig.add_axes(ax)
+            fig, ax = plt.subplots()
 
             gif_frames = []
             for i in range(x.shape[0]):
