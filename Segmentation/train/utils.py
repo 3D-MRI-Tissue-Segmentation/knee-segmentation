@@ -59,29 +59,24 @@ def get_validation_stride_coords(pad, full_shape, iterator, strides_required):
     return coords
 
 
-def get_validation_spots(crop_size, depth_crop_size, full_shape=(160, 288, 288)):
-    
+def get_val_coords(model_dim, full_dim, slice_output=False):
+    if slice_output:
+        coords = list(range(full_dim))
+    else:
+        pad = model_dim / 2
+        working = full_dim - model_dim
+        strides_required = math.ceil(working / model_dim) + 1
+        iterator = None if strides_required == 0 else working / strides_required
+        coords = get_validation_stride_coords(pad, full_dim, iterator, strides_required)
+    return coords
+
+
+def get_validation_spots(crop_size, depth_crop_size, full_shape=(160, 288, 288), slice_output=False):
     model_shape = (depth_crop_size * 2, crop_size * 2, crop_size * 2)
 
-    depth_pad = model_shape[0] / 2
-    height_pad = model_shape[1] / 2
-    width_pad = model_shape[2] / 2
-
-    depth_working = full_shape[0] - model_shape[0]
-    height_working = full_shape[1] - model_shape[1]
-    width_working = full_shape[2] - model_shape[2]
-
-    depth_strides_required = math.ceil(depth_working / model_shape[0]) + 1
-    height_strides_required = math.ceil(height_working / model_shape[1]) + 1
-    width_strides_required = math.ceil(width_working / model_shape[2]) + 1
-
-    depth_iterator = None if depth_strides_required == 0 else depth_working / depth_strides_required
-    height_iterator = None if height_strides_required == 0 else height_working / height_strides_required
-    width_iterator = None if width_strides_required == 0 else width_working / width_strides_required
-    
-    depth_coords = get_validation_stride_coords(depth_pad, full_shape[0], depth_iterator, depth_strides_required)
-    height_coords = get_validation_stride_coords(height_pad, full_shape[1], height_iterator, height_strides_required)
-    width_coords = get_validation_stride_coords(width_pad, full_shape[2], width_iterator, width_strides_required)
+    depth_coords = get_val_coords(model_shape[0], full_shape[0], slice_output)
+    height_coords = get_val_coords(model_shape[1], full_shape[1])
+    width_coords = get_val_coords(model_shape[2], full_shape[2])
 
     coords = [depth_coords, height_coords, width_coords]
     coords = list(itertools.product(*coords))
@@ -104,3 +99,47 @@ def get_paddings(crop_size, depth_crop_size, full_shape=(160,288,288)):
         padding = [[0, 0], depth, height, width, [0, 0]]
         paddings.append(padding)
     return paddings, coords
+
+
+class Metric():
+    def __init__(self, metrics):
+        self.metrics = metrics
+
+    def store_metric(self, y, predictions, training=False):
+        training = 0 if training else 1
+        for metric_loss in self.metrics:
+            for metric in self.metrics[metric_loss]:
+                if metric_loss == 'metrics':
+                    self.metrics[metric_loss][metric][training](y, predictions)
+                else:
+                    m_loss = self.metrics[metric_loss][metric][0](y, predictions)
+                    self.metrics[metric_loss][metric][training + 1](m_loss)
+
+    def reset_metrics_get_str(self):
+        metric_str = ""
+        for metric_loss in self.metrics:
+            for metric in self.metrics[metric_loss]:
+                for training in range(2):
+                    val = "" if training else "val_"
+                    pos = 0 if training else 1
+                    if metric_loss == 'metrics':
+                        metric_str += f" - {val}{metric}: {self.metrics[metric_loss][metric][pos].result():.06f}"
+                    else:
+                        metric_str += f" - {val}{metric}: {self.metrics[metric_loss][metric][pos + 1].result():.06f}"
+        return metric_str
+
+    def add_metric_summary_writer(self, log_dir_now):
+        for metric_loss in self.metrics:
+            for metric in self.metrics[metric_loss]:
+                for training in range(2):
+                    val = "" if training else "val_"
+                    pos = -2 if training else -1
+                    self.metrics[metric_loss][metric][pos] = tf.summary.create_file_writer(log_dir_now + f'/{val}{metric}')
+
+    def record_metric_to_summary(self, e):
+        for metric_loss in self.metrics:
+            for metric in self.metrics[metric_loss]:
+                for training in range(2):    
+                    pos = -2 if training else -1
+                    with self.metrics[metric_loss][metric][pos].as_default():
+                        tf.summary.scalar('metrics', self.metrics[metric_loss][metric][pos - 2].result(), step=e)

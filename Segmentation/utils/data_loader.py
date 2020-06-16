@@ -12,7 +12,7 @@ from glob import glob
 #     translate_randomly_image_pair_2d
 from Segmentation.utils.augmentation import apply_valid_random_crop_3d, apply_centre_crop_3d, \
     apply_random_brightness_3d, apply_random_contrast_3d, apply_random_gamma_3d, normalise, \
-    apply_flip_3d, apply_rotate_3d, to_slice
+    apply_flip_3d, apply_rotate_3d
 
 from Segmentation.plotting.voxels import plot_slice
 
@@ -246,7 +246,7 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
         if is_training:
             resize = "resize" in aug
             random_shift = "shift" in aug
-            parse_crop = partial(apply_valid_random_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size, resize=resize, random_shift=random_shift)
+            parse_crop = partial(apply_valid_random_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size, resize=resize, random_shift=random_shift, output_slice=predict_slice)
             dataset = dataset.map(map_func=parse_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
             if "bright" in aug:
                 dataset = dataset.map(apply_random_brightness_3d)
@@ -259,9 +259,7 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
             if "rotate" in aug:
                 dataset = dataset.map(apply_rotate_3d)
         else:
-            parse_crop = partial(apply_centre_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size)
+            parse_crop = partial(apply_centre_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size, output_slice=predict_slice)
             dataset = dataset.map(map_func=parse_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    if predict_slice:
-        dataset = dataset.map(to_slice)
     dataset = dataset.map(normalise)
     return dataset

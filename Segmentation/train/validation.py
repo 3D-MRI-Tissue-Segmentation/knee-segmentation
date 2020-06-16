@@ -19,29 +19,34 @@ def validate_best_model(model, val_batch_size, buffer_size, tfrec_dir, multi_cla
         t0 = time()
         x, y = ds
         centre = [int(y.shape[1]/2), int(y.shape[2]/2), int(y.shape[3]/2)]
-        y_crop = tf.cast(crop_3d(y, 144, 80, centre), tf.float32)
+        y_crop = tf.cast(crop_3d(y, 144, 80, centre, False), tf.float32)
         mean_pred = np.ones(tf.shape(y_crop))
         counter = np.ones(tf.shape(y_crop))
+
         for pad, centre in zip(vad_padding, val_coord):
-            x_model_crop = crop_3d(x, crop_size, depth_crop_size, centre)
-            pred = model.predict(x_model_crop)
-            del x_model_crop
-            output_shape = pred.shape
-            pred = np.pad(pred, pad, "constant")
-            mean_pred += pred
-            del pred
-            count = np.ones(output_shape)
-            count = np.pad(count, pad, "constant")
-            counter += count
-            del count
-        mean_pred = np.divide(mean_pred, counter, dtype=np.float32)
-        del counter
-        loss = dice_loss(y_crop, mean_pred)
-        total_loss += loss
-        total_count += 1
-        print(f"Validating for: {idx} - {time() - t0:.0f} s")
-        if idx == 1:
-            break
-    total_loss /= total_count
-    print("Dice Validation Loss:", total_loss)
-    return total_loss
+            print(pad, centre)
+
+
+    #         x_model_crop = crop_3d(x, crop_size, depth_crop_size, centre)
+    #         pred = model.predict(x_model_crop)
+    #         del x_model_crop
+    #         output_shape = pred.shape
+    #         pred = np.pad(pred, pad, "constant")
+    #         mean_pred += pred
+    #         del pred
+    #         count = np.ones(output_shape)
+    #         count = np.pad(count, pad, "constant")
+    #         counter += count
+    #         del count
+    #     mean_pred = np.divide(mean_pred, counter, dtype=np.float32)
+    #     del counter
+    #     loss = dice_loss(y_crop, mean_pred)
+    #     total_loss += loss
+    #     total_count += 1
+    #     print(f"Validating for: {idx} - {time() - t0:.0f} s")
+    #     if idx == 1:
+    #         break
+    # total_loss /= total_count
+    # print("Dice Validation Loss:", total_loss)
+    # return total_loss
+    return ""
