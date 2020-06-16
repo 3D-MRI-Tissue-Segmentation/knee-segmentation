@@ -1,3 +1,5 @@
+#to run as 'py -m Segmentation.utils.input_gif' for import reasons
+
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,7 +42,10 @@ def create_input_gif(which_volume):
     pred_evolution_gif(fig, gif_frames, save_dir='results/input_volume_gif.gif')
 
 if __name__ == '__main__':
-    print(sys.path)
+    # print('\n\n\n\n\n')
+    # for p in sys.path:
+    #     print(p)
+    # print('\n\n\n\n\n')
     create_input_gif(1)
 
     
