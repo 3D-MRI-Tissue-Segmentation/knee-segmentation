@@ -27,14 +27,14 @@ def create_input_gif(which_volume):
         if idx == which_volume:
             x, _ = data
             x = np.array(x)
-            
+
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(f"\t\tCollected data for volume {idx}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
             print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
             print('reducing image size')
-            np.squeeze(x, axis=-1)
+            np.squeeze(x, axis=3)
             print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
             fig, ax = plt.subplots()
