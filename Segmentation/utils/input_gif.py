@@ -56,17 +56,17 @@ def create_single_input_gif(which_volume,
 
             break
 
-    pred_evolution_gif(fig, gif_frames, save_dir='results/input_volume_gif.gif')
+    pred_evolution_gif(fig, gif_frames, save_dir='results/input_volume_gif2.gif')
 
-def create_collage_input_gif(which_volume,
-                             clean=False):
+# def create_collage_input_gif(which_volume,
+#                              clean=False):
 
 if __name__ == '__main__':
     # print('\n\n\n\n\n')
     # for p in sys.path:
     #     print(p)
     # print('\n\n\n\n\n')
-    create_input_gif(1, clean=True)
+    create_single_input_gif(1, clean=True)
 
     
 
