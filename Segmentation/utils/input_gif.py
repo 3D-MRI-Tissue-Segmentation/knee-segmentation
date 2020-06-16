@@ -29,10 +29,13 @@ def create_input_gif(which_volume):
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(f"\t\tCollected data for volume {idx}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
-            print('Input image data type: {}, shape: {}/n/n'.format(type(x), x.shape))
+
+            print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
+            print('reducing image size')
+            x = np.argmax(x, axis=-1)
+            print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
             fig, ax = plt.subplots()
-            x = np.argmax(x, axis=-1)
 
             gif_frames = []
             for i in range(x.shape[0]):
@@ -40,6 +43,7 @@ def create_input_gif(which_volume):
                 im = ax.imshow(x[i,:,:], cmap='gray', animated=True)
                 gif_frames.append([im])
 
+    print("out of loop")
     pred_evolution_gif(fig, gif_frames, save_dir='results/input_volume_gif.gif')
 
 if __name__ == '__main__':
