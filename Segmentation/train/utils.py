@@ -65,7 +65,7 @@ def get_val_coords(model_dim, full_dim, slice_output=False):
     else:
         pad = model_dim / 2
         working = full_dim - model_dim
-        strides_required = math.ceil(working / model_dim) + 1
+        strides_required = math.ceil(working / model_dim)
         iterator = None if strides_required == 0 else working / strides_required
         coords = get_validation_stride_coords(pad, full_dim, iterator, strides_required)
     return coords

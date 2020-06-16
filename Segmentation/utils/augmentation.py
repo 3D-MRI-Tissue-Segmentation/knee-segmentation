@@ -107,6 +107,7 @@ def apply_valid_random_crop_3d(image_tensor, label_tensor, crop_size, depth_crop
             new_width = tf.cast(original_width + tf.random.uniform([], minval=-original_width * factor, maxval=original_width * factor), tf.int32)
             x = tf.image.resize(x, [new_height, new_width])
             y = tf.image.resize(y, [new_height, new_width])
+            y = tf.math.round(y)
         dc, hc, wc = centre
         if output_slice:
             x = tf.slice(x, [dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [1 + (depth_crop_size * 2), crop_size * 2, crop_size * 2, -1])
