@@ -212,11 +212,8 @@ def plot_and_eval_3D(model,
             
         else:
             print("ffmpeg found")
-            print("creating the gif ...\n")
-
             pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True)
 
-            print('\ndone')
         print("=================\n\n\n\n")
 
 def pred_evolution_gif(fig,
@@ -226,6 +223,7 @@ def pred_evolution_gif(fig,
                        save=True,
                        show=False):
 
+    print("creating the gif ...\n")
     gif = ArtistAnimation(fig, frames_list, interval, repeat=True) # create gif
 
     if save:
@@ -247,6 +245,8 @@ def pred_evolution_gif(fig,
     if show:
         plt.show()
         plt.close('all')
+    
+    print('\ndone')
 
 def confusion_matrix(trained_model,
                      weights_dir,
