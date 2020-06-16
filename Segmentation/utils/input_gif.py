@@ -13,7 +13,9 @@ import sys
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.evaluation_utils import pred_evolution_gif
 
-def create_input_gif(which_volume):
+def create_input_gif(which_volume,
+                     clean=False):
+
     valid_ds = read_tfrecord(tfrecords_dir='gs://oai-challenge-dataset/tfrecords/valid/',
                             batch_size=160,
                             buffer_size=500,
@@ -43,10 +45,14 @@ def create_input_gif(which_volume):
             for i in range(x.shape[0]):
                 print(f"Analysing slice {i+1}")
                 im = ax.imshow(x[i,:,:], cmap='gray', animated=True)
-                text = ax.text(0.5,1.05,f'Slice {i+1}', 
-                               size=plt.rcParams["axes.titlesize"],
-                               ha="center", transform=ax.transAxes)
-                gif_frames.append([im, text])
+                if not clean:
+                    text = ax.text(0.5,1.05,f'Slice {i+1}', 
+                                size=plt.rcParams["axes.titlesize"],
+                                ha="center", transform=ax.transAxes)
+                    gif_frames.append([im, text])
+                else:
+                    ax.axis('off')
+                    gif_frames.append([im])
 
             break
 
@@ -57,7 +63,7 @@ if __name__ == '__main__':
     # for p in sys.path:
     #     print(p)
     # print('\n\n\n\n\n')
-    create_input_gif(1)
+    create_input_gif(1, clean=True)
 
     
 
