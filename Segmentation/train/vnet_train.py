@@ -25,7 +25,7 @@ colour_maps = {
 class Train:
     def __init__(self, epochs, batch_size, enable_function,
                  model, optimizer, loss_func, lr_manager, predict_slice, metrics,
-                 tfrec_dir='./Data/tfrecords/', log_dir="logs/"):
+                 tfrec_dir='./Data/tfrecords/', log_dir="logs"):
         self.epochs = epochs
         self.batch_size = batch_size
         self.enable_function = enable_function
@@ -53,7 +53,7 @@ class Train:
         for metric_loss in self.metrics:
             for metric in self.metrics[metric_loss]:
                 for training in range(2):
-                    val = "" if training else "val_"
+                    val = "" if (not training) else "val_"
                     if metric_loss == 'metrics':
                         metric_str += f" - {val}{metric}: {self.metrics[metric_loss][metric][training].result():.05f}"
                     else:
@@ -383,13 +383,16 @@ def main(epochs,
     print(f"Validation Time: {time() - t1:.02f}")                 
     print(f"Total Time: {time() - t0:.02f}")
     with open("results/3d_result.txt","a") as f:
-        f.write(f'{log_dir_now} - {total_loss}')
+        f.write(f'{log_dir_now}: {total_loss} \n')
 
 
 if __name__ == "__main__":
     use_tpu = False
     if not use_tpu:
         setup_gpu()
+
+    with open("results/3d_result.txt","a") as f:
+        f.write(f'========================================== \n')
 
     debug = True
     es = 3
