@@ -71,6 +71,9 @@ def plot_and_eval_3D(trained_model,
 
     for i, chkpt in enumerate(session_weights):
         should_save_np = np.mod(i, save_freq) == 0
+        print('should_save_np',should_save_np)
+        print('checkpoint enum i',i)
+        print('save_freq set to ',save_freq)
         if not should_save_np:
             print("skipping ", chkpt)
             continue
@@ -89,7 +92,7 @@ def plot_and_eval_3D(trained_model,
                                                           visual_file,
                                                           name)).expect_partial()
         
-        print('chkpt name',name)
+        print('Current chkpt name',name)
 
         # pred_vols = []
         # y_vols = []
