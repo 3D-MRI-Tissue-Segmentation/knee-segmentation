@@ -179,7 +179,7 @@ def plot_and_eval_3D(model,
                     plt.savefig(f"results/hello-hello")
                     plt.close('all')
 
-                    Save volume as numpy file for plotlyyy
+                    #Save volume as numpy file for plotlyyy
                     fig_dir = "results"
                     vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
                     print("npy save as ", vol_name_npy)
