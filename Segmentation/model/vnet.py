@@ -83,5 +83,8 @@ class VNet(tf.keras.Model):
             if self.slice_format == "mean":
                 output = tf.reduce_mean(output, -4)
                 output = tf.expand_dims(output, 1)
+            if self.slice_format == "sum":
+                output = tf.reduce_sum(output, -4)
+                output = tf.expand_dims(output, 1)
         output = self.output_act(output)
         return output

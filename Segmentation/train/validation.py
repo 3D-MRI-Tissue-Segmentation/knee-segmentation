@@ -63,8 +63,6 @@ def validate_best_model(model, val_batch_size, buffer_size, tfrec_dir, multi_cla
         total_loss += loss
         total_count += 1
         print(f"Validating for: {idx} - {time() - t0:.0f} s")
-        # if idx == 2:
-        #     break
     total_loss /= total_count
     print("Dice Validation Loss:", total_loss)
     return total_loss
