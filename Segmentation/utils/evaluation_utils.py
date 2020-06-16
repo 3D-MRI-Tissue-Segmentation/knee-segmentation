@@ -70,6 +70,7 @@ def plot_and_eval_3D(trained_model,
     print("--")
 
     for i, chkpt in enumerate(session_weights):
+        volume_recorded = False
         should_save_np = np.mod(i, save_freq) == 0
         print('should_save_np',should_save_np)
         print('checkpoint enum i',i)
@@ -104,6 +105,8 @@ def plot_and_eval_3D(trained_model,
         idx_vol= 0 # how many numpies have been save
 
         for idx, ds in enumerate(dataset):
+            if volume_recorded:
+                continue
 
             print(f"the index is {idx}")
             print('Current chkpt name',name)
@@ -250,7 +253,7 @@ def plot_and_eval_3D(trained_model,
                 del pred_vol
                 del y_vol
 
-                break
+                volume_recorded = True
 
                 
 

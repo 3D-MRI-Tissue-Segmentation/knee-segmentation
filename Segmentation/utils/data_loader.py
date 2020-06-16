@@ -241,7 +241,7 @@ def read_tfrecord(tfrecords_dir,
         cyc_l = 1
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
-                                cycle_length=8,
+                                cycle_length=cyc_l,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
