@@ -59,24 +59,24 @@ def get_validation_stride_coords(pad, full_shape, iterator, strides_required):
     return coords
 
 
-def get_val_coords(model_dim, full_dim, slice_output=False):
+def get_val_coords(model_dim, full_dim, slice_output=False, iterator_increase=0):
     if slice_output:
         coords = list(range(full_dim))
     else:
         pad = model_dim / 2
         working = full_dim - model_dim
         strides_required = math.ceil(working / model_dim)
-        iterator = None if strides_required == 0 else working / strides_required
+        iterator = None if strides_required == 0 else (working / strides_required) + iterator_increase
         coords = get_validation_stride_coords(pad, full_dim, iterator, strides_required)
     return coords
 
 
-def get_validation_spots(crop_size, depth_crop_size, full_shape=(160, 288, 288), slice_output=False):
+def get_validation_spots(crop_size, depth_crop_size, full_shape=(160, 288, 288), slice_output=False, iterator_increase=0):
     model_shape = (depth_crop_size * 2, crop_size * 2, crop_size * 2)
 
-    depth_coords = get_val_coords(model_shape[0], full_shape[0], slice_output)
-    height_coords = get_val_coords(model_shape[1], full_shape[1])
-    width_coords = get_val_coords(model_shape[2], full_shape[2])
+    depth_coords = get_val_coords(model_shape[0], full_shape[0], slice_output, iterator_increase=iterator_increase)
+    height_coords = get_val_coords(model_shape[1], full_shape[1], iterator_increase=iterator_increase)
+    width_coords = get_val_coords(model_shape[2], full_shape[2], iterator_increase=iterator_increase)
 
     coords = [depth_coords, height_coords, width_coords]
     coords = list(itertools.product(*coords))
@@ -84,8 +84,8 @@ def get_validation_spots(crop_size, depth_crop_size, full_shape=(160, 288, 288),
     return coords
 
 
-def get_paddings(crop_size, depth_crop_size, full_shape=(160,288,288)):
-    coords = get_validation_spots(crop_size, depth_crop_size, full_shape)
+def get_paddings(crop_size, depth_crop_size, full_shape=(160,288,288), iterator_increase=1):
+    coords = get_validation_spots(crop_size, depth_crop_size, full_shape, iterator_increase=iterator_increase)
     paddings = []
     for i in coords:
         depth = [i[0] - depth_crop_size, full_shape[0] - (i[0] + depth_crop_size)]
