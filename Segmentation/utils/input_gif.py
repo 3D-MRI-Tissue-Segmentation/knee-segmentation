@@ -48,7 +48,6 @@ def create_input_gif(which_volume):
 
             break
 
-    print("out of loop")
     pred_evolution_gif(fig, gif_frames, save_dir='results/input_volume_gif.gif')
 
 if __name__ == '__main__':
@@ -56,7 +55,7 @@ if __name__ == '__main__':
     # for p in sys.path:
     #     print(p)
     # print('\n\n\n\n\n')
-    create_input_gif(1)
+    create_input_gif(3)
 
     
 
