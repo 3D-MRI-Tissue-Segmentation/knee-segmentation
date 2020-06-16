@@ -9,7 +9,7 @@ from time import time
 from Segmentation.train.utils import setup_gpu, LearningRateUpdate
 from Segmentation.train.validation import validate_best_model
 from Segmentation.utils.data_loader import read_tfrecord_3d
-from Segmentation.utils.losses import dice_loss, tversky_loss
+from Segmentation.utils.losses import dice_loss, tversky_loss, iou_loss
 from Segmentation.plotting.voxels import plot_volume, plot_slice, plot_to_image
 from Segmentation.model.vnet import VNet
 
@@ -24,7 +24,7 @@ colour_maps = {
 
 class Train:
     def __init__(self, epochs, batch_size, enable_function,
-                 model, optimizer, loss_func, lr_manager, predict_slice,
+                 model, optimizer, loss_func, lr_manager, predict_slice, metrics,
                  tfrec_dir='./Data/tfrecords/', log_dir="logs/"):
         self.epochs = epochs
         self.batch_size = batch_size
@@ -34,9 +34,50 @@ class Train:
         self.loss_func = loss_func
         self.lr_manager = lr_manager
         self.predict_slice = predict_slice
+        self.metrics = metrics
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
-        self.checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
+
+
+    def store_metric(self, y, predictions, training=False):
+        training = 0 if training else 1
+        for metric_loss in self.metrics:
+            for metric in self.metrics[metric_loss]:
+                if metric_loss == 'metrics':
+                    self.metrics[metric_loss][metric][training](y, predictions)
+                else:
+                    m_loss = self.metrics[metric_loss][metric][0](y, predictions)
+                    self.metrics[metric_loss][metric][training + 1](m_loss)
+
+    def reset_metrics_get_str(self):
+        metric_str = ""
+        for metric_loss in self.metrics:
+            for metric in self.metrics[metric_loss]:
+                for training in range(2):
+                    val = "" if training else "val_"
+                    if metric_loss == 'metrics':
+                        metric_str += f" - {val}{metric}: {self.metrics[metric_loss][metric][training].result():.05f}"
+                    else:
+                        self.metrics[metric_loss][metric][training + 1](m_loss)
+                        metric_str += f" - {val}{metric}: {self.metrics[metric_loss][metric][training + 1].result():.05f}"
+        return metric_str
+
+    def add_metric_summary_writer(self, log_dir_now):
+        for metric_loss in self.metrics:
+            for metric in self.metrics[metric_loss]:
+                for training in range(2):
+                    val = "" if training else "val_"
+                    pos = -2 if training else -1
+                    self.metrics[metric_loss][metric][pos] = tf.summary.create_file_writer(log_dir_now + f'/{val}{metric}')
+
+    def record_metric_to_summary(self, e):
+        for metric_loss in self.metrics:
+            for metric in self.metrics[metric_loss]:
+                for training in range(2):
+                    pos = -2 if training else -1
+                    with self.metrics[metric_loss][metric][pos].as_default():
+                        tf.summary.scalar('metric', self.metrics[metric_loss][metric][pos - 2].result(), step=e)
+
 
     def train_step(self, x_train, y_train, visualise):
         with tf.GradientTape() as tape:
@@ -44,6 +85,7 @@ class Train:
             loss = self.loss_func(y_train, predictions)
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+        self.store_metric(y_train, predictions)
         if visualise:
             return loss, predictions
         return loss, None
@@ -51,6 +93,7 @@ class Train:
     def test_step(self, x_test, y_test, visualise):
         predictions = self.model(x_test, training=False)
         loss = self.loss_func(y_test, predictions)
+        self.store_metric(y_test, predictions, training=False)
         if visualise:
             return loss, predictions
         return loss, None
@@ -178,16 +221,17 @@ class Train:
         mc = "/multi" if multi_class else "/binary"
         log_dir_now = self.log_dir + name + db + mc + datetime.datetime.now().strftime("/%Y%m%d/%H%M%S")
         train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
-        test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation')
-        test_min_summary_writer = tf.summary.create_file_writer(log_dir_now + '/validation_min')
+        test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/val')
+        test_min_summary_writer = tf.summary.create_file_writer(log_dir_now + '/val_min')
         train_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/slice')
-        test_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/slice')
+        test_img_slice_writer = tf.summary.create_file_writer(log_dir_now + '/val/img/slice')
         train_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/train/img/vol')
-        test_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/validation/img/vol')
+        test_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/val/img/vol')
         lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr')
 
-        best_loss = None
+        self.add_metric_summary_writer(log_dir_now)
 
+        best_loss = None
         for e in range(self.epochs):
             self.optimizer.learning_rate = self.lr_manager.update_lr(e)
 
@@ -206,7 +250,10 @@ class Train:
             current_lr = self.optimizer.get_config()['learning_rate']
             with lr_summary_writer.as_default():
                 tf.summary.scalar('epoch_lr', current_lr, step=e)
-            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}")
+
+            self.record_metric_to_summary(e)
+            metric_str = self.reset_metrics_get_str()
+            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}" + metric_str)
 
             if best_loss is None:
                 self.model.save_weights(os.path.join(log_dir_now + f'/best_weights.tf'))
@@ -282,6 +329,17 @@ def main(epochs,
         tfrec_dir = 'gs://oai-challenge-dataset/tfrecords'
 
     num_classes = 7 if multi_class else 1
+    crossentropy_loss_fn = tf.keras.metrics.CategoricalCrossentropy if multi_class else tf.keras.metrics.BinaryCrossentropy
+
+    metrics = {
+        'metrics': {
+            'crossentropy': [crossentropy_loss_fn(), crossentropy_loss_fn(), None, None],
+            'acc': [tf.keras.metrics.Accuracy(), tf.keras.metrics.Accuracy(), None, None],
+        },
+        'losses':{
+            'mIoU': [iou_loss, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None],
+        },
+    }
     
     train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class,
                                        crop_size=crop_size, depth_crop_size=depth_crop_size, aug=aug,
@@ -307,7 +365,7 @@ def main(epochs,
         model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
 
         trainer = Train(epochs, batch_size, enable_function,
-                        model, optimizer, loss_func, lr_manager, predict_slice,
+                        model, optimizer, loss_func, lr_manager, predict_slice, metrics,
                         tfrec_dir=tfrec_dir)
 
         train_ds = strategy.experimental_distribute_dataset(train_ds)
