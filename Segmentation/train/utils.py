@@ -100,6 +100,25 @@ def get_paddings(crop_size, depth_crop_size, full_shape=(160,288,288)):
         paddings.append(padding)
     return paddings, coords
 
+def get_slice_paddings(crop_size, depth_crop_size, full_shape=(160,288,288), slice_output=True):
+    coords = get_validation_spots(crop_size, depth_crop_size, full_shape, slice_output)
+    paddings = []
+    for i in coords:
+        depth_lower = i[0] - depth_crop_size
+        depth_upper = full_shape[0] - (i[0] + 1 + depth_crop_size)
+        
+        depth = [depth_lower, depth_upper]
+        height = [i[1] - crop_size, full_shape[1] - (i[1] + crop_size)]
+        width = [i[2] - crop_size, full_shape[2] - (i[2] + crop_size)]
+
+        assert depth[0] + depth[1] + (depth_crop_size * 2) + 1 == full_shape[0]
+        assert height[0] + height[1] + (crop_size * 2) == full_shape[1]
+        assert width[0] + width[1] + (crop_size * 2) == full_shape[2]
+
+        padding = [[0, 0], depth, height, width, [0, 0]]
+        paddings.append(padding)
+    return paddings, coords
+
 
 class Metric():
     def __init__(self, metrics):

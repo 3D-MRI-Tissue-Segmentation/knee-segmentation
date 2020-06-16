@@ -165,6 +165,14 @@ def crop_3d(img, crop_size, depth_crop_size, centre, output_slice, target=None):
     return img
 
 
+def crop_3d_pad_slice(img, crop_size, depth_crop_size, centre):
+    """ Gets slice with same padding, used for 3D to 3D slice with x """
+    dc, hc, wc = centre
+
+    img = tf.slice(img, [0, dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [-1, 1 + (depth_crop_size * 2), crop_size * 2, crop_size * 2, -1])
+    return img
+
+
 def apply_random_brightness_3d(image_tensor, label_tensor):
     do_brightness = tf.random.uniform([]) > 0.75
     norm = tf.math.abs(tf.random.normal([], 0.0, 0.1))

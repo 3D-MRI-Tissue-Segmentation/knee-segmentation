@@ -411,13 +411,13 @@ if __name__ == "__main__":
     #=====================
 
     main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=128, depth_crop_size=1, num_channels=16, lr_drop_freq=10,
+         crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=10,
          num_conv_layers=3, batch_size=6, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
          aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
 
     main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=128, depth_crop_size=3, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=6, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+         num_conv_layers=3, batch_size=6, val_batch_size=6, multi_class=False, kernel_size=(3, 3, 3),
          aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
 
     # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
