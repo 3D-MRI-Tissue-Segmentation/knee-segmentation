@@ -27,7 +27,7 @@ def create_input_gif(which_volume):
         if idx == which_volume:
             x, _ = data
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            print(f"\t\tCollected data for volume {idx+1}")
+            print(f"\t\tCollected data for volume {idx}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
             print('Input image data type: {}, shape: {}/n/n'.format(type(x), x.shape))
 
@@ -36,7 +36,7 @@ def create_input_gif(which_volume):
 
             gif_frames = []
             for i in range(x.shape[0]):
-                print(f"Analysing slice {i}")
+                print(f"Analysing slice {i+1}")
                 im = ax.imshow(x[i,:,:], cmap='gray', animated=True)
                 gif_frames.append([im])
 
