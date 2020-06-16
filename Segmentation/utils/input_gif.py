@@ -41,8 +41,8 @@ def create_input_gif(which_volume):
             for i in range(x.shape[0]):
                 print(f"Analysing slice {i+1}")
                 im = ax.imshow(x[i,:,:], cmap='gray', animated=True)
-                ax.set_title(f'Slice {i+1}')
-                gif_frames.append([im])
+                title = ax.set_title(f'Slice {i+1}')
+                gif_frames.append([im, title])
 
             break
 
