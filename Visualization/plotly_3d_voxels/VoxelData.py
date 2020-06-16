@@ -15,14 +15,15 @@ class VoxelData():
     def __init__(self,data):
         print("Processing data")
         self.data = data
-        if np.size(np.shape(data)) > 3:
-            self.voxel_tot = sum(np.shape(data)[0:-1])  
+        self.has_mult_channels = np.size(np.shape(self.data)) > 3
+        if self.has_mult_channels:
+            self.voxel_tot = np.prod(np.shape(data)[0:-1])  
         else:
-            self.voxel_tot = sum(np.shape(data))  
+            self.voxel_tot = np.prod(np.shape(data))  
         self.x_length = np.size(data,0)
         self.y_length = np.size(data,1)
         self.z_length = np.size(data,2)
-        self.class_colors, self.num_classes = self.get_class_names()
+        self.unique_classes, self.num_classes = self.get_class_names()
 
 
         # self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
@@ -38,9 +39,9 @@ class VoxelData():
 
     def get_class_names(self):
         
-        if np.size(np.shape(self.data)) > 3:     
-            channels = np.shape(self.data)[-1]    
-            class_name_data = np.reshape(self.data, [self.voxel_tot, channels])
+        if self.has_mult_channels:     
+            num_channels = np.shape(self.data)[-1]    
+            class_name_data = np.reshape(self.data, [self.voxel_tot, num_channels])
             unique_classes = np.unique(class_name_data, axis=0)
             del class_name_data
         else:

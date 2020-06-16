@@ -5,14 +5,15 @@ import numpy as np
 
 def get_steps(num_samples, num_traces, num_classes_all):
     steps = []
-    num_classes = np.amax(num_classes_all)
-    if num_traces < num_samples:
-        num_traces = num_samples
+    # num_classes = np.amax(num_classes_all)
+    # if num_traces < num_samples:
+    #     num_traces = num_samples
     print('num_samples',num_samples)
-    print('num_traces',num_traces)
-    print('num_classes', num_classes)
-
+    # print('num_traces',num_traces)
+    # print('num_classes', num_classes)
+    assert num_traces == np.sum(num_classes_all), 'Number of segmentation classes not equal to total traces'
     # Loop through number of samples and for each make a 'step' with the 'visible' vector set True for each trace that's part of 1 volume
+    cumm_traces = 0
     for sample in range(num_samples):
         # Hide all traces
         step = dict(
@@ -22,11 +23,14 @@ def get_steps(num_samples, num_traces, num_classes_all):
 
         print('prestep',step)
         # Enable the traces we want to see
-        for k in range(sample*num_classes, (sample+1)*num_classes):
+        print('int(np.sum(num_classes_all[:sample]))',int(np.sum(num_classes_all[:sample])))
+        print('cumm_traces',cumm_traces)
+        for k in range(cumm_traces, int(np.sum(num_classes_all[:sample]))):
             print('k',k)
             step['args'][1][k] = True
 
-        
+        cumm_traces = int(np.sum(num_classes_all[:sample]))
+        print('cumm_traces',cumm_traces)
         print('step',step)
         # Add step to step list
         steps.append(step)
@@ -37,7 +41,8 @@ class RenderData(VoxelData):
 
     def __init__(self,seg_data):
         self.data = seg_data
-        if np.size(np.shape(self.data)) > 3:
+        self.has_mult_channels = np.size(np.shape(self.data)) > 3
+        if self.has_mult_channels:
             self.voxel_tot = np.prod(np.shape(self.data)[0:-1])  
         else:
             self.voxel_tot = np.prod(np.shape(self.data))  

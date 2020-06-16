@@ -4,6 +4,8 @@
 Get started with 
 python3 run_plotly.py -toy 10
 
+Fig generation slow for noisy, non-sparse data
+
 """
 
 from options import Options
@@ -14,46 +16,41 @@ from RenderData import get_steps
 import chart_studio.plotly
 import plotly.io as pio
 import plotly.graph_objects as go
-import plotly.colors as colors
+import plotly.colors
 import matplotlib.pyplot as plt
 import random
 import numpy as np
 
-if __name__ == "__main__":
-    
-    opt = Options().parse()
-
-    # Colors
+def get_colors(opt):
     # colors = ["pink", "red", "orange", "yellow", "lightgreen", "lightblue", "purple"]
-    colors = colors.DEFAULT_PLOTLY_COLORS
+    colors = plotly.colors.DEFAULT_PLOTLY_COLORS_
     if opt.shuffle_colors:
         # Two types of random, one roll one random shuffle
         # colors = np.roll(np.array(colors), np.random.randint(0,np.size(colors)))
         random.shuffle(colors)
-    background_seg = 0
-
-    data = load_data(opt)
-
-    
-    print('np.shape(data)',np.shape(data))
+    return colors
 
 
+def make_fig(data, opt):
     fig = go.Figure()
     print("Generating figure")
 
     
     is_multiple_samples = type(data) == list
-    num_samples = len(data)
+    if is_multiple_samples:
+        num_samples = len(data)
+    else: 
+        num_samples = 1
+
     num_classes_all = []
-    num_traces = 0
 
     for j in range(num_samples):
         
         if not is_multiple_samples:
-            print('1 samplpe')
+            print('There is 1 samplpe')
             curr_data = data
         else:
-            print('multiple samples')
+            print('There are multiple samples')
             curr_data = data[j]
         
         Voxels = VoxelData(curr_data)
@@ -63,17 +60,25 @@ if __name__ == "__main__":
         # print("Voxels.vertices\n",Voxels.vertices)
         # print("Voxels.triangles\n",Voxels.triangles)
 
-        has_background = False
-        for i, seg_class in enumerate(Voxels.class_colors):
-            print("Making segmentation voxels ", i, "/", np.size(Voxels.class_colors))
+        # has_background = False
+        for i, seg_class in enumerate(Voxels.unique_classes):
+            print("Making segmentation voxels ", (i+1), "/", Voxels.num_classes)
             if seg_class == background_seg:
-                has_background = True
-                num_traces += 1
+                # put points so that full graph appears even if empty
+                # has_background = True
+                fig.add_trace(go.Mesh3d(
+                # voxel vertices
+                x=[0,Voxels.x_length],
+                y=[0,Voxels.y_length],
+                z=[0,Voxels.z_length],
+                opacity=0,
+                showlegend=True
+                ))
                 continue
 
             curr_class = RenderData(Voxels.get_class_voxels(seg_class))
-            curr_color = colors[i]
-            print(i, 'curr_color',curr_color)
+            curr_color = colors[int(seg_class)]
+            print('For class', int(seg_class), 'curr_color',curr_color)
 
             fig.add_trace(go.Mesh3d(
                 # voxel vertices
@@ -88,20 +93,21 @@ if __name__ == "__main__":
                 opacity=0.7,
                 showlegend=True
                 ))
-            
+    
+        num_classes_all.append(Voxels.num_classes)
 
-       
-        if has_background:
-            num_classes_all.append(Voxels.num_classes-1)
-        else:
-            num_classes_all.append(Voxels.num_classes)
+    return fig, num_classes_all, num_samples
 
 
 
-    num_traces += len(fig.data)
+
+def updata_fig(fig, num_classes_all, num_samples):
+    print('num_classes_all',num_classes_all)
+    num_traces = len(fig.data)
+    print('Total traces', num_traces)
     steps = get_steps(num_samples, num_traces, num_classes_all) 
     sliders = [dict(
-        currentvalue={"prefix": "Epoch: "},
+        currentvalue={"prefix": "Vol num: "},
         pad={"t": 50},
         steps=steps
     )]
@@ -111,14 +117,35 @@ if __name__ == "__main__":
         sliders=sliders
     )
 
+    return fig
+
+
+
+
+if __name__ == "__main__":
+    
+    opt = Options().parse()
+
+    # Colors
+    colors = get_colors(opt)
+    background_seg = 0
+
+    if opt.dataroot_left and opt.dataroot_right:
+        data_l, data_r = load_data(opt)
+        fig_l, classes_counts_l, num_samples_l = make_fig(data_l, opt)
+        fig_r, classes_counts_r, num_samples_r = make_fig(data_r, opt)
+
+        fig_l = updata_fig(fig_l)
+        fig_r = updata_fig(fig_r)
+    else:
+        data = load_data(opt)    
+        print('np.shape(data)',np.shape(data))
+        fig = make_fig(data, opt)
+
+
+
     fig.show()
-
     print("Used color vector ", colors)
-
-    # username = 'olive004' # your username
-    # api_key = '1Zg3g69qKJNwLBiInHaE' # your api key - go to profile > settings > regenerate key
-    # chart_studio.tools.set_credentials_file(username=username, api_key=api_key)
-    # chart_studio.plot(fig, filename = 'segmentation', auto_open=True)
 
     # https://stackoverflow.com/questions/60513164/display-interactive-plotly-chart-html-file-on-github-pages
     # https://plotly.com/python/interactive-html-export/
