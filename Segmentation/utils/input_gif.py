@@ -34,7 +34,6 @@ def create_input_gif(which_volume):
 
             print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
             print('reducing image size')
-
             x = np.squeeze(x, axis=-1)
             print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
