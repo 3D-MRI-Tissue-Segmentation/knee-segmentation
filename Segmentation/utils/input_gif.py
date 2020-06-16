@@ -42,7 +42,7 @@ def create_single_input_gif(which_volume,
             # fig, ax = plt.subplots()
             fig = plt.figure(frameon=False)
             ax = plt.Axes(fig, [0., 0., 1., 1.])
-            ax.set_axis_off()
+            fig.add_axes(ax)
 
             gif_frames = []
             for i in range(x.shape[0]):
