@@ -92,7 +92,7 @@ def plot_and_eval_3D(trained_model,
                                                           visual_file,
                                                           name)).expect_partial()
         
-        print('Current chkpt name',name)
+        
 
         # pred_vols = []
         # y_vols = []
@@ -106,6 +106,7 @@ def plot_and_eval_3D(trained_model,
         for idx, ds in enumerate(dataset):
 
             print(f"the index is {idx}")
+            print('Current chkpt name',name)
             x, y = ds
             batch_size = x.shape[0]
             target = 160
