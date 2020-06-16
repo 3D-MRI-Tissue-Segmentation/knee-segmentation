@@ -69,7 +69,11 @@ def plot_and_eval_3D(trained_model,
         print(s)
     print("--")
 
-    for chkpt in session_weights:
+    for i, chkpt in enumerate(session_weights):
+        should_save_np = np.mod(i, save_freq) == 0
+        if not should_save_np:
+            continue
+
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
         if weights_dir == "checkpoint":
@@ -85,16 +89,17 @@ def plot_and_eval_3D(trained_model,
                                                           name)).expect_partial()
         
 
-        pred_vols = []
-        y_vols = []
+        # pred_vols = []
+        # y_vols = []
 
-        sample_x = []    # x for current 160,288,288 vol
+        # sample_x = []    # x for current 160,288,288 vol
         sample_pred = []  # prediction for current 160,288,288 vol
         sample_y = []    # y for current 160,288,288 vol
 
         idx_vol= 0 # how many numpies have been save
 
         for idx, ds in enumerate(dataset):
+
             print(f"the index is {idx}")
             x, y = ds
             batch_size = x.shape[0]
@@ -120,7 +125,9 @@ def plot_and_eval_3D(trained_model,
                 sample_pred.append(pred[:remaining])
                 sample_y.append(y[:remaining])
                 pred_vol = np.concatenate(sample_pred)
+                del sample_pred
                 y_vol = np.concatenate(sample_y)
+                del sample_y
                 sample_pred = [pred[remaining:]]
                 sample_y = [y[remaining:]]
 
@@ -208,34 +215,34 @@ def plot_and_eval_3D(trained_model,
                 # plt.close('all')
 
                 # Save if save frequency
-                should_save_np = np.mod(idx_vol, save_freq) == 0
+                
                 print('should_save_np',should_save_np)
                 print('np.mod(idx_vol, save_freq)',np.mod(idx_vol, save_freq))
                 print('idx_vol',idx_vol)
-                if should_save_np:
-                    # Save volume as numpy file for plotlyyy
-                    fig_dir = "results"
-                    name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + str(idx_vol).zfill(3)))
-                    name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + str(idx_vol).zfill(3)))
-                    print("npy save pred as ", name_pred_npy)
-                    print("npy save y as ", name_y_npy)
+
+                # Save volume as numpy file for plotlyyy
+                fig_dir = "results"
+                name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + str(idx_vol).zfill(3)))
+                name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + str(idx_vol).zfill(3)))
+                print("npy save pred as ", name_pred_npy)
+                print("npy save y as ", name_y_npy)
 
 
-                    # Get middle x slices cuz 288x288x160 too big
-                    roi = int(50 / 2)
-                    d1,d2,d3 = np.shape(pred_vol)[0:3]
-                    d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
-                    pred_vol = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                    d1,d2,d3 = np.shape(y_vol)[0:3]
-                    d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
-                    y_vol = y_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                    print('y_vol.shape', np.shape(y_vol))
+                # Get middle x slices cuz 288x288x160 too big
+                roi = int(50 / 2)
+                d1,d2,d3 = np.shape(pred_vol)[0:3]
+                d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+                pred_vol = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                d1,d2,d3 = np.shape(y_vol)[0:3]
+                d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+                y_vol = y_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                print('y_vol.shape', np.shape(y_vol))
 
-                    np.save(name_pred_npy,pred_vol)
-                    np.save(name_y_npy,y_vol)
-                    idx_vol += 1
-                    del pred_vol
-                    del y_vol
+                np.save(name_pred_npy,pred_vol)
+                np.save(name_y_npy,y_vol)
+                idx_vol += 1
+                del pred_vol
+                del y_vol
 
                 
 

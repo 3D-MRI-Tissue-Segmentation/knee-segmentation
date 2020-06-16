@@ -16,6 +16,7 @@ from RenderData import get_steps
 import chart_studio.plotly
 import plotly.io as pio
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import plotly.colors
 import matplotlib.pyplot as plt
 import random
@@ -23,7 +24,7 @@ import numpy as np
 
 def get_colors(opt):
     # colors = ["pink", "red", "orange", "yellow", "lightgreen", "lightblue", "purple"]
-    colors = plotly.colors.DEFAULT_PLOTLY_COLORS_
+    colors = plotly.colors.DEFAULT_PLOTLY_COLORS
     if opt.shuffle_colors:
         # Two types of random, one roll one random shuffle
         # colors = np.roll(np.array(colors), np.random.randint(0,np.size(colors)))
@@ -31,10 +32,8 @@ def get_colors(opt):
     return colors
 
 
-def make_fig(data, opt):
-    fig = go.Figure()
+def make_fig(data, opt, col_num):
     print("Generating figure")
-
     
     is_multiple_samples = type(data) == list
     if is_multiple_samples:
@@ -73,7 +72,7 @@ def make_fig(data, opt):
                 z=[0,Voxels.z_length],
                 opacity=0,
                 showlegend=True
-                ))
+                ), row=1, col=col_num)
                 continue
 
             curr_class = RenderData(Voxels.get_class_voxels(seg_class))
@@ -92,7 +91,7 @@ def make_fig(data, opt):
                 color=curr_color,
                 opacity=0.7,
                 showlegend=True
-                ))
+                ), row=1, col=col_num)
     
         num_classes_all.append(Voxels.num_classes)
 
@@ -101,7 +100,7 @@ def make_fig(data, opt):
 
 
 
-def updata_fig(fig, num_classes_all, num_samples):
+def update_fig(fig, num_classes_all, num_samples):
     print('num_classes_all',num_classes_all)
     num_traces = len(fig.data)
     print('Total traces', num_traces)
@@ -130,17 +129,32 @@ if __name__ == "__main__":
     colors = get_colors(opt)
     background_seg = 0
 
-    if opt.dataroot_left and opt.dataroot_right:
-        data_l, data_r = load_data(opt)
-        fig_l, classes_counts_l, num_samples_l = make_fig(data_l, opt)
-        fig_r, classes_counts_r, num_samples_r = make_fig(data_r, opt)
+    fig = go.Figure()
+    
 
-        fig_l = updata_fig(fig_l)
-        fig_r = updata_fig(fig_r)
+    if opt.dataroot_left and opt.dataroot_right:
+        fig = make_subplots(rows=1, 
+                            cols=2,
+                            specs=[{'type': 'mesh3D'}, {'type': 'mesh3D'}])
+
+        data_l, data_r = load_data(opt)
+        col_l = 1
+        col_r = 2
+
+        fig, classes_counts_l, num_samples_l = make_fig(data_l, opt,col_l)
+        fig, classes_counts_r, num_samples_r = make_fig(data_r, opt,col_r)
+
+        fig = update_fig(fig,classes_counts_l,num_samples_l)
+        fig = update_fig(fig,classes_counts_r,num_samples_r)
+
     else:
+        fig = make_subplots(rows=1, 
+                            cols=1,
+                            specs=[[{'type': 'mesh3D'}]])
         data = load_data(opt)    
         print('np.shape(data)',np.shape(data))
-        fig = make_fig(data, opt)
+        col_num = 1
+        fig = make_fig(data, opt,col_num)
 
 
 
