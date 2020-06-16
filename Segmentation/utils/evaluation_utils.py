@@ -72,6 +72,7 @@ def plot_and_eval_3D(trained_model,
     # Only use shard of dataset
     print('len(list(dataset))',len(list(dataset)))
     tot_samples = len(list(dataset))
+    print('num_elements = tf.data.experimental.cardinality(dataset).numpy()',tf.data.experimental.cardinality(dataset).numpy())
     dataset_shard = dataset.shard(num_shards=tot_samples, index=0) 
 
     for i, chkpt in enumerate(session_weights):
