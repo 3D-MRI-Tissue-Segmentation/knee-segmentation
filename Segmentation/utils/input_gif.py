@@ -41,7 +41,6 @@ def create_single_input_gif(which_volume,
 
             # fig, ax = plt.subplots()
             fig = plt.figure(frameon=False)
-            fig.set_size_inches(w,h)
             ax = plt.Axes(fig, [0., 0., 1., 1.])
             ax.set_axis_off()
 
