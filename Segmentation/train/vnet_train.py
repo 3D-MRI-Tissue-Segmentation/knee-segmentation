@@ -38,7 +38,6 @@ class Train:
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
 
-
     def store_metric(self, y, predictions, training=False):
         training = 0 if training else 1
         for metric_loss in self.metrics:
@@ -58,7 +57,6 @@ class Train:
                     if metric_loss == 'metrics':
                         metric_str += f" - {val}{metric}: {self.metrics[metric_loss][metric][training].result():.05f}"
                     else:
-                        self.metrics[metric_loss][metric][training + 1](m_loss)
                         metric_str += f" - {val}{metric}: {self.metrics[metric_loss][metric][training + 1].result():.05f}"
         return metric_str
 
@@ -76,7 +74,7 @@ class Train:
                 for training in range(2):
                     pos = -2 if training else -1
                     with self.metrics[metric_loss][metric][pos].as_default():
-                        tf.summary.scalar('metric', self.metrics[metric_loss][metric][pos - 2].result(), step=e)
+                        tf.summary.scalar('metrics', self.metrics[metric_loss][metric][pos - 2].result(), step=e)
 
 
     def train_step(self, x_train, y_train, visualise):
@@ -379,11 +377,13 @@ def main(epochs,
         model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
         model.load_weights(os.path.join(log_dir_now + f'/best_weights.tf')).expect_partial()
     
-    validate_best_model(model, val_batch_size, buffer_size, tfrec_dir, multi_class,
-                        crop_size, depth_crop_size, predict_slice)
+    total_loss = validate_best_model(model, val_batch_size, buffer_size, tfrec_dir, multi_class,
+                                     crop_size, depth_crop_size, predict_slice)
     print(f"Train Time: {train_time:.02f}")
     print(f"Validation Time: {time() - t1:.02f}")                 
     print(f"Total Time: {time() - t0:.02f}")
+    with open("results/3d_result.txt","a") as f:
+        f.write(f'{log_dir_now} - {total_loss}')
 
 
 if __name__ == "__main__":
@@ -392,7 +392,7 @@ if __name__ == "__main__":
         setup_gpu()
 
     debug = True
-    es = 1
+    es = 3
     
     main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
