@@ -69,6 +69,9 @@ def plot_and_eval_3D(trained_model,
         print(s)
     print("--")
 
+    # Only use shard of dataset
+    dataset_shard = dataset.shard(num_shards=1, index=0) 
+
     for i, chkpt in enumerate(session_weights):
         volume_recorded = False
         should_save_np = np.mod(i, save_freq) == 0
@@ -105,10 +108,7 @@ def plot_and_eval_3D(trained_model,
         idx_vol= 0 # how many numpies have been save
         target = 160
 
-        for idx, ds in enumerate(dataset[:target]):
-            if volume_recorded:
-                print('break slice making')
-                continue
+        for idx, ds in enumerate(dataset_shard):
 
             print(f"the index is {idx}")
             print('Current chkpt name',name)
