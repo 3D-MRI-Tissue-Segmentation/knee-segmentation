@@ -10,7 +10,7 @@ from absl import flags
 from absl import logging
 from glob import glob
 
-from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
+from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet, Nested_UNet_v2
 from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
@@ -170,7 +170,6 @@ def main(argv):
         tf.keras.mixed_precision.experimental.set_policy(policy)
 
     # set model architecture
-
     model_fn = None
     model_args = []
 
@@ -273,7 +272,6 @@ def main(argv):
     
     with strategy.scope():
         model = model_fn(*model_args)
-
         
         # if FLAGS.model_architecture == 'unet':
         #     model_args = [FLAGS.num_filters,
@@ -391,13 +389,13 @@ def main(argv):
                 model.build((batch_size, 288, 288, 3))
 
             model.summary()
-        
+
         if FLAGS.multi_class:
             model.compile(optimizer=optimiser,
                           loss=loss_fn,
                           metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
         else:
-            model.compile(optimizer=optimiser, 
+            model.compile(optimizer=optimiser,
                           loss=loss_fn,
                           metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 

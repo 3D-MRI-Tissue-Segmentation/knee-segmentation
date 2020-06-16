@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib.animation import ArtistAnimation, PillowWriter
+from matplotlib.animation import ArtistAnimation
 
 import glob
 from google.cloud import storage
@@ -132,24 +132,22 @@ def plot_and_eval_3D(model,
 
                     print("DICE:", pred_vol_dice)
 
-                    # pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
-                    # pred_vol = np.stack((pred_vol,) * 3, axis=-1)
+                    pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
+                    pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
-                    # fig = plot_volume(pred_vol)
-                    # plt.savefig(f"results/hello-hello")
-                    # plt.close('all')
+                    fig = plot_volume(pred_vol)
+                    plt.savefig(f"results/hello-hello")
+                    plt.close('all')
 
-                    if idx == 2:
-                        print("Number of vols:", len(pred_vols), len(y_vols))
-                        batch_pred_vols = np.concatenate(pred_vols)
-                        batch_y_vols = np.concatenate(y_vols)
+                    # if idx == 2:
+                        # print("Number of vols:", len(pred_vols), len(y_vols))
+                        # batch_pred_vols = np.concatenate(pred_vols)
+                        # batch_y_vols = np.concatenate(y_vols)
 
-                        print("BATCH pred SIZE:", batch_pred_vols.shape)
-                        print("BATCH y SIZE:", batch_y_vols.shape)
+                        # print("BATCH pred SIZE:", batch_pred_vols.shape)
+                        # print("BATCH y SIZE:", batch_y_vols.shape)
 
-                        print("DICE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
-
-                        
+                        # print("DICE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
 
                     print('is_multi_class', is_multi_class)
                     if is_multi_class:  # or np.shape(pred_vol)[-1] not
@@ -158,43 +156,44 @@ def plot_and_eval_3D(model,
 
 
                     # Figure saving
-                    # pred_vol = pred_vol[50:110, 114:174, 114:174]
-                    # print(pred_vol.shape)
-                    # fig_dir = "results"
-                    # fig = plot_volume(pred_vol)
-                    # print("shabem")
-                    # plt.savefig(f"results/hello-hello2")
-                    # plt.close('all')
+                    pred_vol = pred_vol[50:110, 114:174, 114:174]
+                    print(pred_vol.shape)
+                    fig_dir = "results"
+                    fig = plot_volume(pred_vol)
+                    print("shabem")
+                    plt.savefig(f"results/hello-hello2")
+                    plt.close('all')
 
                     # # Save volume as numpy file for plotlyyy
-                    # vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
-                    # np.save(pred_vol, vol_name_npy)
-                    # print("npy saved as ", vol_name_npy)
+                    vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
+                    np.save(pred_vol, vol_name_npy)
+                    print("npy saved as ", vol_name_npy)
 
                     #append image to use for gif
-                    images_gif.append([ax.imshow(pred_vol[which_slice,:,:], cmap=gif_cmap, animated=True)])
+                    if idx == 1:
+                        images_gif.append([ax.imshow(pred_vol[which_slice,:,:], cmap=gif_cmap, animated=True)])
 
-                    # # Figure saving
-                    # fig_dir = "results"
-                    # fig = plot_volume(pred_vol)
-                    # plt.savefig(f"results/hello-hello")
-                    # plt.close('all')
+                    # Figure saving
+                    fig_dir = "results"
+                    fig = plot_volume(pred_vol)
+                    plt.savefig(f"results/hello-hello")
+                    plt.close('all')
 
-                    # Save volume as numpy file for plotlyyy
-                    # fig_dir = "results"
-                    # vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
-                    # print("npy save as ", vol_name_npy)
+                    Save volume as numpy file for plotlyyy
+                    fig_dir = "results"
+                    vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
+                    print("npy save as ", vol_name_npy)
 
 
                     # Get middle 60 slices cuz 288x288x160 too big
-                    # d1,d2,d3 = np.shape(pred_vol)[0:3]
-                    # d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
-                    # roi = int(50 / 2)
-                    # pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                    # np.save(vol_name_npy,pred_vol_np)
+                    d1,d2,d3 = np.shape(pred_vol)[0:3]
+                    d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+                    roi = int(50 / 2)
+                    pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                    np.save(vol_name_npy,pred_vol_np)
 
 
-                break
+                # break
 
     #             if idx == 4:
     #                 break
