@@ -30,7 +30,7 @@ def create_input_gif(which_volume):
             print(f"\t\tCollected data for volume {idx}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
-            print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
+            print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
             print('reducing image size')
             x = np.argmax(x, axis=-1)
             print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
@@ -38,7 +38,7 @@ def create_input_gif(which_volume):
             fig, ax = plt.subplots()
 
             gif_frames = []
-            for i in range(x.shape[0]):
+            for i in range(x.shape[0]-1):
                 print(f"Analysing slice {i+1}")
                 im = ax.imshow(x[i,:,:], cmap='gray', animated=True)
                 gif_frames.append([im])
