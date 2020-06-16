@@ -32,7 +32,7 @@ def create_input_gif(which_volume):
 
             print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
             print('reducing image size')
-            x = np.argmax(x, axis=-1)
+            np.squeeze(x, axis=-1)
             print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
             fig, ax = plt.subplots()
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     # for p in sys.path:
     #     print(p)
     # print('\n\n\n\n\n')
-    create_input_gif(3)
+    create_input_gif(1)
 
     
 
