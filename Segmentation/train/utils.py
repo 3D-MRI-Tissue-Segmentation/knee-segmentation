@@ -65,8 +65,8 @@ def get_val_coords(model_dim, full_dim, slice_output=False, iterator_increase=0)
     else:
         pad = model_dim / 2
         working = full_dim - model_dim
-        strides_required = math.ceil(working / model_dim)
-        iterator = None if strides_required == 0 else (working / strides_required) + iterator_increase
+        strides_required = math.ceil(working / model_dim) + iterator_increase
+        iterator = None if strides_required == 0 else (working / strides_required)
         coords = get_validation_stride_coords(pad, full_dim, iterator, strides_required)
     return coords
 
@@ -99,6 +99,7 @@ def get_paddings(crop_size, depth_crop_size, full_shape=(160,288,288), iterator_
         padding = [[0, 0], depth, height, width, [0, 0]]
         paddings.append(padding)
     return paddings, coords
+
 
 def get_slice_paddings(crop_size, depth_crop_size, full_shape=(160,288,288), slice_output=True):
     coords = get_validation_spots(crop_size, depth_crop_size, full_shape, slice_output)
