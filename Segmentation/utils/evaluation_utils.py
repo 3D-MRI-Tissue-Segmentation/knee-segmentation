@@ -250,6 +250,8 @@ def plot_and_eval_3D(trained_model,
                 del pred_vol
                 del y_vol
 
+                break
+
                 
 
             print("=================")
