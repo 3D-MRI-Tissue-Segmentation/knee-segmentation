@@ -35,6 +35,13 @@ def get_steps(num_samples, num_traces, num_classes_all):
         # Add step to step list
         steps.append(step)
 
+    # Have last step be all traces visible at once
+    step = dict(
+        method = 'restyle',  
+        args = ['visible', [True] * num_traces],
+    )
+    steps.append(step)
+
     return steps
 
 class RenderData(VoxelData):

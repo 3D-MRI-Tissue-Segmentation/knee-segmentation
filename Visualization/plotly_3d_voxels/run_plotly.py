@@ -129,13 +129,14 @@ if __name__ == "__main__":
     colors = get_colors(opt)
     background_seg = 0
 
-    fig = go.Figure()
+    # fig = go.Figure()
     
 
     if opt.dataroot_left and opt.dataroot_right:
         fig = make_subplots(rows=1, 
                             cols=2,
                             specs=[{'type': 'mesh3D'}, {'type': 'mesh3D'}])
+        print('type(fig)',type(fig))
 
         data_l, data_r = load_data(opt)
         col_l = 1
@@ -151,10 +152,14 @@ if __name__ == "__main__":
         fig = make_subplots(rows=1, 
                             cols=1,
                             specs=[[{'type': 'mesh3D'}]])
+
+        print('type(fig)',type(fig))
+
         data = load_data(opt)    
         print('np.shape(data)',np.shape(data))
         col_num = 1
-        fig = make_fig(data, opt,col_num)
+        fig, num_classes_all, num_samples = make_fig(data, opt,col_num)
+        fig = update_fig(fig,num_classes_all,num_samples)
 
 
 
