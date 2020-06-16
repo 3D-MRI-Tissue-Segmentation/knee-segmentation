@@ -13,8 +13,8 @@ import sys
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.evaluation_utils import pred_evolution_gif
 
-def create_input_gif(which_volume,
-                     clean=False):
+def create_single_input_gif(which_volume,
+                            clean=False):
 
     valid_ds = read_tfrecord(tfrecords_dir='gs://oai-challenge-dataset/tfrecords/valid/',
                             batch_size=160,
@@ -57,6 +57,9 @@ def create_input_gif(which_volume,
             break
 
     pred_evolution_gif(fig, gif_frames, save_dir='results/input_volume_gif.gif')
+
+def create_collage_input_gif(which_volume,
+                             clean=False):
 
 if __name__ == '__main__':
     # print('\n\n\n\n\n')
