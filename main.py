@@ -332,6 +332,7 @@ def main(argv):
                          weights_dir=FLAGS.weights_dir,
                          is_multi_class=FLAGS.multi_class,
                          save_freq=FLAGS.save_freq,
+                         tfrec_dir=FLAGS.tfrec_dir,
                          dataset=valid_ds)
     else:
         # load the checkpoint in the FLAGS.weights_dir file

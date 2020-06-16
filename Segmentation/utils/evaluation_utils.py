@@ -56,9 +56,12 @@ def plot_and_eval_3D(trained_model,
 
     blobs = storage_client.list_blobs(bucket_name)
     session_content = []
+    tf_records_content = []
     for blob in blobs:
         if session_name in blob.name:
             session_content.append(blob.name)
+        if os.path.join(tfrec_dir, 'valid/') in blob.name:
+            tf_records_content.append(blob.name)
 
     session_weights = []
     for item in session_content:
@@ -70,8 +73,8 @@ def plot_and_eval_3D(trained_model,
     print("--")
 
     # Only use shard of dataset
-    print('len(list(dataset))',len(list(dataset)))
-    tot_samples = len(list(dataset))
+    tot_samples = len(tf_records_content)
+    print('tot_samples',tot_samples)
     print('num_elements = tf.data.experimental.cardinality(dataset).numpy()',tf.data.experimental.cardinality(dataset).numpy())
     dataset_shard = dataset.shard(num_shards=tot_samples, index=0) 
 
