@@ -106,7 +106,7 @@ def plot_and_eval_3D(trained_model,
 
         for idx, ds in enumerate(dataset):
             if volume_recorded:
-                continue
+                break
 
             print(f"the index is {idx}")
             print('Current chkpt name',name)
