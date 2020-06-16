@@ -38,10 +38,12 @@ def create_input_gif(which_volume):
             fig, ax = plt.subplots()
 
             gif_frames = []
-            for i in range(x.shape[0]-1):
+            for i in range(x.shape[0]):
                 print(f"Analysing slice {i+1}")
                 im = ax.imshow(x[i,:,:], cmap='gray', animated=True)
                 gif_frames.append([im])
+
+            break
 
     print("out of loop")
     pred_evolution_gif(fig, gif_frames, save_dir='results/input_volume_gif.gif')
