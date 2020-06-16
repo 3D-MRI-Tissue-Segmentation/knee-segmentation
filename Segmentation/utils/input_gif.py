@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # for p in sys.path:
     #     print(p)
     # print('\n\n\n\n\n')
-    create_input_gif(1)
+    create_input_gif(2)
 
     
 
