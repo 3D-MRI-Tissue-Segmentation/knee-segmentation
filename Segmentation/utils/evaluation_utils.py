@@ -70,6 +70,7 @@ def plot_and_eval_3D(trained_model,
     print("--")
 
     # Only use shard of dataset
+    print('len(dataset)',len(dataset))
     dataset_shard = dataset.shard(num_shards=1, index=0) 
 
     for i, chkpt in enumerate(session_weights):
