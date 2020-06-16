@@ -39,12 +39,16 @@ def create_single_input_gif(which_volume,
             x = np.squeeze(x, axis=-1)
             print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
-            fig, ax = plt.subplots()
+            # fig, ax = plt.subplots()
+            fig = plt.figure(frameon=False)
+            fig.set_size_inches(w,h)
+            ax = plt.Axes(fig, [0., 0., 1., 1.])
+            ax.set_axis_off()
 
             gif_frames = []
             for i in range(x.shape[0]):
                 print(f"Analysing slice {i+1}")
-                im = ax.imshow(x[i,:,:], cmap='gray', animated=True)
+                im = ax.imshow(x[i,:,:], cmap='gray', animated=True, aspect='auto')
                 if not clean:
                     text = ax.text(0.5,1.05,f'Slice {i+1}', 
                                 size=plt.rcParams["axes.titlesize"],
