@@ -26,6 +26,8 @@ def create_input_gif(which_volume):
     for idx, data in enumerate(valid_ds):
         if idx == which_volume:
             x, _ = data
+            x = np.array(x)
+            
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(f"\t\tCollected data for volume {idx}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
