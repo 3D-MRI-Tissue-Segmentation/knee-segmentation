@@ -266,7 +266,7 @@ def confusion_matrix(trained_model,
     f = weights_dir.split('/')[:-1]
     writer_dir = ''
     for n in f:
-        writer_dir = os.path.join(f, n)
+        writer_dir = os.path.join(writer_dir, n)
     writer_dir = os.path.join(writer_dir, 'eval')
     eval_metric_writer = tf.summary.create_file_writer(writer_dir)
 
