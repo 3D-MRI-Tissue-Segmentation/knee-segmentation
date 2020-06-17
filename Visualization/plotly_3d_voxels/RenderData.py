@@ -2,18 +2,44 @@
 from VoxelData import VoxelData
 import numpy as np
 
+
+def get_steps(num_samples, num_traces, num_classes):
+    steps = []
+    print('num_samples',num_samples)
+    print('num_traces',num_traces)
+    print('num_classes', num_classes)
+
+    # Loop through number of samples and for each make a 'step' with the 'visible' vector set True for each trace that's part of 1 volume
+    for i in range(num_samples):
+        # Hide all traces
+        step = dict(
+            method = 'restyle',  
+            args = ['visible', [False] * num_traces],
+        )
+
+        # Enable the traces we want to see
+        for k in range(i*num_classes, (i+1)*num_classes):
+            step['args'][1][k] = True
+
+        
+        print('step',step)
+        # Add step to step list
+        steps.append(step)
+
+    return steps
+
 class RenderData(VoxelData):
 
     def __init__(self,seg_data):
         self.data = seg_data
         if np.size(np.shape(self.data)) > 3:
-            self.voxel_tot = sum(np.shape(self.data)[0:-1])  
+            self.voxel_tot = np.prod(np.shape(self.data)[0:-1])  
         else:
-            self.voxel_tot = sum(np.shape(self.data))  
+            self.voxel_tot = np.prod(np.shape(self.data))  
         self.x_length = np.size(self.data,0)
         self.y_length = np.size(self.data,1)
         self.z_length = np.size(self.data,2)
-        self.class_colors, self.num_classes = self.get_class_names()
+        # self.class_colors, self.num_classes = self.get_class_names()
 
         self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
         self.xyz = self.get_coords()
@@ -27,6 +53,7 @@ class RenderData(VoxelData):
     def get_coords(self):
         indices = np.nonzero(self.data)
         indices = np.stack((indices[0], indices[1],indices[2]))
+        print('Number of non-background pixels:', len(indices))
         return indices
 
     def has_voxel(self,neighbor_coord):
@@ -116,9 +143,10 @@ class RenderData(VoxelData):
 
     def make_edge_verts(self):
         # make only outer vertices 
+        print('Making voxel vertices')
         edge_verts = np.zeros((np.size(self.xyz, 0),1))
-        num_voxels = np.size(self.xyz, 1)
-        for voxel in range(num_voxels):
+        # num_voxels = np.size(self.xyz, 1)
+        for voxel in range(self.voxel_tot):
             cube = self.make_cube_verts(voxel)          # passing voxel num rather than 
             edge_verts = np.append(edge_verts, cube, axis=1)
         edge_verts = np.delete(edge_verts, 0,1)

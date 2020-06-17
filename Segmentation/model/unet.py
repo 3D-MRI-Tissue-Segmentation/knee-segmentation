@@ -269,35 +269,21 @@ class Nested_UNet(tf.keras.Model):
 
         block_list = []
         x = self.conv_block_lists[0][0](input, training=training)
-        block_list.append(x)
+        block_list.append([x])
         for sum_idx in range(1, len(self.conv_block_lists)):
             left_idx = sum_idx
             right_idx = 0
             layer_list = []
             while right_idx <= sum_idx:
-                print(left_idx)
-                print(right_idx)
                 if left_idx == sum_idx:
-                    print('downsampling...')
-                    if left_idx == 1 and right_idx == 0:
-                        x = self.conv_block_lists[left_idx][right_idx](self.pool(block_list[left_idx - 1]),
-                                                                       training=training)
-                    else:
-                        x = self.conv_block_lists[left_idx][right_idx](self.pool(block_list[left_idx - 1][right_idx]),
-                                                                       training=training)
+                    x = self.conv_block_lists[left_idx][right_idx](self.pool(block_list[left_idx - 1][right_idx]),
+                                                                   training=training)
                 else:
-                    print('upsampling + concatenating...')
-                    if not isinstance(block_list[left_idx], list):
-                        x = self.conv_block_lists[left_idx][right_idx](tfkl.concatenate([self.up(x),
-                                                                                        block_list[left_idx]]
-                                                                                        ),
-                                                                       training=training)
-                    else:
-                        x = self.conv_block_lists[left_idx][right_idx](tfkl.concatenate([self.up(x),
-                                                                                        block_list[left_idx][0]]
-                                                                                        ),
-                                                                       training=training)
-                print(x.get_shape())
+                    concat_list = [self.up(x)]
+                    for idx in range(1, right_idx + 1):
+                        concat_list.append(block_list[left_idx + idx - 1][-1 + idx])
+                    x = self.conv_block_lists[left_idx][right_idx](tfkl.concatenate(concat_list),
+                                                                   training=training)
                 left_idx -= 1
                 right_idx += 1
                 layer_list.append(x)
@@ -308,5 +294,83 @@ class Nested_UNet(tf.keras.Model):
             output = tfkl.Activation('sigmoid')(output)
         else:
             output = tfkl.Activation('softmax')(output)
+
+        return output
+
+class Nested_UNet_v2(tf.keras.Model):
+
+    def __init__(self,
+                 num_channels,
+                 num_classes,
+                 num_conv_layers=2,
+                 kernel_size=(3, 3),
+                 nonlinearity='relu',
+                 use_batchnorm=True,
+                 use_bias=True,
+                 data_format='channels_last',
+                 **kwargs):
+
+        super(Nested_UNet_v2, self).__init__(**kwargs)
+
+        self.num_classes = num_classes
+        self.num_channels = num_channels
+        self.num_conv_layers = num_conv_layers
+        self.kernel_size = kernel_size
+        self.nonlinearity = nonlinearity
+        self.use_batchnorm = use_batchnorm
+        self.use_bias = use_bias
+        self.data_format = data_format
+
+        self.conv_block_lists = []
+
+        for i in range(len(self.num_channels)):
+            output_ch = self.num_channels[i]
+            conv_layer_lists = []
+            num_conv_blocks = len(self.num_channels) - i
+
+            for _ in range(num_conv_blocks):
+
+                conv_layer_lists.append(Conv2D_Block(output_ch,
+                                                     self.num_conv_layers,
+                                                     self.kernel_size,
+                                                     self.nonlinearity,
+                                                     self.use_batchnorm,
+                                                     self.use_bias,
+                                                     self.data_format))
+
+            self.conv_block_lists.append(conv_layer_lists)
+
+        self.pool = tfkl.MaxPooling2D()
+        self.up = tfkl.UpSampling2D()
+
+        self.conv_1x1 = tfkl.Conv2D(self.num_classes,
+                                    (1, 1),
+                                    activation='linear',
+                                    padding='same',
+                                    data_format=data_format)
+
+    def call(self, x, training=False):
+
+        # i + j = 0
+        x0_0 = self.conv_block_lists[0][0](x, training=training)
+        # i + j = 1
+        x1_0 = self.conv_block_lists[1][0](self.pool(x0_0), training=training)
+        x0_1 = self.conv_block_lists[0][1](tfkl.concatenate([x0_0, self.up(x1_0)]), training=training)
+        # i + j = 2
+        x2_0 = self.conv_block_lists[2][0](self.pool(x1_0), training=training)
+        x1_1 = self.conv_block_lists[1][1](tfkl.concatenate([x1_0, self.up(x2_0)]), training=training)
+        x0_2 = self.conv_block_lists[0][2](tfkl.concatenate([x0_0, x0_1, self.up(x1_1)]), training=training)
+        # i + j = 3
+        x3_0 = self.conv_block_lists[3][0](self.pool(x2_0), training=training)
+        x2_1 = self.conv_block_lists[2][1](tfkl.concatenate([x2_0, self.up(x3_0)]), training=training)
+        x1_2 = self.conv_block_lists[1][2](tfkl.concatenate([x1_0, x1_1, self.up(x2_1)]), training=training)
+        x0_3 = self.conv_block_lists[0][3](tfkl.concatenate([x0_0, x0_1, x0_2, self.up(x1_2)]), training=training)
+        # i + j = 4
+        x4_0 = self.conv_block_lists[4][0](self.pool(x3_0), training=training)
+        x3_1 = self.conv_block_lists[3][1](tfkl.concatenate([x3_0, self.up(x4_0)]), training=training)
+        x2_2 = self.conv_block_lists[2][2](tfkl.concatenate([x2_0, x2_1, self.up(x3_1)]), training=training)
+        x1_3 = self.conv_block_lists[1][3](tfkl.concatenate([x1_0, x1_1, x1_2, self.up(x2_2)]), training=training)
+        x0_4 = self.conv_block_lists[0][4](tfkl.concatenate([x0_0, x0_1, x0_2, x0_3, self.up(x1_3)]), training=training)
+        output = self.conv1x1(x0_4)
 
         return output

@@ -57,6 +57,7 @@ class VoxelData():
 
     def get_class_voxels(self, seg_class):
         """ Mask over voxel data only returning voxels from that segmentation class """
+        print('Getting volume of', seg_class)
         seg_voxels =  np.where(self.data == seg_class, 1,0)
     
         return seg_voxels
