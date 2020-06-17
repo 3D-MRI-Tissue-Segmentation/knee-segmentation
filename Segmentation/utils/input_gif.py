@@ -172,7 +172,7 @@ if __name__ == '__main__':
     #     print(p)
     # print('\n\n\n\n\n')
     # create_single_input_gif(1, clean=True)
-    create_collage_input_gif(rows=3, cols=4, no_margins=True, shift_start=False)
+    create_collage_input_gif(rows=3, cols=4, no_margins=True, shift_start=True)
 
     
 
