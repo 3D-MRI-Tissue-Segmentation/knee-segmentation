@@ -30,7 +30,6 @@ def plot_and_eval_3D(trained_model,
                      weights_dir,
                      is_multi_class,
                      save_freq,
-                     tfrec_dir,
                      dataset):
 
     # load the checkpoints in the specified log directory
@@ -55,13 +54,14 @@ def plot_and_eval_3D(trained_model,
     else:
         session_name = os.path.join(weights_dir, visual_file)
 
+    # Get names within folder in gcloud
     blobs = storage_client.list_blobs(bucket_name)
     session_content = []
     tf_records_content = []
     for blob in blobs:
         if session_name in blob.name:
             session_content.append(blob.name)
-        if os.path.join(tfrec_dir, 'valid/') in blob.name:
+        if os.path.join('tfrecords', 'valid') in blob.name:
             tf_records_content.append(blob.name)
 
     session_weights = []
