@@ -354,6 +354,9 @@ def main(argv):
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
 
+        time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
+        logdir = os.path.join(logdir, time)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch',write_images=True)
         confusion_matrix(trained_model=model,
                          weights_dir=FLAGS.weights_dir,
@@ -362,8 +365,9 @@ def main(argv):
                          validation_steps=validation_steps,
                          multi_class=FLAGS.multi_class,
                          model_architecture=FLAGS.model_architecture,
-                         num_classes=num_classes,
-                         callbacks=[tb])
+                         callbacks=[tb],
+                         num_classes=num_classes
+                         )
 
 if __name__ == '__main__':
     app.run(main)

@@ -256,8 +256,9 @@ def confusion_matrix(trained_model,
                      validation_steps,
                      multi_class,
                      model_architecture,
-                     num_classes=7,
-                     callbacks):
+                     callbacks,
+                     num_classes=7
+                     ):
 
     trained_model.load_weights(weights_dir).expect_partial()
     trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
