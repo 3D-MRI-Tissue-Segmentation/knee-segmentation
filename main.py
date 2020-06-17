@@ -451,8 +451,9 @@ def main(argv):
                          validation_steps=validation_steps,
                          multi_class=FLAGS.multi_class,
                          model_architecture=FLAGS.model_architecture,
-                         num_classes=num_classes,
-                         callbacks=[tb])
+                         callbacks=[tb],
+                         num_classes=num_classes
+                         )
 
 if __name__ == '__main__':
     app.run(main)
