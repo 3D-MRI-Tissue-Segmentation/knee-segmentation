@@ -4,6 +4,7 @@ from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.augmentation import crop_3d, crop_3d_pad_slice
 from Segmentation.utils.losses import dice_loss
 from Segmentation.train.reshape import get_mid_vol, get_mid_slice
+from Segmentation.plotting.voxels import plot_through_slices
 import os
 from time import time
 import datetime
@@ -95,10 +96,7 @@ def validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_d
     valid_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'), batch_size=val_batch_size, buffer_size=buffer_size, 
                                 is_training=False, use_keras_fit=False, multi_class=multi_class)
 
-    now = datetime.datetime.now().strftime("/%H%M%S")
-
-    vol_writer = tf.summary.create_file_writer(log_dir_now + '/whole_val/img/vol' + now)
-    slice_writer = tf.summary.create_file_writer(log_dir_now + '/whole_val/img/slice' + now)
+    now = datetime.datetime.now().strftime("/%Y%m%d/%H%M%S")
 
     if predict_slice:
         vad_padding, val_coord = get_slice_paddings(crop_size, depth_crop_size)
@@ -108,135 +106,81 @@ def validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_d
     for idx,ds in enumerate(valid_ds):
         t0 = time()
         x, y = ds
+
         centre = [int(y.shape[1]/2), int(y.shape[2]/2), int(y.shape[3]/2)]
-        y_crop = tf.cast(crop_3d(y, 144, 80, centre, False), tf.float32)
         x_crop = tf.cast(crop_3d(x, 144, 80, centre, False), tf.float32)
+        y_crop = tf.cast(crop_3d(y, 144, 80, centre, False), tf.float32)
+
         mean_pred = np.zeros(tf.shape(y_crop))
         counter = np.zeros(tf.shape(y_crop))
-        for pad, centre in zip(vad_padding, val_coord):
+
+        for pad, iter_centre in zip(vad_padding, val_coord):
             pad_copy = copy.deepcopy(pad)
-            centre_copy = copy.deepcopy(centre)
+            iter_centre_c = copy.deepcopy(iter_centre)
             if predict_slice:
-                x_ = x.numpy()
+                x_ = x_crop.numpy()
                 if pad_copy[1][0] < 0:
                     ## need to pad before
                     pad_by = pad_copy[1][0] * -1
-                    centre_copy[0] += pad_by
+                    iter_centre_c[0] += pad_by
                     x_[:, pad_by:, :, :, :] = x_[:, :-pad_by, :, :, :]
                     for i in range(pad_by):
-                        x_[:, i, :, :, :] = x_[:, centre_copy[0], :, :, :]
+                        x_[:, i, :, :, :] = x_[:, iter_centre_c[0], :, :, :]
                     pad_copy[1][0] = 0
                     pad_copy[1][1] = pad_copy[1][1] - pad_by
                 elif pad_copy[1][1] < 0:
                     ## pad after
                     pad_by = pad_copy[1][1] * -1
-                    centre_copy[0] -= pad_by
+                    iter_centre_c[0] -= pad_by
                     x_[:, :pad_by, :, :, :] = x_[:, -pad_by:, :, :, :]
                     for i in range(pad_by):
-                        x_[:, -i, :, :, :] = x_[:, centre_copy[0], :, :, :]
+                        x_[:, -i, :, :, :] = x_[:, iter_centre_c[0], :, :, :]
                     pad_copy[1][1] = 0
                     pad_copy[1][0] = pad_copy[1][0] - pad_by
                 pad_copy[1][0] += depth_crop_size
                 pad_copy[1][1] += depth_crop_size
-                x_model_crop = crop_3d_pad_slice(x_, crop_size, depth_crop_size, centre_copy)
+                x_model_crop = crop_3d_pad_slice(x_, crop_size, depth_crop_size, iter_centre_c)
                 del x_
             else:
-                x_model_crop = crop_3d(x, crop_size, depth_crop_size, centre_copy, False)
-                y_model_crop = crop_3d(y, crop_size, depth_crop_size, centre_copy, False)
+                x_model_crop = crop_3d(x_crop, crop_size, depth_crop_size, iter_centre_c, False)
+                y_model_crop = crop_3d(y_crop, crop_size, depth_crop_size, iter_centre_c, False)
+
             pred = model.predict(x_model_crop)
-            # pred = tf.math.round(pred)
 
-            img = get_mid_slice(x_model_crop, y_model_crop, pred, multi_class)
-            with slice_writer.as_default():
-                tf.summary.image("Whole Validation - Slice mid", img, step=idx)
-
-
-            # del x_model_crop
+            del x_model_crop
             output_shape = pred.shape
             pred = np.pad(pred, pad_copy, "constant")
 
-            x_pad = np.pad(x_model_crop, pad_copy, "constant")
-            y_pad = np.pad(y_model_crop, pad_copy, "constant")
-
-            img = get_mid_slice(x_pad, y_pad, pred, multi_class)
-            with slice_writer.as_default():
-                tf.summary.image("Whole Validation - Slice pad", img, step=idx)
-
-            print("=====================================================")
-            print("PRED DIMENSIION", pred.shape, mean_pred.shape)
-
             mean_pred += pred
-            # del pred
+            del pred
             count = np.ones(output_shape)
             count = np.pad(count, pad_copy, "constant")
             counter += count
             del count
 
-            img = get_mid_slice(tf.cast(x_crop, tf.float32),
-                                tf.cast(y_crop, tf.float32),
-                                tf.cast(mean_pred, tf.float32),
-                                multi_class)
-            with slice_writer.as_default():
-                tf.summary.image("Whole Validation - Slice pad mean", img, step=idx)
-
-
-
-            ## checking to see by slices
-
-
-
-
-
         mean_pred = np.divide(mean_pred, counter, dtype=np.float32)
         del counter
         loss = dice_loss(y_crop, mean_pred)
         p_loss = dice_loss(y_crop, y_crop)
-        
-        print("LOSS:", loss)
-        print("P_LOSS:", p_loss)
 
         total_loss += loss
         total_count += 1
         print(f"Validating for: {idx} - {time() - t0:.0f} s")
-        # if idx == 0:
-        print("shape:", mean_pred.shape)
-        print("Shapes", x.shape, y_crop.shape, mean_pred.shape)
         
-        centre = [int(x.shape[1]/2), int(x.shape[2]/2), int(x.shape[3]/2)]
-        
+        vol_writer = tf.summary.create_file_writer(log_dir_now + '/whole_val/img/vol' + now + f'/{idx}')
+        slice_writer = tf.summary.create_file_writer(log_dir_now + '/whole_val/img/slice' + now + f'/{idx}')
+        slices_writer = tf.summary.create_file_writer(log_dir_now + '/whole_val/img/all_slices' + now + f'/{idx}')
 
-        print("Shapes", x.shape, x_crop.shape, y_crop.shape, mean_pred.shape)
+        plot_through_slices(0, x_crop, y_crop, mean_pred, slices_writer)
 
-        # img = get_mid_slice(x_crop, y_crop, mean_pred, multi_class)
-        # del x_crop
-        # with slice_writer.as_default():
-        #     tf.summary.image("Whole Validation - Slice", img, step=idx)
+        img = get_mid_slice(x_crop, y_crop, mean_pred, multi_class)
+        del x_crop
+        with slice_writer.as_default():
+            tf.summary.image("Whole Validation - Slice", img, step=idx)
 
         img = get_mid_vol(y_crop, mean_pred, multi_class)
         with vol_writer.as_default():
             tf.summary.image("Whole Validation - Vol", img, step=idx)
-        
-        for i in range(160):
-            print("i:", i)
-            x_slice = tf.slice(x_crop, [0, i, 0, 0, 0], [1, 1, -1, -1, -1])
-            y_slice = tf.slice(y_crop, [0, i, 0, 0, 0], [1, 1, -1, -1, -1])
-            m_slice = tf.slice(mean_pred, [0, i, 0, 0, 0], [1, 1, -1, -1, -1])
-            m_slice = tf.math.round(m_slice)
-
-            z_slice = np.zeros(m_slice.shape, dtype=np.float32)
-            o_slice = np.ones(m_slice.shape, dtype=np.float32)
-
-            print("loss perf", dice_loss(y_slice, y_slice))
-            print("loss pred", dice_loss(y_slice, m_slice))
-            print("loss zero", dice_loss(y_slice, z_slice))
-            print("loss ones", dice_loss(y_slice, o_slice))
-
-            img = tf.concat((x_slice, y_slice, m_slice, z_slice, o_slice), axis=-2)
-            img = tf.reshape(img, (img.shape[1:]))
-            with slice_writer.as_default():
-                tf.summary.image("Whole Validation - Slice", img, step=i)
-        break
-        
 
     total_loss /= total_count
     print("Dice Validation Loss:", total_loss)

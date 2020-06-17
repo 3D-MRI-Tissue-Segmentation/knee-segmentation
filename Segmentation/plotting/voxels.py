@@ -37,3 +37,15 @@ def plot_to_image(figure):
     # Add the batch dimension
     image = tf.expand_dims(image, 0)
     return image
+
+def plot_through_slices(batch_idx, x_crop, y_crop, mean_pred, writer):
+    for i in range(160):
+        x_slice = tf.slice(x_crop, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
+        y_slice = tf.slice(y_crop, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
+        m_slice = tf.slice(mean_pred, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
+        m_slice = tf.math.round(m_slice)
+
+        img = tf.concat((x_slice, y_slice, m_slice), axis=-2)
+        img = tf.reshape(img, (img.shape[1:]))
+        with writer.as_default():
+            tf.summary.image(f"Whole Validation - All Slices", img, step=i)

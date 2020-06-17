@@ -240,6 +240,38 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
     return dataset
 
+# def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_size=None, depth_crop_size=80, aug=[], predict_slice=False, **kwargs):
+#     dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
+    
+#     if "resize" in aug:
+#         assert "shift" in aug, "Need to use shift if using resize"
+
+#     if is_training:
+#         if crop_size is not None:
+#             if (crop_size > 172) or (depth_crop_size > 70):
+#                 assert not ("shift" in aug), "Can't apply shift augmentation with crop_size > 172 or depth_crop_size > 70."
+#             resize = "resize" in aug
+#             random_shift = "shift" in aug
+#             parse_crop = partial(apply_valid_random_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size, resize=resize, random_shift=random_shift, output_slice=predict_slice)
+#             dataset = dataset.map(map_func=parse_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+#         if "bright" in aug:
+#             dataset = dataset.map(apply_random_brightness_3d)
+#         if "contrast" in aug:
+#             dataset = dataset.map(apply_random_contrast_3d)
+#         if "gamma" in aug:
+#             dataset = dataset.map(apply_random_gamma_3d)
+#         if "flip" in aug:
+#             dataset = dataset.map(apply_flip_3d)
+#         if "rotate" in aug:
+#             dataset = dataset.map(apply_rotate_3d)
+#     else:
+#         if crop_size is not None:
+#             parse_crop = partial(apply_centre_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size, output_slice=predict_slice)
+#             dataset = dataset.map(map_func=parse_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+#     if "normalise" in aug:
+#         dataset = dataset.map(normalise)
+#     return dataset
+
 def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_size=None, depth_crop_size=80, aug=[], predict_slice=False, **kwargs):
     dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
     if crop_size is not None:

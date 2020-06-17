@@ -40,9 +40,6 @@ def get_mid_slice(x, y, pred, multi_class):
     else:
         pred_slice = tf.math.round(pred_slice)
     
-    
-    print("PRED pred_slice", tf.shape(pred_slice))
-    
     img_pad = tf.ones((pred_slice.shape[0], pred_slice.shape[1], pred_slice.shape[2], 3, pred_slice.shape[4]))
     img = tf.concat((x_slice, img_pad, y_slice, img_pad, pred_slice), axis=-2)
 
