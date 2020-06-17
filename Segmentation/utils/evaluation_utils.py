@@ -74,13 +74,15 @@ def plot_and_eval_3D(trained_model,
     print("--")
 
     # Only use shard of dataset
+    idx_vol= 0 # how many numpies have been save
     target = 160
     tot_samples = len(tf_records_content) * target
     print('tot_samples',tot_samples)
     dataset_shard = dataset.shard(num_shards=tot_samples, index=0) 
-
+    
     for i, chkpt in enumerate(session_weights):
         should_save_np = np.mod(i, save_freq) == 0
+        is_volume_complete = False
         print('should_save_np',should_save_np)
         print('checkpoint enum i',i)
         print('save_freq set to ',save_freq)
@@ -111,7 +113,6 @@ def plot_and_eval_3D(trained_model,
         sample_pred = []  # prediction for current 160,288,288 vol
         sample_y = []    # y for current 160,288,288 vol
 
-        idx_vol= 0 # how many numpies have been save
 
         for idx, ds in enumerate(dataset_shard):
 
@@ -137,6 +138,7 @@ def plot_and_eval_3D(trained_model,
                 sample_y.append(y)
                 del y
             else:
+                is_volume_complete = True
                 remaining = target - get_depth(sample_pred)
                 sample_pred.append(pred[:remaining])
                 sample_y.append(y[:remaining])
@@ -259,6 +261,9 @@ def plot_and_eval_3D(trained_model,
                 idx_vol += 1
                 del pred_vol
                 del y_vol
+
+                if is_volume_complete:
+                    break
 
 
                 
