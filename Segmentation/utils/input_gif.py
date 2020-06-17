@@ -98,6 +98,8 @@ def create_collage_input_gif(volume_numbers):
                 im = axes[r,c].imshow(x[i,:,:], cmap='gray', animated=True, aspect='auto')
                 axes[r,c].axis('off')
                 gif_frames[i].append(im)
+                
+            c = c+1
 
         else:
             break

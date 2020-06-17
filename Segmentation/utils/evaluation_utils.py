@@ -225,13 +225,14 @@ def pred_evolution_gif(fig,
         gif = ArtistAnimation(fig, frames_list, interval, repeat=True) # create gif
 
         if save:
-            plt.tight_layout()
-            plt.gca().set_axis_off()
-            plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, 
-                                hspace = 0, wspace = 0)
-            plt.margins(0,0)
-            plt.gca().xaxis.set_major_locator(plt.NullLocator())
-            plt.gca().yaxis.set_major_locator(plt.NullLocator())
+            # plt.tight_layout()
+            # plt.gca().set_axis_off()
+            # plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, 
+            #                     hspace = 0, wspace = 0)
+            # plt.margins(0,0)
+            # plt.gca().xaxis.set_major_locator(plt.NullLocator())
+            # plt.gca().yaxis.set_major_locator(plt.NullLocator())
+
             if save_dir == '':
                 time = datetime.now().strftime("%Y%m%d-%H%M%S")
                 save_dir = 'results/gif'+ time + '.gif'
