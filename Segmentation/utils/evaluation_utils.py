@@ -263,6 +263,13 @@ def confusion_matrix(trained_model,
     trained_model.load_weights(weights_dir).expect_partial()
     trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
 
+    f = weights_dir.split('/')[:-1]
+    writer_dir = ''
+    for n in f:
+        writer_dir = os.path.join(f, n)
+    writer_dir = os.path.join(writer_dir, 'eval')
+    eval_metric_writer = tf.summary.create_file_writer(writer_dir)
+
     if multi_class:
         cm = np.zeros((num_classes, num_classes))
         classes = ["Background",
@@ -282,13 +289,19 @@ def confusion_matrix(trained_model,
         pred = trained_model.predict(image)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
-        # if multi_class:
-        #     iou = iou_loss_eval(image, pred)
-        #     dice = dice_coef_eval
-        # else:
-        #     iou = iou_loss(image, pred)
+        if multi_class:
+            iou = iou_loss_eval(label, pred)
+            dice = dice_coef_eval(label, pred)
+        else:
+            iou = iou_loss(label, pred)
+            dice = dice_coef(label, pred)
+
+        with eval_metric_writer.as_default():
+            tf.summary.scalar('iou validation', iou, step=step)
+            tf.summary.scalar('dice validation', dice, step=step)
+        
+
             
-        # # miou = 
 
         if step > validation_steps - 1:
             break
