@@ -70,7 +70,7 @@ def create_collage_input_gif(volume_numbers):
                             use_bfloat16=False,
                             use_RGB=False)
 
-    subplot_dimension = volume_numbers**0.5
+    subplot_dimension = int(volume_numbers**0.5)
     fig, axes = plt.subplots(subplot_dimension, subplot_dimension)
     fig.set_facecolor('black')
     gif_frames = [[] for _ in range(160)]
