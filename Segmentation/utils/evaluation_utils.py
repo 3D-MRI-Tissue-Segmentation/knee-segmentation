@@ -267,7 +267,7 @@ def plot_and_eval_3D(trained_model,
 
 
             
-        break
+        
     print('session_weights', session_weights)
 
 def pred_evolution_gif(frames_list,
