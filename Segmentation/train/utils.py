@@ -1,6 +1,5 @@
 import tensorflow as tf
 from glob import glob
-import itertools
 import math
 
 
@@ -41,84 +40,6 @@ class LearningRateUpdate:
             return self.min_lr
         else:
             return new_lr
-
-
-def get_validation_stride_coords(pad, full_shape, iterator, strides_required):
-    coords = [pad]
-    last_coord = full_shape - pad
-    if not iterator == None: # for when more strides than just corners is required.
-        for stride in range(strides_required):
-            new_coord = coords[-1] + iterator # is not garanteed to be whole number
-            coords.append(new_coord) # adds to coords, we will round at the end
-    if (last_coord != coords[0]) and (last_coord != coords[-1]):
-        coords.append(last_coord)
-    for idx, i in enumerate(coords):
-        coords[idx] = int(round(i, 0))
-        if idx > 0:
-            assert coords[idx] <= (coords[idx-1] + (pad * 2)), f"Missing points since: {coords[idx]} > {coords[idx-1] + (pad * 2)}"
-    return coords
-
-
-def get_val_coords(model_dim, full_dim, slice_output=False, iterator_increase=0):
-    if slice_output:
-        coords = list(range(full_dim))
-    else:
-        pad = model_dim / 2
-        working = full_dim - model_dim
-        strides_required = math.ceil(working / model_dim) + iterator_increase
-        iterator = None if strides_required == 0 else (working / strides_required)
-        coords = get_validation_stride_coords(pad, full_dim, iterator, strides_required)
-    return coords
-
-
-def get_validation_spots(crop_size, depth_crop_size, full_shape=(160, 288, 288), slice_output=False, iterator_increase=0):
-    model_shape = (depth_crop_size * 2, crop_size * 2, crop_size * 2)
-
-    depth_coords = get_val_coords(model_shape[0], full_shape[0], slice_output, iterator_increase=iterator_increase)
-    height_coords = get_val_coords(model_shape[1], full_shape[1], iterator_increase=iterator_increase)
-    width_coords = get_val_coords(model_shape[2], full_shape[2], iterator_increase=iterator_increase)
-
-    coords = [depth_coords, height_coords, width_coords]
-    coords = list(itertools.product(*coords))
-    coords = [list(ele) for ele in coords]
-    return coords
-
-
-def get_paddings(crop_size, depth_crop_size, full_shape=(160,288,288), iterator_increase=1):
-    coords = get_validation_spots(crop_size, depth_crop_size, full_shape, iterator_increase=iterator_increase)
-    paddings = []
-    for i in coords:
-        depth = [i[0] - depth_crop_size, full_shape[0] - (i[0] + depth_crop_size)]
-        height = [i[1] - crop_size, full_shape[1] - (i[1] + crop_size)]
-        width = [i[2] - crop_size, full_shape[2] - (i[2] + crop_size)]
-
-        assert depth[0] + depth[1] + (depth_crop_size * 2) == full_shape[0]
-        assert height[0] + height[1] + (crop_size * 2) == full_shape[1]
-        assert width[0] + width[1] + (crop_size * 2) == full_shape[2]
-
-        padding = [[0, 0], depth, height, width, [0, 0]]
-        paddings.append(padding)
-    return paddings, coords
-
-
-def get_slice_paddings(crop_size, depth_crop_size, full_shape=(160,288,288), slice_output=True):
-    coords = get_validation_spots(crop_size, depth_crop_size, full_shape, slice_output)
-    paddings = []
-    for i in coords:
-        depth_lower = i[0] - depth_crop_size
-        depth_upper = full_shape[0] - (i[0] + 1 + depth_crop_size)
-        
-        depth = [depth_lower, depth_upper]
-        height = [i[1] - crop_size, full_shape[1] - (i[1] + crop_size)]
-        width = [i[2] - crop_size, full_shape[2] - (i[2] + crop_size)]
-
-        assert depth[0] + depth[1] + (depth_crop_size * 2) + 1 == full_shape[0]
-        assert height[0] + height[1] + (crop_size * 2) == full_shape[1]
-        assert width[0] + width[1] + (crop_size * 2) == full_shape[2]
-
-        padding = [[0, 0], depth, height, width, [0, 0]]
-        paddings.append(padding)
-    return paddings, coords
 
 
 class Metric():

@@ -7,20 +7,11 @@ import numpy as np
 from time import time
 
 from Segmentation.train.utils import setup_gpu, LearningRateUpdate, Metric
+from Segmentation.train.reshape import get_mid_slice, get_mid_vol
 from Segmentation.train.validation import validate_best_model
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.losses import dice_loss, tversky_loss, iou_loss, iou_loss_eval_3d, dice_coef_eval_3d
-from Segmentation.plotting.voxels import plot_volume, plot_slice, plot_to_image
 from Segmentation.model.vnet import VNet
-
-colour_maps = {
-    1: [tf.constant([1, 1, 1], dtype=tf.float32), tf.constant([[[[255, 255, 0]]]], dtype=tf.float32)],  # background / black
-    2: [tf.constant([2, 2, 2], dtype=tf.float32), tf.constant([[[[0, 255, 255]]]], dtype=tf.float32)],
-    3: [tf.constant([3, 3, 3], dtype=tf.float32), tf.constant([[[[255, 0, 255]]]], dtype=tf.float32)],
-    4: [tf.constant([4, 4, 4], dtype=tf.float32), tf.constant([[[[255, 255, 255]]]], dtype=tf.float32)],
-    5: [tf.constant([5, 5, 5], dtype=tf.float32), tf.constant([[[[120, 120, 120]]]], dtype=tf.float32)],
-    6: [tf.constant([6, 6, 6], dtype=tf.float32), tf.constant([[[[255, 165, 0]]]], dtype=tf.float32)],
-}
 
 
 class Train:
@@ -64,66 +55,6 @@ class Train:
         """ Trains 3D model with custom tf loop and MirrorStrategy
         """
         vol_visual_freq = 5
-
-        def replace_vector(img, search, replace):
-            condition = tf.equal(img, search)
-            condition = tf.reduce_all(condition, axis=-1)
-            condition = tf.stack((condition,) * img.shape[-1], axis=-1)
-            replace_tiled = tf.tile(replace, img.shape[:-1])
-            replace_tiled = tf.reshape(replace_tiled, img.shape)
-            return tf.where(condition, replace_tiled, img)
-
-        def get_mid_slice(x, y, pred, multi_class):
-            mid = tf.cast(tf.divide(tf.shape(y)[1], 2), tf.int32)
-            x_slice = tf.slice(x, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
-            y_slice = tf.slice(y, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
-            pred_slice = tf.slice(pred, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
-            if multi_class:
-                x_slice = tf.squeeze(x_slice, axis=-1)
-                x_slice = tf.stack((x_slice,) * 3, axis=-1)
-                y_slice = tf.argmax(y_slice, axis=-1)
-                y_slice = tf.stack((y_slice,) * 3, axis=-1)
-                y_slice = tf.cast(y_slice, tf.float32)
-                pred_slice = tf.argmax(pred_slice, axis=-1)
-                pred_slice = tf.stack((pred_slice,) * 3, axis=-1)
-                pred_slice = tf.cast(pred_slice, tf.float32)
-                for c in colour_maps:
-                    y_slice = replace_vector(y_slice, colour_maps[c][0], colour_maps[c][1])
-                    pred_slice = replace_vector(pred_slice, colour_maps[c][0], colour_maps[c][1])
-            else:
-                pred_slice = tf.math.round(pred_slice)
-            img = tf.concat((x_slice, y_slice, pred_slice), axis=-2)
-            return tf.reshape(img, (img.shape[1:]))
-
-        def get_mid_vol(y, pred, multi_class, rad=8):
-            y_shape = tf.shape(y)
-            y_subvol = tf.slice(y, [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0], [1, rad * 2, rad * 2, rad * 2, -1])
-            if multi_class:
-                y_subvol = tf.argmax(y_subvol, axis=-1)
-                y_subvol = tf.cast(y_subvol, tf.float32)
-            else:
-                y_subvol = tf.reshape(y_subvol, (y_subvol.shape[1:4]))
-            y_subvol = tf.stack((y_subvol,) * 3, axis=-1)
-            pred_subvol = tf.slice(pred, [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0], [1, rad * 2, rad * 2, rad * 2, -1])
-            if multi_class:
-                pred_subvol = tf.argmax(pred_subvol, axis=-1)
-                pred_subvol = tf.cast(pred_subvol, tf.float32)
-            else:
-                pred_subvol = tf.math.round(pred_subvol)  # new
-                pred_subvol = tf.reshape(pred_subvol, (pred_subvol.shape[1:4]))
-            pred_subvol = tf.stack((pred_subvol,) * 3, axis=-1)
-            if multi_class:
-                for c in colour_maps:
-                    y_subvol = replace_vector(y_subvol, colour_maps[c][0], tf.divide(colour_maps[c][1], 255))
-                    pred_subvol = replace_vector(pred_subvol, colour_maps[c][0], tf.divide(colour_maps[c][1], 255))
-                y_subvol = tf.squeeze(y_subvol, axis=0)
-                pred_subvol = tf.squeeze(pred_subvol, axis=0)
-            fig = plot_volume(y_subvol, show=False)
-            y_img = plot_to_image(fig)
-            fig = plot_volume(pred_subvol, show=False)
-            pred_img = plot_to_image(fig)
-            img = tf.concat((y_img, pred_img), axis=-2)
-            return img
 
         def run_train_strategy(x, y, visualise):
             total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise, ))
@@ -264,6 +195,7 @@ def build_model(num_channels, num_classes, **kwargs):
 
 
 def main(epochs,
+         log_dir_now=None,
          batch_size=2,
          val_batch_size=2,
          lr=1e-4,
@@ -337,7 +269,8 @@ def main(epochs,
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
 
-        log_dir_now = trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
+        if log_dir_now is None:
+            log_dir_now = trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
 
         # for ds in valid_ds:
         #     x, y = ds
@@ -350,8 +283,8 @@ def main(epochs,
     with strategy.scope():
         model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
         model.load_weights(os.path.join(log_dir_now + f'/best_weights.tf')).expect_partial()
-    
-    total_loss = validate_best_model(model, val_batch_size, buffer_size, tfrec_dir, multi_class,
+    print("Validation for:", log_dir_now)
+    total_loss = validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_dir, multi_class,
                                      crop_size, depth_crop_size, predict_slice)
     print(f"Train Time: {train_time:.02f}")
     print(f"Validation Time: {time() - t1:.02f}")                 
@@ -368,69 +301,69 @@ if __name__ == "__main__":
     with open("results/3d_result.txt","a") as f:
         f.write(f'========================================== \n')
 
-    debug = True
-    es = 1
+    debug = False
+    es = 10
     
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    main(epochs=es, log_dir_now='logs/vnet/test/binary/20200617/031207', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
          num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
          aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['shift', 'flip', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
+    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['shift', 'flip', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['shift', 'flip'], use_transpose=False, debug=debug, tpu=use_tpu)
+    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['shift', 'flip'], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['shift'], use_transpose=False, debug=debug, tpu=use_tpu)
+    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['shift'], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-         aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    #=====================
-
-    main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-         aug=['shift'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-         aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
+    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
 
     #=====================
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
+    # main(epochs=es, lr=1e-6, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
+    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=128, depth_crop_size=3, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
+    # main(epochs=es, lr=1e-6, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
+    #      aug=['shift'], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=128, depth_crop_size=1, num_channels=32, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 7, 7),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
+    # main(epochs=es, lr=1e-6, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
+    #      aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=128, depth_crop_size=1, num_channels=8, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, val_batch_size=4, multi_class=True, kernel_size=(3, 7, 7),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
+    #=====================
+
+    # main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
+
+    # main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=128, depth_crop_size=3, num_channels=16, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
+
+    # main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=128, depth_crop_size=1, num_channels=32, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 7, 7),
+    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
+
+    # main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    #      crop_size=128, depth_crop_size=1, num_channels=8, lr_drop_freq=10,
+    #      num_conv_layers=3, batch_size=4, val_batch_size=4, multi_class=True, kernel_size=(3, 7, 7),
+    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
