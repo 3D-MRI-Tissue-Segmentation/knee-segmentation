@@ -263,11 +263,14 @@ def confusion_matrix(trained_model,
     trained_model.load_weights(weights_dir).expect_partial()
     trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
 
-    f = weights_dir.split('/')[:-1]
-    writer_dir = ''
-    for n in f:
-        writer_dir = os.path.join(writer_dir, n)
-    writer_dir = os.path.join(writer_dir, 'eval')
+    now = datetime.datetime.now().strftime("/%Y%m%d/%H%M%S")
+    writer_dir = os.path.join('.', 'tb_checkpoints', 'eval', now)
+    # :'(
+    # f = weights_dir.split('/')[:-1]
+    # writer_dir = ''
+    # for n in f:
+    #     writer_dir = os.path.join(writer_dir, n)
+    # writer_dir = os.path.join(writer_dir, 'eval')
     eval_metric_writer = tf.summary.create_file_writer(writer_dir)
 
     if multi_class:
