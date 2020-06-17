@@ -26,12 +26,12 @@ def create_single_input_gif(which_volume,
                             use_RGB=False)
 
     for idx, data in enumerate(valid_ds):
-        if idx == which_volume:
+        if idx+1 == which_volume:
             x, _ = data
             x = np.array(x)
 
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            print(f"\t\tCollected data for volume {idx}")
+            print(f"\t\tCollected data for volume {idx+1}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
             print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
@@ -77,7 +77,7 @@ def create_collage_input_gif(volume_numbers):
     r, c = 0, 0
 
     for idx, data in enumerate(valid_ds):
-        if idx <= volume_numbers:
+        if idx+1 <= volume_numbers:
             if c == (subplot_dimension + 1):
                 c = 0
                 r = r+1
@@ -85,7 +85,7 @@ def create_collage_input_gif(volume_numbers):
             x = np.array(x)
 
             print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            print(f"\t\tCollected data for volume {idx}")
+            print(f"\t\tCollected data for volume {idx+1}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
             print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
@@ -94,7 +94,7 @@ def create_collage_input_gif(volume_numbers):
             print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
             for i in range(x.shape[0]):
-                print(f"Analysing slice {i+1} of Volume {idx}")
+                print(f"Analysing slice {i+1} of Volume {idx+1}")
                 im = axes[r,c].imshow(x[i,:,:], cmap='gray', animated=True, aspect='auto')
                 axes[r,c].axis('off')
                 gif_frames[i].append(im)
