@@ -74,7 +74,8 @@ def plot_and_eval_3D(trained_model,
     print("--")
 
     # Only use shard of dataset
-    tot_samples = len(tf_records_content)
+    target = 160
+    tot_samples = len(tf_records_content) * target
     print('tot_samples',tot_samples)
     print('num_elements = tf.data.experimental.cardinality(dataset).numpy()',tf.data.experimental.cardinality(dataset).numpy())
     dataset_shard = dataset.shard(num_shards=tot_samples, index=0) 
@@ -112,7 +113,6 @@ def plot_and_eval_3D(trained_model,
         sample_y = []    # y for current 160,288,288 vol
 
         idx_vol= 0 # how many numpies have been save
-        target = 160
 
         for idx, ds in enumerate(dataset_shard):
 
@@ -239,8 +239,8 @@ def plot_and_eval_3D(trained_model,
 
                 # Save volume as numpy file for plotlyyy
                 fig_dir = "results"
-                name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name + str(idx_vol).zfill(3)))
-                name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + name + str(idx_vol).zfill(3)))
+                name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name + "_" str(idx_vol).zfill(3)))
+                name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + name + "_" str(idx_vol).zfill(3)))
                 print("npy save pred as ", name_pred_npy)
                 print("npy save y as ", name_y_npy)
 
