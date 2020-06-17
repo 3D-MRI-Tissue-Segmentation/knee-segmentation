@@ -78,7 +78,7 @@ def create_collage_input_gif(volume_numbers):
 
     for idx, data in enumerate(valid_ds):
         if idx+1 <= volume_numbers:
-            if c == (subplot_dimension + 1):
+            if c == subplot_dimension:
                 c = 0
                 r = r+1
             x, _ = data
@@ -98,7 +98,7 @@ def create_collage_input_gif(volume_numbers):
                 im = axes[r,c].imshow(x[i,:,:], cmap='gray', animated=True, aspect='auto')
                 axes[r,c].axis('off')
                 gif_frames[i].append(im)
-                
+
             c = c+1
 
         else:
