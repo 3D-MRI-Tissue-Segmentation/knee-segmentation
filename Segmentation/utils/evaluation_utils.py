@@ -263,7 +263,7 @@ def confusion_matrix(trained_model,
     trained_model.load_weights(weights_dir).expect_partial()
     trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
 
-    now = datetime.datetime.now().strftime("/%Y%m%d/%H%M%S")
+    now = datetime.now().strftime("/%Y%m%d/%H%M%S")
     writer_dir = os.path.join('.', 'tb_checkpoints', 'eval', now)
     # :'(
     # f = weights_dir.split('/')[:-1]
