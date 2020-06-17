@@ -61,7 +61,7 @@ def plot_and_eval_3D(trained_model,
     for blob in blobs:
         if session_name in blob.name:
             session_content.append(blob.name)
-        if os.path.join('tfrecords', 'valid') in blob.name:
+        if os.path.join('tfrecords', 'valid/') in blob.name:
             tf_records_content.append(blob.name)
 
     session_weights = []
