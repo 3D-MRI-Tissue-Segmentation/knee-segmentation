@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.animation import ArtistAnimation
-import os.path
 
 import glob
 from google.cloud import storage
@@ -14,7 +13,8 @@ from datetime import datetime
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
 from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
-from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
+from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix, iou_loss_eval, dice_coef_eval
+from Segmentation.utils.losses import dice_coef, iou_loss
 
 def get_depth(conc):
     depth = 0
@@ -22,25 +22,27 @@ def get_depth(conc):
         depth += batch.shape[0]
     return depth
 
-def plot_and_eval_3D(trained_model,
+def plot_and_eval_3D(model,
                      logdir,
                      visual_file,
                      tpu_name,
                      bucket_name,
                      weights_dir,
                      is_multi_class,
-                     dataset):
+                     dataset,
+                     model_args,
+                     which_slice,
+                     epoch_limit=1000,
+                     gif_dir='',
+                     gif_cmap='gray'):
 
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
     train_hist_dir = os.path.join(train_hist_dir, visual_file)
-    checkpoints = Path(train_hist_dir).glob('*')
 
     """ Add the visualisation code here """
-    print("Training history directory: {}".format(train_hist_dir))
+    print("\n\nTraining history directory: {}".format(train_hist_dir))
     print("+========================================================")
-    print(f"Does the selected path exist: {Path(train_hist_dir).is_dir()}")
-    print(f"The glob object is: {checkpoints}")
     print("\n\nThe directories are:")
 
     storage_client = storage.Client()
@@ -58,190 +60,194 @@ def plot_and_eval_3D(trained_model,
             session_weights.append(item)
 
     for s in session_weights:
-        print(s)
+        print(s) #print all the checkpoint directories
     print("--")
+
+    #figure for gif
+    fig, ax = plt.subplots()
+    images_gif = []
 
     for chkpt in session_weights:
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
-        trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                          weights_dir,
-                                                          tpu_name,
-                                                          visual_file,
-                                                          name)).expect_partial()
 
-        pred_vols = []
-        y_vols = []
+        if int(name.split('.')[1]) <= epoch_limit:
 
-        sample_x = []    # x for current 160,288,288 vol
-        sample_pred = []  # prediction for current 160,288,288 vol
-        sample_y = []    # y for current 160,288,288 vol
+            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+            print(f"\t\t  {name}")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
-        for idx, ds in enumerate(dataset):
-            print(f"the index is {idx}")
-            x, y = ds
-            batch_size = x.shape[0]
-            target = 160
-            print("Current batch size set to {}. Target depth is {}".format(batch_size, target))
+            # del trained_model
+            trained_model = model(*model_args)
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                              weights_dir,
+                                                              tpu_name,
+                                                              visual_file,
+                                                              name)).expect_partial()
 
-            x = np.array(x)
-            y = np.array(y)
+            pred_vols = []
+            y_vols = []
 
-            pred = trained_model.predict(x)
-            print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
-            print('Ground truth data type: {}, shape: {}'.format(type(y), y.shape))
-            print('Prediction data type: {}, shape: {}'.format(type(pred), pred.shape))
-            print("=================")
+            sample_x = []    # x for current 160,288,288 vol
+            sample_pred = []  # prediction for current 160,288,288 vol
+            sample_y = []    # y for current 160,288,288 vol
 
-            if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
-                sample_pred.append(pred)
-                sample_y.append(y)
-            else:
-                remaining = target - get_depth(sample_pred)
-                sample_pred.append(pred[:remaining])
-                sample_y.append(y[:remaining])
-                pred_vol = np.concatenate(sample_pred)
-                y_vol = np.concatenate(sample_pred)
-                sample_pred = [pred[remaining:]]
-                sample_y = [y[remaining:]]
+            for idx, ds in enumerate(dataset):
+                x, y = ds
+                batch_size = x.shape[0]
+                target = 160
+                print("Current batch size set to {}. Target depth is {}".format(batch_size, target))
 
-                pred_vols.append(pred_vol)
-                y_vols.append(y_vol)
+                x = np.array(x)
+                y = np.array(y)
 
-                print("===============")
-                print("pred done")
-                print(pred_vol.shape)
-                print(y_vol.shape)
-                print("===============")
+                pred = trained_model.predict(x)
+                print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
+                print('Ground truth data type: {}, shape: {}'.format(type(y), y.shape))
+                print('Prediction data type: {}, shape: {}'.format(type(pred), pred.shape))
+                print("=================")
 
-                pred_vol_dice = dice_coef(y_vol, pred_vol)
+                if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
+                    sample_pred.append(pred)
+                    sample_y.append(y)
+                else:
+                    remaining = target - get_depth(sample_pred)
+                    sample_pred.append(pred[:remaining])
+                    sample_y.append(y[:remaining])
+                    pred_vol = np.concatenate(sample_pred)
+                    y_vol = np.concatenate(sample_pred)
+                    sample_pred = [pred[remaining:]]
+                    sample_y = [y[remaining:]]
 
-                print("DICE:", pred_vol_dice)
+                    pred_vols.append(pred_vol)
+                    y_vols.append(y_vol)
 
-                # pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
-                # pred_vol = np.stack((pred_vol,) * 3, axis=-1)
+                    print("===============")
+                    print("pred done")
+                    print(pred_vol.shape)
+                    print(y_vol.shape)
+                    print("===============")
 
-                # fig = plot_volume(pred_vol)
-                # plt.savefig(f"results/hello-hello")
-                # plt.close('all')
+                    pred_vol_dice = dice_coef(y_vol, pred_vol)
 
-                if idx == 2:
-                    print("Number of vols:", len(pred_vols), len(y_vols))
-                    batch_pred_vols = np.concatenate(pred_vols)
-                    batch_y_vols = np.concatenate(y_vols)
+                    print("DICE:", pred_vol_dice)
 
-                    print("BATCH pred SIZE:", batch_pred_vols.shape)
-                    print("BATCH y SIZE:", batch_y_vols.shape)
+                    pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
+                    pred_vol = np.stack((pred_vol,) * 3, axis=-1)
 
-                    print("DICE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
+                    fig = plot_volume(pred_vol)
+                    plt.savefig(f"results/hello-hello")
+                    plt.close('all')
 
-                    
+                    # if idx == 2:
+                        # print("Number of vols:", len(pred_vols), len(y_vols))
+                        # batch_pred_vols = np.concatenate(pred_vols)
+                        # batch_y_vols = np.concatenate(y_vols)
 
-                print('is_multi_class', is_multi_class)
-                if is_multi_class:  # or np.shape(pred_vol)[-1] not
-                    pred_vol = np.argmax(pred_vol, axis=-1)
-                    print('pred_vol.shape', np.shape(pred_vol))
+                        # print("BATCH pred SIZE:", batch_pred_vols.shape)
+                        # print("BATCH y SIZE:", batch_y_vols.shape)
 
+                        # print("DICE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
 
-                # Figure saving
-#                 pred_vol = pred_vol[50:110, 114:174, 114:174]
-                # print(pred_vol.shape)
-                # fig_dir = "results"
-                # fig = plot_volume(pred_vol)
-                # print("shabem")
-                # plt.savefig(f"results/hello-hello2")
-                # plt.close('all')
-
-                # # Save volume as numpy file for plotlyyy
-                # vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
-                # np.save(pred_vol, vol_name_npy)
-                # print("npy saved as ", vol_name_npy)
-
-#                 #create gif
-#                 print("\n\n\n\n=================")
-#                 print("checking for ffmpeg...")
-#                 if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
-#                     print("please 'pip install ffmpeg' to create gif")
-#                     print("gif not created")
-                    
-#                 else:
-#                     print("ffmpeg found")
-#                     print(f"ffmpeg found:{os.path.isfile('./../../../opt/conda/bin/ffmpeg')} ")
-#                     print("creating the gif ...")
-#                     slices = []
-#                     for i in range(pred_vol.shape[0]):
-#                         slices.append(pred_vol[i, :, :])
-#                         if i == 10:
-#                             break
-#                     pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
-#                     print('done')
-#                 print("=================\n\n\n\n")
-
-                # # Figure saving
-                # fig_dir = "results"
-                # fig = plot_volume(pred_vol)
-                # plt.savefig(f"results/hello-hello")
-                # plt.close('all')
-
-                # Save volume as numpy file for plotlyyy
-                fig_dir = "results"
-                vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
-                print("npy save as ", vol_name_npy)
+                    print('is_multi_class', is_multi_class)
+                    if is_multi_class:  # or np.shape(pred_vol)[-1] not
+                        pred_vol = np.argmax(pred_vol, axis=-1)
+                        print('pred_vol.shape', np.shape(pred_vol))
 
 
-                # Get middle 60 slices cuz 288x288x160 too big
-                d1,d2,d3 = np.shape(pred_vol)[0:3]
-                d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
-                roi = int(50 / 2)
-                pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                np.save(vol_name_npy,pred_vol_np)
+                    # Figure saving
+                    pred_vol = pred_vol[50:110, 114:174, 114:174]
+                    print(pred_vol.shape)
+                    fig_dir = "results"
+                    fig = plot_volume(pred_vol)
+                    print("shabem")
+                    plt.savefig(f"results/hello-hello2")
+                    plt.close('all')
+
+                    # # Save volume as numpy file for plotlyyy
+                    vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
+                    np.save(pred_vol, vol_name_npy)
+                    print("npy saved as ", vol_name_npy)
+
+                    #append image to use for gif
+                    if idx == 1:
+                        images_gif.append([ax.imshow(pred_vol[which_slice,:,:], cmap=gif_cmap, animated=True)])
+
+                    # Figure saving
+                    fig_dir = "results"
+                    fig = plot_volume(pred_vol)
+                    plt.savefig(f"results/hello-hello")
+                    plt.close('all')
+
+                    #Save volume as numpy file for plotlyyy
+                    fig_dir = "results"
+                    vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
+                    print("npy save as ", vol_name_npy)
 
 
-#             break
-
-#             if idx == 4:
-#                 break
-#             # we need to then merge into each (288,288,160) volume. Validation data should be in order
-
-                
-
-            print("=================")
+                    # Get middle 60 slices cuz 288x288x160 too big
+                    d1,d2,d3 = np.shape(pred_vol)[0:3]
+                    d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+                    roi = int(50 / 2)
+                    pred_vol_np = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+                    np.save(vol_name_npy,pred_vol_np)
 
 
+                # break
+
+    #             if idx == 4:
+    #                 break
+    #             # we need to then merge into each (288,288,160) volume. Validation data should be in order
+
+                print("=================")
+
+    #  break
+
+    if not gif_dir == '':
+        print("\n\n\n\n=================")
+        print("checking for ffmpeg...")
+        if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
+            print("please 'pip install ffmpeg' to create gif")
+            print("gif not created")
             
-        break
+        else:
+            print("ffmpeg found")
+            print("creating the gif ...\n")
 
-def pred_evolution_gif(frames_list,
-                       interval=200,
+            pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True)
+
+            print('\ndone')
+        print("=================\n\n\n\n")
+
+def pred_evolution_gif(fig,
+                       frames_list,
+                       interval=300,
                        save_dir='',
-                       file_name=''):
+                       save=True,
+                       show=False):
 
-    fig = plt.Figure()
-    gif = ArtistAnimation(fig, frames_list, interval) # create gif
+    gif = ArtistAnimation(fig, frames_list, interval, repeat=True) # create gif
 
-    # save file
-    # save_dir = save_dir.replace("/", "\\\\")
-    # save_dir = save_dir.replace("\\", "\\\\")
-
-    plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # change directory for animations
-    save_dir = save_dir + '/' + file_name
-    print(save_dir)
-
-    if not save_dir == '':
-        if file_name == '':
+    if save:
+        if save_dir == '':
             time = datetime.now().strftime("%Y%m%d-%H%M%S")
-            file_name = 'gif'+ time + '.gif'
+            save_dir = 'results/gif'+ time + '.gif'
 
-        
-        #gif.save(file_name, writer='ffmpeg')
-        #writergif = animation.PillowWriter(fps=30)
+        plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # set directory of ffmpeg binary file
         Writer = animation.writers['ffmpeg']
-        ffmwriter = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
-        #ffmwriter = animation.FFMpegWriter()
-        gif.save(save_dir, writer=ffmwriter)
+        ffmwriter = Writer(fps=1000//interval, metadata=dict(artist='Me'), bitrate=1800) #set the save writer
+        gif.save('results/temp_video.mp4', writer=ffmwriter)
+
+        codeBASH = f"ffmpeg -i 'results/temp_video.mp4' -loop 0 {save_dir}" #convert mp4 to gif
+        os.system(codeBASH)
+        os.remove("results/temp_video.mp4")
+
         plt.close('all')
-    else:
+
+    if show:
         plt.show()
+        plt.close('all')
 
 def confusion_matrix(trained_model,
                      weights_dir,
@@ -250,10 +256,11 @@ def confusion_matrix(trained_model,
                      validation_steps,
                      multi_class,
                      model_architecture,
-                     num_classes=7):
+                     num_classes=7,
+                     callbacks):
 
     trained_model.load_weights(weights_dir).expect_partial()
-    trained_model.evaluate(dataset, steps=validation_steps)
+    trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
 
     if multi_class:
         cm = np.zeros((num_classes, num_classes))
@@ -273,6 +280,14 @@ def confusion_matrix(trained_model,
         print(step)
         pred = trained_model.predict(image)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+
+        # if multi_class:
+        #     iou = iou_loss_eval(image, pred)
+        #     dice = dice_coef_eval
+        # else:
+        #     iou = iou_loss(image, pred)
+            
+        # # miou = 
 
         if step > validation_steps - 1:
             break

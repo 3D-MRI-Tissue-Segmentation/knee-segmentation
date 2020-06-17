@@ -371,6 +371,11 @@ class Nested_UNet_v2(tf.keras.Model):
         x2_2 = self.conv_block_lists[2][2](tfkl.concatenate([x2_0, x2_1, self.up(x3_1)]), training=training)
         x1_3 = self.conv_block_lists[1][3](tfkl.concatenate([x1_0, x1_1, x1_2, self.up(x2_2)]), training=training)
         x0_4 = self.conv_block_lists[0][4](tfkl.concatenate([x0_0, x0_1, x0_2, x0_3, self.up(x1_3)]), training=training)
-        output = self.conv1x1(x0_4)
-
+        output = self.conv_1x1(x0_4)
+            
+        if self.num_classes == 1:
+            output = tfkl.Activation('sigmoid')(output)
+        else:
+            output = tfkl.Activation('softmax')(output)
+        
         return output
