@@ -59,7 +59,10 @@ def create_single_input_gif(which_volume,
     pred_evolution_gif(fig, gif_frames, save_dir='results/input_volume_gif2.gif')
 
 
-def create_collage_input_gif(volume_numbers):
+def create_collage_input_gif(rows,
+                             cols,
+                             no_margins=True,
+                             shift_start=False):
     
     valid_ds = read_tfrecord(tfrecords_dir='gs://oai-challenge-dataset/tfrecords/valid/',
                             batch_size=160,
@@ -70,15 +73,17 @@ def create_collage_input_gif(volume_numbers):
                             use_bfloat16=False,
                             use_RGB=False)
 
-    subplot_dimension = int(volume_numbers**0.5)
-    fig, axes = plt.subplots(subplot_dimension, subplot_dimension)
+    volume_numbers = rows*cols
+    fig, axes = plt.subplots(rows, cols)
     fig.set_facecolor('black')
     gif_frames = [[] for _ in range(160)]
     r, c = 0, 0
+    shifted_start = 0
+    possible_start = np.arange(start=int(160/volume_numbers), stop=160, step=int(160/volume_numbers))
 
     for idx, data in enumerate(valid_ds):
         if idx+1 <= volume_numbers:
-            if c == subplot_dimension:
+            if c == cols:
                 c = 0
                 r = r+1
             x, _ = data
@@ -97,14 +102,21 @@ def create_collage_input_gif(volume_numbers):
                 print(f"Analysing slice {i+1} of Volume {idx+1}")
                 im = axes[r,c].imshow(x[i,:,:], cmap='gray', animated=True, aspect='auto')
                 axes[r,c].axis('off')
-                gif_frames[i].append(im)
+                if i+shifted_start == 160:
+                    shifted_start = -i
+                gif_frames[i+shifted_start].append(im)
 
             c = c+1
+            if shift_start:
+                which = np.random.randint(len(possible_start)+1)
+                shifted_start = possible_start[which]
+                possible_start = np.delete(possible_start, which) 
+
 
         else:
             break
 
-    pred_evolution_gif(fig, gif_frames, save_dir='results/input_volume_gif_collage.gif')
+    pred_evolution_gif(fig, gif_frames, save_dir='results/gif_collage_3x4_random.gif', no_margins=no_margins)
 
 # def gif_collage(figures,
 #                 gifs_lists,
@@ -160,7 +172,7 @@ if __name__ == '__main__':
     #     print(p)
     # print('\n\n\n\n\n')
     # create_single_input_gif(1, clean=True)
-    create_collage_input_gif(16)
+    create_collage_input_gif(rows=3, cols=4, no_margins=True, shift_start=False)
 
     
 
