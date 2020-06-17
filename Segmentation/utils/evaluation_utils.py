@@ -30,6 +30,7 @@ def plot_and_eval_3D(trained_model,
                      weights_dir,
                      is_multi_class,
                      save_freq,
+                     tfrec_dir,
                      dataset):
 
     # load the checkpoints in the specified log directory
