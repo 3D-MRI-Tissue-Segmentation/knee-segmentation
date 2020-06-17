@@ -75,7 +75,7 @@ def plot_and_eval_3D(trained_model,
 
     # Only use shard of dataset
     target = 160
-    tot_samples = len(tf_records_content) 
+    tot_samples = len(tf_records_content) * target
     print('tot_samples',tot_samples)
     dataset_shard = dataset.shard(num_shards=tot_samples, index=0) 
 
