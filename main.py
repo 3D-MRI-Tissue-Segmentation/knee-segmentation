@@ -271,7 +271,7 @@ def main(argv):
     
     with strategy.scope():
         model = model_fn(*model_args)
-       
+
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
         else:
