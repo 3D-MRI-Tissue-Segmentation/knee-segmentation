@@ -160,7 +160,7 @@ if __name__ == '__main__':
     #     print(p)
     # print('\n\n\n\n\n')
     # create_single_input_gif(1, clean=True)
-    create_collage_input_gif(9)
+    create_collage_input_gif(16)
 
     
 
