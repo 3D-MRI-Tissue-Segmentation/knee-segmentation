@@ -32,7 +32,7 @@ htmlcov/
 *.csv
 *.tfrecords
 # *.cfg
-*.sh
+# *.sh
 *.zsh
 
 # IDE
