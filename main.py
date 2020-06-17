@@ -3,15 +3,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import os
+from pathlib import Path
 from datetime import datetime
 from absl import app
 from absl import flags
 from absl import logging
+from glob import glob
 
-from Segmentation.model.unet import UNet, R2_UNet
+from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet, Nested_UNet_v2
+from Segmentation.model.segnet import SegNet
+from Segmentation.model.deeplabv3 import Deeplabv3
+from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, iou_loss_core, Mean_IOU
-from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, LearningRateSchedule
+from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
+from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
+from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -23,42 +30,77 @@ flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay 
 flags.DEFINE_list('lr_decay_epochs', None, 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
-flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
+flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random-crop, noise, crop_and_noise')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet')
-flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19')
-flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
-flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
+flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
+flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) ori binary setting')
+flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
+flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
+flags.DEFINE_string('activation', 'relu', 'activation function to be used')
+flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
+flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
+flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
+
+# UNet parameters
+flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
+flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
+flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
 flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
-flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
-flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
-flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
-flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
-flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
+
+# 100-layer Tiramisu parameters
+flags.DEFINE_list('layers_per_block', [4, 5, 7, 10, 12, 15], 'number of convolutional layers per block')
+flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after each convolution')
+flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
+flags.DEFINE_integer('strides', 2, 'strides size to be used')
+flags.DEFINE_string('padding', 'same', 'padding mode to be used')
+flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
+
+# Deeplab parametersi
+flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
+flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
+flags.DEFINE_integer('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
+flags.DEFINE_list('num_filters_DCNN', [256, 512, 1024], 'number of filters for the first three blocks of the DCNN')
+flags.DEFINE_integer('num_filters_ASPP', 256, 'number of filters for the ASPP term')
+flags.DEFINE_integer('kernel_size_atrous', 3, 'kernel size for the atrous convolutions')
+flags.DEFINE_list('kernel_size_DCNN', [1, 3], 'kernel sizes for the blocks of the DCNN')
+flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'kernel size for the ASPP term')
+flags.DEFINE_list('MultiGrid', [1, 2, 4], 'relative convolution rates for the atrous convolutions')
+flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], 'rates for the ASPP term convolutions')
+flags.DEFINE_integer('output_stride', 16, 'final output stride (taking into account max pooling)')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
 flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
+flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
+
+flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
+flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
+flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
+flags.DEFINE_integer('gif_epochs', 1000, 'Number of epochs to include in the creation of the gifS')
+flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
+flags.DEFINE_integer('gif_slice', 100, 'Slice that is taken into consideration for the gif')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
 flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
 flags.DEFINE_integer('num_cores', 8, 'Number of TPU cores or number of GPUs.')
-flags.DEFINE_string('tpu', 'oai-tpu-machine', 'Name of the TPU. Only used if use_gpu is False.')
+flags.DEFINE_string('tpu', 'joe', 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
 
 def main(argv):
+
+    if FLAGS.visual_file:
+        assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
 
     del argv  # unused arg
     # tf.random.set_seed(FLAGS.seed)
@@ -96,25 +138,31 @@ def main(argv):
         batch_size = FLAGS.batch_size * FLAGS.num_cores
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size
-
+        logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
         train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
+                                 augmentation=FLAGS.aug_strategy,
                                  multi_class=FLAGS.multi_class,
                                  is_training=True,
-                                 use_bfloat16=FLAGS.use_bfloat16)
+                                 use_bfloat16=FLAGS.use_bfloat16,
+                                 use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
         valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                                  batch_size=batch_size,
                                  buffer_size=FLAGS.buffer_size,
+                                 augmentation=FLAGS.aug_strategy,
                                  multi_class=FLAGS.multi_class,
                                  is_training=False,
-                                 use_bfloat16=FLAGS.use_bfloat16)
+                                 use_bfloat16=FLAGS.use_bfloat16,
+                                 use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
 
         num_classes = 7 if FLAGS.multi_class else 1
 
     if FLAGS.multi_class:
+        loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
     else:
+        loss_fn = dice_coef_loss
         crossentropy_loss_fn = tf.keras.losses.binary_crossentropy
 
     if FLAGS.use_bfloat16:
@@ -122,39 +170,196 @@ def main(argv):
         tf.keras.mixed_precision.experimental.set_policy(policy)
 
     # set model architecture
+    model_fn = None
+    model_args = []
+
+    if FLAGS.model_architecture == 'unet':
+        model_args = [FLAGS.num_filters,
+                      num_classes,
+                      FLAGS.backbone_architecture,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      FLAGS.use_attention,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.use_dropout,
+                      FLAGS.dropout_rate,
+                      FLAGS.use_spatial,
+                      FLAGS.channel_order]
+
+        model_fn = UNet
+
+    elif FLAGS.model_architecture == 'r2unet':
+        model_args = [FLAGS.num_filters,
+                      num_classes,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      2,
+                      FLAGS.use_attention,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order]
+
+        model_fn = R2_UNet
+
+    elif FLAGS.model_architecture == 'segnet':
+        model_args = [FLAGS.num_filters,
+                      num_classes,
+                      FLAGS.backbone_architecture,
+                      FLAGS.kernel_size,
+                      (2, 2),
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.use_transpose,
+                      FLAGS.use_dropout,
+                      FLAGS.dropout_rate,
+                      FLAGS.use_spatial,
+                      FLAGS.channel_order]
+
+        model_fn = SegNet
+
+    elif FLAGS.model_architecture == 'unet++':
+        model_args = [FLAGS.num_filters,
+                      num_classes,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order]
+
+        model_fn = Nested_UNet
+
+    elif FLAGS.model_architecture == '100-Layer-Tiramisu':
+        model_args = [FLAGS.growth_rate,
+                      FLAGS.layers_per_block,
+                      FLAGS.init_num_channels,
+                      num_classes,
+                      FLAGS.kernel_size,
+                      FLAGS.pool_size,
+                      FLAGS.activation,
+                      FLAGS.dropout_rate,
+                      FLAGS.strides,
+                      FLAGS.padding]
+
+        model_fn = Hundred_Layer_Tiramisu
+
+    elif FLAGS.model_architecture == 'deeplabv3':
+        model_args = [num_classes,
+                      FLAGS.kernel_size_initial_conv,
+                      FLAGS.num_filters_atrous,
+                      FLAGS.num_filters_DCNN,
+                      FLAGS.num_filters_ASPP,
+                      FLAGS.kernel_size_atrous,
+                      FLAGS.kernel_size_DCNN, 
+                      FLAGS.kernel_size_ASPP,
+                      'same',
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order,
+                      FLAGS.MultiGrid,
+                      FLAGS.rate_ASPP,
+                      FLAGS.output_stride]
+
+        model_fn = Deeplabv3
+
+    else:
+        logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
+    
     with strategy.scope():
+        model = model_fn(*model_args)
+        
+        # if FLAGS.model_architecture == 'unet':
+        #     model_args = [FLAGS.num_filters,
+        #                  num_classes,
+        #                  FLAGS.backbone_architecture,
+        #                  FLAGS.num_conv,
+        #                  FLAGS.kernel_size,
+        #                  FLAGS.activation,
+        #                  FLAGS.use_attention,
+        #                  FLAGS.use_batchnorm,
+        #                  FLAGS.use_bias,
+        #                  FLAGS.use_dropout,
+        #                  FLAGS.dropout_rate,
+        #                  FLAGS.use_spatial,
+        #                  FLAGS.channel_order]
+        #     model = UNet(*model_args)
 
-        if FLAGS.model_architecture == 'unet':
+        # elif FLAGS.model_architecture == 'r2unet':
+        #     model_args = [FLAGS.num_filters,
+        #                     num_classes,
+        #                     FLAGS.num_conv,
+        #                     FLAGS.kernel_size,
+        #                     FLAGS.activation,
+        #                     2,
+        #                     FLAGS.use_attention,
+        #                     FLAGS.use_batchnorm,
+        #                     FLAGS.use_bias,
+        #                     FLAGS.channel_order]
+        #     model = R2_UNet(*model_args)
 
-            model = UNet(FLAGS.num_filters,
-                         num_classes,
-                         FLAGS.backbone_architecture,
-                         FLAGS.num_conv,
-                         FLAGS.kernel_size,
-                         FLAGS.activation,
-                         FLAGS.use_attention,
-                         FLAGS.use_batchnorm,
-                         FLAGS.use_bias,
-                         FLAGS.use_dropout,
-                         FLAGS.dropout_rate,
-                         FLAGS.use_spatial,
-                         FLAGS.channel_order)
+        # elif FLAGS.model_architecture == 'segnet':
+        #     model_args = [FLAGS.num_filters,
+        #                    num_classes,
+        #                    FLAGS.backbone_architecture,
+        #                    FLAGS.kernel_size,
+        #                    (2, 2),
+        #                    FLAGS.activation,
+        #                    FLAGS.use_batchnorm,
+        #                    FLAGS.use_bias,
+        #                    FLAGS.use_transpose,
+        #                    FLAGS.use_dropout,
+        #                    FLAGS.dropout_rate,
+        #                    FLAGS.use_spatial,
+        #                    FLAGS.channel_order]
+        #     model = SegNet(*model_args)
 
-        elif FLAGS.model_architecture == 'r2unet':
+        # elif FLAGS.model_architecture == 'unet++':
+        #     model_args = [FLAGS.num_filters,
+        #                         num_classes,
+        #                         FLAGS.num_conv,
+        #                         FLAGS.kernel_size,
+        #                         FLAGS.activation,
+        #                         FLAGS.use_batchnorm,
+        #                         FLAGS.use_bias,
+        #                         FLAGS.channel_order]
+        #     model = Nested_UNet(*model_args)
 
-            model = R2_UNet(FLAGS.num_filters,
-                            num_classes,
-                            FLAGS.num_conv,
-                            FLAGS.kernel_size,
-                            FLAGS.activation,
-                            2,
-                            FLAGS.use_attention,
-                            FLAGS.batchnorm,
-                            FLAGS.use_bias,
-                            FLAGS.channel_order)
+        # elif FLAGS.model_architecture == '100-Layer-Tiramisu':
+        #     model_args = [FLAGS.growth_rate,
+        #                   FLAGS.layers_per_block,
+        #                   FLAGS.init_num_channels,
+        #                   num_classes,
+        #                   FLAGS.kernel_size,
+        #                   FLAGS.pool_size,
+        #                   FLAGS.activation,
+        #                   FLAGS.dropout_rate,
+        #                   FLAGS.strides,
+        #                   FLAGS.padding]
+        #     model = Hundred_Layer_Tiramisu(*model_args)
 
-        else:
-            logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
+        # elif FLAGS.model_architecture == 'deeplabv3':
+        #     model_args = [num_classes,
+        #                   FLAGS.kernel_size_initial_conv,
+        #                   FLAGS.num_filters_atrous,
+        #                   FLAGS.num_filters_DCNN,
+        #                   FLAGS.num_filters_ASPP,
+        #                   FLAGS.kernel_size_atrous,
+        #                   FLAGS.kernel_size_DCNN,
+        #                   FLAGS.kernel_size_ASPP,
+        #                   'same',
+        #                   FLAGS.activation,
+        #                   FLAGS.use_batchnorm,
+        #                   FLAGS.use_bias,
+        #                   FLAGS.channel_order,
+        #                   FLAGS.MultiGrid,
+        #                   FLAGS.rate_ASPP,
+        #                   FLAGS.output_stride]
+        #     model = Deeplabv3(*model_args)
 
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
@@ -166,21 +371,51 @@ def main(argv):
                                        FLAGS.lr_drop_ratio,
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
-        optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
-        model.build(input_shape=(batch_size, 288, 288, 1))
-        model.compile(optimizer=optimiser,
-                      loss=tversky_loss,
-                      metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
+
+        if FLAGS.optimizer == 'adam':
+            optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+        elif FLAGS.optimizer == 'rms-prop':
+            optimiser = tf.keras.optimizers.RMSprop(learning_rate=lr_rate)
+        else:
+            print('Not a valid input optimizer, using Adam.')
+            optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+
+        # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
+        if FLAGS.train:
+            if FLAGS.backbone_architecture == 'default':
+
+                model.build((batch_size, 288, 288, 1))
+            else:
+                model.build((batch_size, 288, 288, 3))
+
+            model.summary()
+
+        if FLAGS.multi_class:
+            model.compile(optimizer=optimiser,
+                          loss=loss_fn,
+                          metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+        else:
+            model.compile(optimizer=optimiser,
+                          loss=loss_fn,
+                          metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 
     if FLAGS.train:
-
         # define checkpoints
-        logdir = os.path.join(FLAGS.logdir, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
+        training_history_dir = os.path.join(training_history_dir, time)
+        Path(training_history_dir).mkdir(parents=True, exist_ok=True)
+        flag_name = os.path.join(training_history_dir, 'test_flags.cfg')
+        FLAGS.append_flags_into_file(flag_name)
+
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
+        logdir = os.path.join(logdir, time)
         logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
-        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.hdf5',
+        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
+
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
@@ -188,16 +423,34 @@ def main(argv):
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
 
-        plot_train_history_loss(history, multi_class=FLAGS.multi_class)
-
+        plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
+    elif not FLAGS.visual_file == "":
+        print(model_fn)
+        plot_and_eval_3D(model=model_fn,
+                         logdir=FLAGS.logdir,
+                         visual_file=FLAGS.visual_file,
+                         tpu_name=FLAGS.tpu,
+                         bucket_name=FLAGS.bucket,
+                         weights_dir=FLAGS.weights_dir,
+                         is_multi_class=FLAGS.multi_class,
+                         dataset=valid_ds,
+                         model_args=model_args,
+                         which_slice=FLAGS.gif_slice,
+                         epoch_limit=FLAGS.gif_epochs,
+                         gif_dir=FLAGS.gif_directory,
+                         gif_cmap=FLAGS.gif_cmap)
     else:
-        # load the latest checkpoint in the FLAGS.logdir file
-        # latest = tf.train.latest_checkpoint(FLAGS.logdir)
-        model.load_weights(FLAGS.weights_dir)
-        for step, (image, label) in enumerate(valid_ds):
-            if step >= 80:
-                pred = model(image, training=False)
-                visualise_multi_class(label, pred)
+        # load the checkpoint in the FLAGS.weights_dir file
+        # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
+
+        confusion_matrix(trained_model=model,
+                         weights_dir=FLAGS.weights_dir,
+                         fig_dir=FLAGS.fig_dir,
+                         dataset=valid_ds,
+                         validation_steps=validation_steps,
+                         multi_class=FLAGS.multi_class,
+                         model_architecture=FLAGS.model_architecture,
+                         num_classes=num_classes)
 
 if __name__ == '__main__':
     app.run(main)

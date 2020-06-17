@@ -7,8 +7,8 @@ import math
 from functools import partial
 import tensorflow as tf
 
-from Segmentation.utils.augmentation import flip_randomly_left_right_image_pair_2d, rotate_randomly_image_pair_2d, \
-    translate_randomly_image_pair_2d
+from Segmentation.utils.augmentation import crop_randomly_image_pair_2d, adjust_contrast_randomly_image_pair_2d
+from Segmentation.utils.augmentation import adjust_brightness_randomly_image_pair_2d
 
 def get_multiclass(label):
 
@@ -84,10 +84,10 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
             img = np.rollaxis(img, 2, 0)
             seg = np.rollaxis(seg, 2, 0)
 
-            img = img[:, 48:336, 48:336]
-            seg = seg[:, 48:336, 48:336, :]
+            # img = img[:, 48:336, 48:336]
+            # seg = seg[:, 48:336, 48:336, :]
 
-            seg_temp = np.zeros((160, 288, 288, 1), dtype=np.int8)
+            seg_temp = np.zeros((160, 384, 384, 1), dtype=np.int8)
             seg_sum = np.sum(seg, axis=3)
             seg_temp[seg_sum == 0] = 1
             seg = np.concatenate([seg_temp, seg], axis=3)
@@ -138,7 +138,7 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
             count += 1
         print('{} out of {} datasets have been processed'.format(i, end - 1))
 
-def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False):
+def parse_fn_2d(example_proto, training, augmentation, multi_class=True, use_bfloat16=False, use_RGB=False):
 
     if use_bfloat16:
         dtype = tf.bfloat16
@@ -156,19 +156,40 @@ def parse_fn_2d(example_proto, training, multi_class=True, use_bfloat16=False):
     # Parse the input tf.Example proto using the dictionary above.
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
-    image = tf.cast(tf.reshape(image_raw, [288, 288, 1]), dtype)
+    image = tf.cast(tf.reshape(image_raw, [384, 384, 1]), dtype)
+
+    if use_RGB:
+        image = tf.image.grayscale_to_rgb(image)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
-    seg = tf.reshape(seg_raw, [288, 288, 7])
+    seg = tf.reshape(seg_raw, [384, 384, 7])
     seg = tf.cast(seg, dtype)
 
-    # if training:
-    #   image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
-    #   image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
-    #   image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
+    if training:
+        if augmentation == 'random_crop':
+            image, seg = crop_randomly_image_pair_2d(image, seg)
+        elif augmentation == 'noise':
+            image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
+            image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
+        elif augmentation == 'crop_and_noise':
+            image, seg = crop_randomly_image_pair_2d(image, seg)
+            image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
+            image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
+        elif augmentation is None:
+            image = tf.image.resize_with_crop_or_pad(image, 288, 288)
+            seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
+        else:
+            "Augmentation strategy {} does not exist or is not supported!".format(augmentation)
+
+    else:
+        image = tf.image.resize_with_crop_or_pad(image, 288, 288)
+        seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
 
     if not multi_class:
+        seg = tf.slice(seg, [0, 0, 1], [-1, -1, 6])
         seg = tf.math.reduce_sum(seg, axis=-1)
+        seg = tf.expand_dims(seg, axis=-1)
+        seg = tf.clip_by_value(seg, 0, 1)
 
     return (image, seg)
 
@@ -193,27 +214,28 @@ def parse_fn_3d(example_proto, training, multi_class=True):
                                image_features['depth'], image_features['num_channels']])
     seg = tf.cast(seg, tf.float32)
 
-    # if training:
-    #     image, seg = flip_randomly_left_right_image_pair_2d(image, seg)
-    #     image, seg = translate_randomly_image_pair_2d(image, seg, 24, 12)
-    #     image, seg = rotate_randomly_image_pair_2d(image, seg, tf.constant(-math.pi / 12), tf.constant(math.pi / 12))
-
     if not multi_class:
+        seg = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])
         seg = tf.math.reduce_sum(seg, axis=-1)
+        seg = tf.expand_dims(seg, axis=-1)
+        seg = tf.clip_by_value(seg, 0, 1)
 
     return (image, seg)
 
 def read_tfrecord(tfrecords_dir,
                   batch_size,
                   buffer_size,
+                  augmentation,
                   parse_fn=parse_fn_2d,
                   multi_class=True,
                   is_training=False,
-                  use_bfloat16=False):
+                  use_bfloat16=False,
+                  use_RGB=False):
 
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
-    shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
+    if is_training:
+        shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
                                 cycle_length=8,
@@ -222,9 +244,11 @@ def read_tfrecord(tfrecords_dir,
         dataset = dataset.shuffle(buffer_size=buffer_size)
 
     parser = partial(parse_fn,
-                     training=True if is_training else False,
-                     multi_class=True if multi_class else False,
-                     use_bfloat16=True if use_bfloat16 else False)
+                     training=is_training,
+                     augmentation=augmentation,
+                     multi_class=multi_class,
+                     use_bfloat16=use_bfloat16,
+                     use_RGB=use_RGB)
     dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 

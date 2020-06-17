@@ -13,6 +13,7 @@ ml_env/
 
 # Python
 __pycache__/
+*.pyc
 
 # Pytest and coverage
 .pytest_cache/
@@ -30,6 +31,9 @@ htmlcov/
 *.hdf5
 *.csv
 *.tfrecords
+*.cfg
+*.sh
+*.zsh
 
 # IDE
 .vscode/
@@ -37,6 +41,8 @@ htmlcov/
 
 # Logging
 **/logs/
+**/logs_old/
+**/logs_old_2/
 
 # Checkpoints
 checkpoints/
@@ -44,3 +50,5 @@ checkpoints/
 # Unignore
 !/results/
 !/results/**
+
+ok.py
