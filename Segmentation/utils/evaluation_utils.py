@@ -402,8 +402,8 @@ def volume_gif(model,
                             images_gif.append([im])
 
                     break
-
-        break
+            
+            break
 
     pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
