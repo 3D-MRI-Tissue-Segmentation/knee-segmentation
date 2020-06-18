@@ -271,8 +271,8 @@ def confusion_matrix(trained_model,
     # for n in f:
     #     writer_dir = os.path.join(writer_dir, n)
     # writer_dir = os.path.join(writer_dir, 'eval')
-    os.makedirs(writer_dir)
-    eval_metric_writer = tf.summary.create_file_writer(writer_dir)
+    # os.makedirs(writer_dir)
+    # eval_metric_writer = tf.summary.create_file_writer(writer_dir)
 
     if multi_class:
         cm = np.zeros((num_classes, num_classes))
