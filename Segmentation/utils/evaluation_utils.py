@@ -30,11 +30,7 @@ def plot_and_eval_3D(model,
                      weights_dir,
                      is_multi_class,
                      dataset,
-                     model_args,
-                     which_slice,
-                     epoch_limit=1000,
-                     gif_dir='',
-                     gif_cmap='gray'):
+                     model_args):
 
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
@@ -62,10 +58,6 @@ def plot_and_eval_3D(model,
     for s in session_weights:
         print(s) #print all the checkpoint directories
     print("--")
-
-    #figure for gif
-    fig, ax = plt.subplots()
-    images_gif = []
 
     for chkpt in session_weights:
         name = chkpt.split('/')[-1]
@@ -170,10 +162,6 @@ def plot_and_eval_3D(model,
                     np.save(pred_vol, vol_name_npy)
                     print("npy saved as ", vol_name_npy)
 
-                    #append image to use for gif
-                    if idx == 1:
-                        images_gif.append([ax.imshow(pred_vol[which_slice,:,:], cmap=gif_cmap, animated=True)])
-
                     # Figure saving
                     fig_dir = "results"
                     fig = plot_volume(pred_vol)
@@ -203,9 +191,6 @@ def plot_and_eval_3D(model,
                 print("=================")
 
     #  break
-
-    if not gif_dir == '':
-        pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True)
 
 def epoch_gif(model,
               logdir,
@@ -287,7 +272,7 @@ def epoch_gif(model,
                     x, _ = ds
                     # x = np.array(x)
                     x_slice = np.expand_dims(x[which_slice-1], axis=0)
-                    print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
+                    print('Input image data type: {}, shape: {}\n'.format(type(x), x.shape))
 
                     print('predicting slice {}'.format(which_slice))
                     # pred_vol = trained_model.predict(x)
@@ -295,7 +280,7 @@ def epoch_gif(model,
                     if is_multi_class:
                         # pred_vol = np.argmax(pred_vol, axis=-1)
                         predicted_slice = np.argmax(predicted_slice, axis=-1)
-                    print('slice predicted\n\n')
+                    print('slice predicted\n')
 
                     # im = ax.imshow(pred_vol[which_slice-1,:,:], cmap=gif_cmap, animated=True)
                     print("adding prediction to the queue")
@@ -308,7 +293,7 @@ def epoch_gif(model,
                     else:
                         ax.axis('off')
                         images_gif.append([im])
-                    print("prediction added\n\n")
+                    print("prediction added\n")
 
                     break
 

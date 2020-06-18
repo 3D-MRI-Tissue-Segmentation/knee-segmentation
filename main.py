@@ -87,7 +87,7 @@ flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model
 flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
 flags.DEFINE_integer('gif_epochs', 1000, 'Number of epochs to include in the creation of the gifS')
 flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
-flags.DEFINE_integer('gif_slice', 100, 'Slice that is taken into consideration for the gif')
+flags.DEFINE_integer('gif_slice', 80, 'Slice that is taken into consideration for the gif')
 flags.DEFINE_integer('gif_volume', 1, 'Which volume from the validation dataset to consider')
 flags.DEFINE_bool('clean_gif', False, 'False includes text representing epoch number')
 
@@ -454,11 +454,7 @@ def main(argv):
                              weights_dir=FLAGS.weights_dir,
                              is_multi_class=FLAGS.multi_class,
                              dataset=valid_ds,
-                             model_args=model_args,
-                             which_slice=FLAGS.gif_slice,
-                             epoch_limit=FLAGS.gif_epochs,
-                             gif_dir=FLAGS.gif_directory,
-                             gif_cmap=FLAGS.gif_cmap)
+                             model_args=model_args)
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file
