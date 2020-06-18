@@ -18,7 +18,7 @@ from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -36,7 +36,7 @@ flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) ori binary setting')
+flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
@@ -80,14 +80,20 @@ flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords f
 flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
+flags.DEFINE_integer('save_freq', 1, 'Save every x volumes as npy')
 
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
 flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
-flags.DEFINE_integer('gif_epochs', 1000, 'Number of epochs to include in the creation of the gifS')
+flags.DEFINE_integer('gif_epochs', 1000, 'Epochs to include in the creation of the gifs')
 flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
-flags.DEFINE_integer('gif_slice', 100, 'Slice that is taken into consideration for the gif')
+flags.DEFINE_integer('gif_slice', 80, 'Slice that is taken into consideration for the gif')
+flags.DEFINE_integer('gif_volume', 1, 'Which volume from the validation dataset to consider')
+flags.DEFINE_bool('clean_gif', False, 'False includes text representing epoch number')
+flags.DEFINE_string('tpu_dir','','If loading visual file from a tpu other than the tpu you are training with.')
+flags.DEFINE_bool('do_gif_volume', False, 'Whether to do epoch gif or volume gif')
+
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -336,20 +342,58 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
-        print(model_fn)
-        plot_and_eval_3D(model=model_fn,
-                         logdir=FLAGS.logdir,
-                         visual_file=FLAGS.visual_file,
-                         tpu_name=FLAGS.tpu,
-                         bucket_name=FLAGS.bucket,
-                         weights_dir=FLAGS.weights_dir,
-                         is_multi_class=FLAGS.multi_class,
-                         dataset=valid_ds,
-                         model_args=model_args,
-                         which_slice=FLAGS.gif_slice,
-                         epoch_limit=FLAGS.gif_epochs,
-                         gif_dir=FLAGS.gif_directory,
-                         gif_cmap=FLAGS.gif_cmap)
+        tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
+        print('model_fn',model_fn)
+        
+        if not FLAGS.gif_directory == "":
+
+            if FLAGS.do_gif_volume:
+                volume_gif(model=model_fn,
+                           logdir=FLAGS.logdir,
+                           tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                           aug_strategy=FLAGS.aug_strategy,
+                           visual_file=FLAGS.visual_file,
+                           tpu_name=FLAGS.tpu_dir,
+                           bucket_name=FLAGS.bucket,
+                           weights_dir=FLAGS.weights_dir,
+                           is_multi_class=FLAGS.multi_class,
+                           model_args=model_args,
+                           which_epoch=FLAGS.gif_epochs,
+                           which_volume=FLAGS.gif_volume,
+                           gif_dir=FLAGS.gif_directory,
+                           gif_cmap=FLAGS.gif_cmap,
+                           clean=FLAGS.clean_gif)
+
+            else:
+                epoch_gif(model=model_fn,
+                          logdir=FLAGS.logdir,
+                          tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                          aug_strategy=FLAGS.aug_strategy,
+                          visual_file=FLAGS.visual_file,
+                          tpu_name=FLAGS.tpu_dir,
+                          bucket_name=FLAGS.bucket,
+                          weights_dir=FLAGS.weights_dir,
+                          is_multi_class=FLAGS.multi_class,
+                          model_args=model_args,
+                          which_slice=FLAGS.gif_slice,
+                          which_volume=FLAGS.gif_volume,
+                          epoch_limit=FLAGS.gif_epochs,
+                          gif_dir=FLAGS.gif_directory,
+                          gif_cmap=FLAGS.gif_cmap,
+                          clean=FLAGS.clean_gif)
+
+        else:
+            plot_and_eval_3D(model=model_fn,
+                             logdir=FLAGS.logdir,
+                             visual_file=FLAGS.visual_file,
+                             tpu_name=FLAGS.tpu_dir,
+                             bucket_name=FLAGS.bucket,
+                             weights_dir=FLAGS.weights_dir,
+                             is_multi_class=FLAGS.multi_class,
+                             dataset=valid_ds,
+                             model_args=model_args)
+
+
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
