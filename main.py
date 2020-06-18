@@ -390,6 +390,7 @@ def main(argv):
                              weights_dir=FLAGS.weights_dir,
                              is_multi_class=FLAGS.multi_class,
                              dataset=valid_ds,
+                             save_freq=FLAGS.save_freq,
                              model_args=model_args)
 
 
