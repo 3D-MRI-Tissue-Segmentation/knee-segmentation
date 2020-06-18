@@ -8,7 +8,7 @@ import glob
 from google.cloud import storage
 from pathlib import Path
 import os
-from datetime import datetime
+import datetime
 
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
@@ -209,6 +209,7 @@ def plot_and_eval_3D(model,
 def epoch_gif(model,
               logdir,
               tfrecords_dir,
+              aug_strategy,
               visual_file,
               tpu_name,
               bucket_name,
@@ -226,7 +227,7 @@ def epoch_gif(model,
     valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
                             batch_size=160,
                             buffer_size=500,
-                            augmentation=None,
+                            augmentation=aug_strategy,
                             multi_class=is_multi_class,
                             is_training=False,
                             use_bfloat16=False,
@@ -284,19 +285,18 @@ def epoch_gif(model,
 
                 if idx+1 == which_volume:
                     x, _ = ds
-                    # x = np.array(x)
                     x_slice = np.expand_dims(x[which_slice-1], axis=0)
-                    print('Input image data type: {}, shape: {}\n'.format(type(x), x.shape))
+                    print('Input image data type: {}, shape: {}\n'.format(type(x_slice), x_slice.shape))
 
                     print('predicting slice {}'.format(which_slice))
-                    # pred_vol = trained_model.predict(x)
                     predicted_slice = trained_model.predict(x_slice)
                     if is_multi_class:
-                        # pred_vol = np.argmax(pred_vol, axis=-1)
                         predicted_slice = np.argmax(predicted_slice, axis=-1)
+                    else:
+                        predicted_slice = np.squeeze(predicted_slice, axis=-1)
+
                     print('slice predicted\n')
 
-                    # im = ax.imshow(pred_vol[which_slice-1,:,:], cmap=gif_cmap, animated=True)
                     print("adding prediction to the queue")
                     im = ax.imshow(predicted_slice[0], cmap=gif_cmap, animated=True)
                     if not clean:
@@ -316,9 +316,11 @@ def epoch_gif(model,
 
     pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
+
 def volume_gif(model,
                logdir,
                tfrecords_dir,
+               aug_strategy,
                visual_file,
                tpu_name,
                bucket_name,
@@ -335,7 +337,7 @@ def volume_gif(model,
     valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
                             batch_size=160,
                             buffer_size=500,
-                            augmentation=None,
+                            augmentation=aug_strategy,
                             multi_class=is_multi_class,
                             is_training=False,
                             use_bfloat16=False,
@@ -421,6 +423,116 @@ def volume_gif(model,
     pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
 
+def volume_comarison_gif(model,
+                         logdir,
+                         tfrecords_dir,
+                         visual_file,
+                         tpu_name,
+                         bucket_name,
+                         weights_dir,
+                         is_multi_class,
+                         model_args,
+                         which_epoch,
+                         which_volume=1,
+                         gif_dir='',
+                         gif_cmap='gray',
+                         clean=False):
+
+    #load the database
+    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+                            batch_size=160,
+                            buffer_size=500,
+                            augmentation=None,
+                            multi_class=is_multi_class,
+                            is_training=False,
+                            use_bfloat16=False,
+                            use_RGB=False)
+
+    # load the checkpoints in the specified log directory
+    train_hist_dir = os.path.join(logdir, tpu_name)
+    train_hist_dir = os.path.join(train_hist_dir, visual_file)
+
+    print("\n\nTraining history directory: {}".format(train_hist_dir))
+    print("+========================================================")
+    print("\n\nThe directories are:")
+
+    storage_client = storage.Client()
+    session_name = os.path.join(weights_dir, tpu_name, visual_file)
+
+    blobs = storage_client.list_blobs(bucket_name)
+    session_content = []
+    for blob in blobs:
+        if session_name in blob.name:
+            session_content.append(blob.name)
+
+    session_weights = []
+    for item in session_content:
+        if ('_weights' in item) and ('.ckpt.index' in item):
+            session_weights.append(item)
+
+    for s in session_weights:
+        print(s) #print all the checkpoint directories
+    print("--")
+
+    #figure for gif
+    fig, axes = plt.subplots(1, 3)
+    images_gif = []
+
+    for chkpt in session_weights:
+        name = chkpt.split('/')[-1]
+        name = name.split('.inde')[0]
+
+        if int(name.split('.')[1]) == which_epoch:
+
+            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+            print(f"\t\t  {name}")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+
+            trained_model = model(*model_args)
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                              weights_dir,
+                                                              tpu_name,
+                                                              visual_file,
+                                                              name)).expect_partial()
+
+            for idx, ds in enumerate(valid_ds):
+
+                if idx+1 == which_volume:
+                    x, y = ds
+                    x = np.array(x)
+                    x = np.squeeze(x, axis=-1)
+
+                    print('predicting volume {}'.format(which_volume))
+                    pred_vol = trained_model.predict(x)
+                    if is_multi_class:
+                        pred_vol = np.argmax(pred_vol, axis=-1)
+                        y = np.argmax(y, axis=-1)
+                    print('volume predicted\n')
+
+                    print('input image data type: {}, shape: {}'.format(type(x), x.shape))
+                    print('label image data type: {}, shape: {}'.format(type(y), y.shape))
+                    print('prediction image data type: {}, shape: {}\n'.format(type(pred), pred.shape))
+
+                    for i in range(x.shape[0]):
+                        print(f"Analysing slice {i+1}")
+                        x_im = axes[0].imshow(x[i,:,:], cmap='gray', animated=True, aspect='auto')
+                        y_im = axes[1].imshow(y[i,:,:], cmap='gray', animated=True, aspect='auto')
+                        pred_im = axes[2].imshow(pred_vol[i,:,:], cmap='gray', animated=True, aspect='auto')
+                        if not clean:
+                            text = ax.text(0.5,1.05,f'Slice {i+1}', 
+                                        size=plt.rcParams["axes.titlesize"],
+                                        ha="center", transform=ax.transAxes)
+                            images_gif.append([im, text])
+                        else:
+                            ax.axis('off')
+                            images_gif.append([im])
+
+                    break
+            
+            break
+
+    pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=False)
 
 
 def pred_evolution_gif(fig,
@@ -512,6 +624,7 @@ def confusion_matrix(trained_model,
 
     for step, (image, label) in enumerate(dataset):
         print(step)
+        print(image.shape)
         pred = trained_model.predict(image)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 

@@ -85,7 +85,6 @@ flags.DEFINE_integer('save_freq', 1, 'Save every x volumes as npy')
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
-flags.DEFINE_string('tpu_dir','','If loading visual file from a tpu other than the tpu you are training with.')
 flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
 flags.DEFINE_integer('gif_epochs', 1000, 'Epochs to include in the creation of the gifs')
 flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
@@ -352,6 +351,7 @@ def main(argv):
                 volume_gif(model=model_fn,
                            logdir=FLAGS.logdir,
                            tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                           aug_strategy=FLAGS.aug_strategy,
                            visual_file=FLAGS.visual_file,
                            tpu_name=FLAGS.tpu_dir,
                            bucket_name=FLAGS.bucket,
@@ -368,6 +368,7 @@ def main(argv):
                 epoch_gif(model=model_fn,
                           logdir=FLAGS.logdir,
                           tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                          aug_strategy=FLAGS.aug_strategy,
                           visual_file=FLAGS.visual_file,
                           tpu_name=FLAGS.tpu_dir,
                           bucket_name=FLAGS.bucket,
