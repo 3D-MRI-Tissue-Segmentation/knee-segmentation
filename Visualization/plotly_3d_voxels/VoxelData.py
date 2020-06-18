@@ -15,14 +15,15 @@ class VoxelData():
     def __init__(self,data):
         print("Processing data")
         self.data = data
-        if np.size(np.shape(data)) > 3:
-            self.voxel_tot = sum(np.shape(data)[0:-1])  
+        self.has_mult_channels = np.size(np.shape(self.data)) > 3
+        if self.has_mult_channels:
+            self.voxel_tot = np.prod(np.shape(data)[0:-1])  
         else:
-            self.voxel_tot = sum(np.shape(data))  
+            self.voxel_tot = np.prod(np.shape(data))  
         self.x_length = np.size(data,0)
         self.y_length = np.size(data,1)
         self.z_length = np.size(data,2)
-        self.class_colors, self.num_classes = self.get_class_names()
+        self.unique_classes, self.num_classes = self.get_class_names()
 
 
         # self.triangles = np.zeros((np.size(np.shape(self.data)),1)) 
@@ -38,26 +39,23 @@ class VoxelData():
 
     def get_class_names(self):
         
-        if np.size(np.shape(self.data)) > 3:     
-            channels = np.shape(self.data)[-1]    
-            class_name_data = np.reshape(self.data, [self.voxel_tot, channels])
+        if self.has_mult_channels:     
+            num_channels = np.shape(self.data)[-1]    
+            class_name_data = np.reshape(self.data, [self.voxel_tot, num_channels])
             unique_classes = np.unique(class_name_data, axis=0)
             del class_name_data
         else:
             unique_classes = np.unique(self.data)
 
         # print("unique_classes",unique_classes)
-        
         num_classes = np.shape(unique_classes)[0]
-        keys = np.arange(num_classes)
-        # class_colors = dict(zip(keys, unique_colors))
 
         return unique_classes, num_classes
 
 
     def get_class_voxels(self, seg_class):
         """ Mask over voxel data only returning voxels from that segmentation class """
-        print('Getting volume of', seg_class)
+        print('Getting volume of class', int(seg_class))
         seg_voxels =  np.where(self.data == seg_class, 1,0)
     
         return seg_voxels
