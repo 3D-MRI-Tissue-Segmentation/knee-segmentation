@@ -357,7 +357,7 @@ def main(argv):
                            which_volume=FLAGS.gif_volume,
                            gif_dir=FLAGS.gif_directory,
                            gif_cmap=FLAGS.gif_cmap,
-                           clean=FLAGS.clean_gif):
+                           clean=FLAGS.clean_gif)
 
             else:
                 epoch_gif(model=model_fn,
