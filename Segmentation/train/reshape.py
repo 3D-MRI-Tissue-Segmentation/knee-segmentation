@@ -45,9 +45,13 @@ def get_mid_slice(x, y, pred, multi_class):
 
     return tf.reshape(img, (img.shape[1:]))
 
-def get_mid_vol(y, pred, multi_class, rad=12):
+def get_mid_vol(y, pred, multi_class, rad=12, check_empty=False):
     y_shape = tf.shape(y)
     y_subvol = tf.slice(y, [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0], [1, rad * 2, rad * 2, rad * 2, -1])
+
+    if (check_empty) and (tf.math.reduce_sum(y_subvol) < 25):
+        return None
+
     if multi_class:
         y_subvol = tf.argmax(y_subvol, axis=-1)
         y_subvol = tf.cast(y_subvol, tf.float32)

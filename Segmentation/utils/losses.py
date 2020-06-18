@@ -44,6 +44,13 @@ def dice_coef_eval_3d(y_true, y_pred):
     dice = dsc(y_true, y_pred)
     return dice
 
+def dice_loss_weighted_3d(y_true, y_pred):
+    dice_whole = 1 - dsc(y_true, y_pred)
+    y_true = tf.slice(y_true, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    y_pred = tf.slice(y_pred, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    dice = 1 - dsc(y_true, y_pred)
+    return dice + dice_whole
+
 def precision(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
     smooth = 1
@@ -119,3 +126,6 @@ def focal_tversky(y_true, y_pred):
     pt_1 = tversky(y_true, y_pred)
     gamma = 0.75
     return K.pow((1 - pt_1), gamma)
+
+def focal_tversky_loss(y_true, y_pred):
+    return 1 - focal_tversky(y_true, y_pred)
