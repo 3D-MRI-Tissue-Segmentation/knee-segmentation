@@ -36,7 +36,7 @@ flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) ori binary setting')
+flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
