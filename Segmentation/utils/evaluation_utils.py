@@ -58,7 +58,7 @@ def plot_and_eval_3D(trained_model,
     for blob in blobs:
         if session_name in blob.name:
             session_content.append(blob.name)
-        if os.path.join('tfrecords', 'valid/') in blob.name:
+        if os.path.join('tfrecords', 'valid') in blob.name:
             tf_records_content.append(blob.name)
 
     session_weights = []
@@ -66,41 +66,37 @@ def plot_and_eval_3D(trained_model,
         if ('_weights' in item) and ('.ckpt.index' in item):
             session_weights.append(item)
 
+    ######################
     for s in session_weights:
         print(s)
     print("--")
+    ######################
 
-    # Only use shard of dataset
+    # Only use part of dataset
     idx_vol= 0 # how many numpies have been save
     target = 160
     
     for i, chkpt in enumerate(session_weights):
         should_save_np = np.mod(i, save_freq) == 0
+        
+        ######################
         print('should_save_np',should_save_np)
         print('checkpoint enum i',i)
         print('save_freq set to ',save_freq)
-        if not should_save_np:
+        ######################
+
+        if not should_save_np:      # skip this checkpoint weight
             print("skipping ", chkpt)
             continue
 
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
-        if weights_dir == "checkpoint":
-            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+        trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                           weights_dir,
                                                           tpu_name,
                                                           visual_file,
                                                           name)).expect_partial()
-        else:
-            trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                          weights_dir,
-                                                          visual_file,
-                                                          name)).expect_partial()
-        
-        
 
-        # pred_vols = []
-        # y_vols = []
 
         # sample_x = []    # x for current 160,288,288 vol
         sample_pred = []  # prediction for current 160,288,288 vol
@@ -109,21 +105,25 @@ def plot_and_eval_3D(trained_model,
 
         for idx, ds in enumerate(dataset):
 
+            ######################
             print(f"the index is {idx}")
             print('Current chkpt name',name)
+            ######################
+
             x, y = ds
             batch_size = x.shape[0]
-            
-            print("Current batch size set to {}. Target depth is {}".format(batch_size, target))
-
             x = np.array(x)
             y = np.array(y)
-
+        
             pred = trained_model.predict(x)
+
+            ######################
+            print("Current batch size set to {}. Target depth is {}".format(batch_size, target))
             print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
             print('Ground truth data type: {}, shape: {}'.format(type(y), y.shape))
             print('Prediction data type: {}, shape: {}'.format(type(pred), pred.shape))
             print("=================")
+            ######################
 
             if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
                 sample_pred.append(pred)
@@ -131,7 +131,6 @@ def plot_and_eval_3D(trained_model,
                 sample_y.append(y)
                 del y
             else:
-                is_volume_complete = True
                 remaining = target - get_depth(sample_pred)
                 sample_pred.append(pred[:remaining])
                 sample_y.append(y[:remaining])
@@ -145,33 +144,37 @@ def plot_and_eval_3D(trained_model,
                 del pred
                 del y
 
+                ######################
                 print("===============")
                 print("pred done")
                 print(pred_vol.shape)
                 print(y_vol.shape)
                 print("===============")
-
                 print('is_multi_class', is_multi_class)
+                ######################
+
                 if is_multi_class:  # or np.shape(pred_vol)[-1] not
                     pred_vol = np.argmax(pred_vol, axis=-1)
                     y_vol = np.argmax(y_vol, axis=-1)
+
+                    ######################
                     print('np.shape(pred_vol)', np.shape(pred_vol))
                     print('np.shape(y_vol)',np.shape(y_vol))
-
-                
-                print('should_save_np',should_save_np)
-                print('np.mod(idx_vol, save_freq)',np.mod(idx_vol, save_freq))
-                print('idx_vol',idx_vol)
+                    ######################
 
                 # Save volume as numpy file for plotlyyy
                 fig_dir = "results"
                 name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name + "_" +str(idx_vol).zfill(3)))
                 name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + name + "_" + str(idx_vol).zfill(3)))
+                
+                ######################
                 print("npy save pred as ", name_pred_npy)
                 print("npy save y as ", name_y_npy)
+                print("Currently on vol ", idx_vol)
+                ######################
 
 
-                # Get middle x slices cuz 288x288x160 too big
+                # Get middle xx slices cuz 288x288x160 too big
                 roi = int(50 / 2)
                 d1,d2,d3 = np.shape(pred_vol)[0:3]
                 d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
@@ -179,7 +182,10 @@ def plot_and_eval_3D(trained_model,
                 d1,d2,d3 = np.shape(y_vol)[0:3]
                 d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
                 y_vol = y_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+
+                ######################
                 print('y_vol.shape', np.shape(y_vol))
+                ######################
 
                 np.save(name_pred_npy,pred_vol)
                 np.save(name_y_npy,y_vol)
@@ -187,6 +193,9 @@ def plot_and_eval_3D(trained_model,
                 del pred_vol
                 del y_vol
 
+                ######################
+                print("breaking after saving vol ", idx, "for ", name)
+                ######################
                 break
 
 
@@ -196,8 +205,6 @@ def plot_and_eval_3D(trained_model,
 
 
             
-        
-    print('session_weights', session_weights)
 
 def pred_evolution_gif(frames_list,
                        interval=200,
