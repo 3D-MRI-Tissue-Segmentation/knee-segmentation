@@ -80,10 +80,12 @@ flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords f
 flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
+flags.DEFINE_integer('save_freq', 1, 'Save every x volumes as npy')
 
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
+flags.DEFINE_string('tpu_dir','','If loading visual file from a tpu other than the tpu you are training with.')
 flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
 flags.DEFINE_integer('gif_epochs', 1000, 'Epochs to include in the creation of the gifs')
 flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
@@ -341,8 +343,11 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
+        tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
+        print('model_fn',model_fn)
         
         if not FLAGS.gif_directory == "":
+
             if FLAGS.do_gif_volume:
                 volume_gif(model=model_fn,
                            logdir=FLAGS.logdir,
@@ -386,6 +391,7 @@ def main(argv):
                              is_multi_class=FLAGS.multi_class,
                              dataset=valid_ds,
                              model_args=model_args)
+
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file
