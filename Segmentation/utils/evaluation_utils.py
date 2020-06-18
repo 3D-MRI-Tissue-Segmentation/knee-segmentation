@@ -288,13 +288,16 @@ def epoch_gif(model,
                     x = np.array(x)
                     print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
-                    pred_vol = trained_model.predict(x)
+                    print('predicting slice {}'.format(which_slice))
+                    # pred_vol = trained_model.predict(x)
+                    predicted_slice = trained_model.predict(x[which_slice-1])
                     if is_multi_class:
                         pred_vol = np.argmax(pred_vol, axis=-1)
+                    print('slice predicted\n\n')
 
-                    fig, ax = plt.subplots()
-
-                    im = ax.imshow(pred_vol[which_slice,:,:], cmap=gif_cmap, animated=True)
+                    # im = ax.imshow(pred_vol[which_slice-1,:,:], cmap=gif_cmap, animated=True)
+                    print("adding prediction to the queue")
+                    im = ax.imshow(predicted_slice, cmap=gif_cmap, animated=True)
                     if not clean:
                         text = ax.text(0.5,1.05,f"Epoch {int(name.split('.')[1])}", 
                                     size=plt.rcParams["axes.titlesize"],
@@ -303,6 +306,7 @@ def epoch_gif(model,
                     else:
                         ax.axis('off')
                         images_gif.append([im])
+                    print("prediction added\n\n")
 
                     break
 
