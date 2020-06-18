@@ -424,7 +424,7 @@ def volume_gif(model,
     pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
 
-def volume_comarison_gif(model,
+def volume_comparison_gif(model,
                          logdir,
                          tfrecords_dir,
                          visual_file,
@@ -625,7 +625,6 @@ def confusion_matrix(trained_model,
 
     for step, (image, label) in enumerate(dataset):
         print(step)
-        print(image.shape)
         pred = trained_model.predict(image)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
