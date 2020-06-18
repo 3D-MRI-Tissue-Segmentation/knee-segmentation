@@ -12,6 +12,7 @@ from datetime import datetime
 
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
+from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
 
@@ -285,8 +286,7 @@ def epoch_gif(model,
                 if idx+1 == which_volume:
                     x, _ = ds
                     x = np.array(x)
-                    x = np.squeeze(x, axis=-1)
-                    print('Input image data type: {}, updated shape: {}\n\n'.format(type(x), x.shape))
+                    print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
                     pred_vol = trained_model.predict(x)
                     if is_multi_class:
@@ -296,7 +296,7 @@ def epoch_gif(model,
 
                     im = ax.imshow(pred_vol[which_slice,:,:], cmap=gif_cmap, animated=True)
                     if not clean:
-                        text = ax.text(0.5,1.05,f'Epoch {int(name.split('.')[1])}', 
+                        text = ax.text(0.5,1.05,f"Epoch {int(name.split('.')[1])}", 
                                     size=plt.rcParams["axes.titlesize"],
                                     ha="center", transform=ax.transAxes)
                         images_gif.append([im, text])
