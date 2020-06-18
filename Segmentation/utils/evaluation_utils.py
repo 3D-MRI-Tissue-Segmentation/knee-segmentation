@@ -383,7 +383,7 @@ def volume_gif(model,
                     x = np.array(x)
                     print('Input image data type: {}, shape: {}\n'.format(type(x), x.shape))
 
-                    print('predicting volume {}'.format(which_slice))
+                    print('predicting volume {}'.format(which_volume))
                     pred_vol = trained_model.predict(x)
                     if is_multi_class:
                         pred_vol = np.argmax(pred_vol, axis=-1)
