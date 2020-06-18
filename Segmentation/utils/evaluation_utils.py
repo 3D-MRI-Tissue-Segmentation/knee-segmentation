@@ -59,6 +59,7 @@ def plot_and_eval_3D(model,
     blobs = storage_client.list_blobs(bucket_name)
     session_content = []
     for blob in blobs:
+        print('Current blob.name', blob.name)
         if session_name in blob.name:
             print('Appending blob.name to sess', blob.name)
             session_content.append(blob.name)
