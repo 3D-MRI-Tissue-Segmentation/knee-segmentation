@@ -46,12 +46,13 @@ def plot_and_eval_3D(model,
     """ Add the visualisation code here """
     print("\n\nTraining history directory: {}".format(train_hist_dir))
     print("+========================================================")
+    print('bucket_name',bucket_name)
     print("\n\nThe directories are:")
     print('weights_dir == "checkpoint"',weights_dir == "checkpoint")
     print('weights_dir',weights_dir)
     ######################
 
-    session_name = os.path.join(weights_dir, tpu_name, visual_file)
+    session_name = os.path.join(logdir, tpu_name, visual_file)
 
     # Get names within folder in gcloud
     storage_client = storage.Client()
