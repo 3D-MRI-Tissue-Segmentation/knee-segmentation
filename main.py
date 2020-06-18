@@ -18,7 +18,7 @@ from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -88,6 +88,8 @@ flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
 flags.DEFINE_integer('gif_epochs', 1000, 'Number of epochs to include in the creation of the gifS')
 flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
 flags.DEFINE_integer('gif_slice', 100, 'Slice that is taken into consideration for the gif')
+flags.DEFINE_integer('gif_volume', 1, 'Which volume from the validation dataset to consider')
+flags.DEFINE_bool('clean_gif', False, 'False includes text representing epoch number')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -425,20 +427,39 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
-        print(model_fn)
-        plot_and_eval_3D(model=model_fn,
-                         logdir=FLAGS.logdir,
-                         visual_file=FLAGS.visual_file,
-                         tpu_name=FLAGS.tpu,
-                         bucket_name=FLAGS.bucket,
-                         weights_dir=FLAGS.weights_dir,
-                         is_multi_class=FLAGS.multi_class,
-                         dataset=valid_ds,
-                         model_args=model_args,
-                         which_slice=FLAGS.gif_slice,
-                         epoch_limit=FLAGS.gif_epochs,
-                         gif_dir=FLAGS.gif_directory,
-                         gif_cmap=FLAGS.gif_cmap)
+        
+        if not FLAGS.gif_directory == "":
+            epoch_gif(model=model_fn,
+                      logdir=FLAGS.logdir,
+                      tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                      visual_file=FLAGS.visual_file,
+                      tpu_name=FLAGS.tpu,
+                      bucket_name=FLAGS.bucket,
+                      weights_dir=FLAGS.weights_dir,
+                      is_multi_class=FLAGS.multi_class,
+                      model_args=model_args,
+                      which_slice=FLAGS.gif_slice,
+                      which_volume=FLAGS.gif_volume,
+                      epoch_limit=FLAGS.gif_epochs,
+                      gif_dir=FLAGS.gif_directory,
+                      gif_cmap=FLAGS.gif_cmap,
+                      clean=FLAGS.clean_gif)
+
+        else:
+            plot_and_eval_3D(model=model_fn,
+                             logdir=FLAGS.logdir,
+                             visual_file=FLAGS.visual_file,
+                             tpu_name=FLAGS.tpu,
+                             bucket_name=FLAGS.bucket,
+                             weights_dir=FLAGS.weights_dir,
+                             is_multi_class=FLAGS.multi_class,
+                             dataset=valid_ds,
+                             model_args=model_args,
+                             which_slice=FLAGS.gif_slice,
+                             epoch_limit=FLAGS.gif_epochs,
+                             gif_dir=FLAGS.gif_directory,
+                             gif_cmap=FLAGS.gif_cmap)
+
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)

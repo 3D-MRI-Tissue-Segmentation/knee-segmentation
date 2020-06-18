@@ -206,6 +206,112 @@ def plot_and_eval_3D(model,
     if not gif_dir == '':
         pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True)
 
+def epoch_gif(model,
+              logdir,
+              tfrecords_dir,
+              visual_file,
+              tpu_name,
+              bucket_name,
+              weights_dir,
+              is_multi_class,
+              model_args,
+              which_slice,
+              which_volume=1,
+              epoch_limit=1000,
+              gif_dir='',
+              gif_cmap='gray',
+              clean=False):
+
+    #load the database
+    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+                            batch_size=160,
+                            buffer_size=500,
+                            augmentation=None,
+                            multi_class=is_multi_class,
+                            is_training=False,
+                            use_bfloat16=False,
+                            use_RGB=False)
+
+    # load the checkpoints in the specified log directory
+    train_hist_dir = os.path.join(logdir, tpu_name)
+    train_hist_dir = os.path.join(train_hist_dir, visual_file)
+
+    print("\n\nTraining history directory: {}".format(train_hist_dir))
+    print("+========================================================")
+    print("\n\nThe directories are:")
+
+    storage_client = storage.Client()
+    session_name = os.path.join(weights_dir, tpu_name, visual_file)
+
+    blobs = storage_client.list_blobs(bucket_name)
+    session_content = []
+    for blob in blobs:
+        if session_name in blob.name:
+            session_content.append(blob.name)
+
+    session_weights = []
+    for item in session_content:
+        if ('_weights' in item) and ('.ckpt.index' in item):
+            session_weights.append(item)
+
+    for s in session_weights:
+        print(s) #print all the checkpoint directories
+    print("--")
+
+    #figure for gif
+    fig, ax = plt.subplots()
+    images_gif = []
+
+    for chkpt in session_weights:
+        name = chkpt.split('/')[-1]
+        name = name.split('.inde')[0]
+
+        if int(name.split('.')[1]) <= epoch_limit:
+
+            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+            print(f"\t\t  {name}")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+
+            trained_model = model(*model_args)
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                              weights_dir,
+                                                              tpu_name,
+                                                              visual_file,
+                                                              name)).expect_partial()
+
+            for idx, ds in enumerate(valid_ds):
+
+                if idx+1 == which_volume:
+                    x, _ = ds
+                    x = np.array(x)
+                    x = np.squeeze(x, axis=-1)
+                    print('Input image data type: {}, updated shape: {}\n\n'.format(type(x), x.shape))
+
+                    pred_vol = trained_model.predict(x)
+                    if is_multi_class:
+                        pred_vol = np.argmax(pred_vol, axis=-1)
+
+                    fig, ax = plt.subplots()
+
+                    im = ax.imshow(pred_vol[which_slice,:,:], cmap=gif_cmap, animated=True)
+                    if not clean:
+                        text = ax.text(0.5,1.05,f'Epoch {int(name.split('.')[1])}', 
+                                    size=plt.rcParams["axes.titlesize"],
+                                    ha="center", transform=ax.transAxes)
+                        images_gif.append([im, text])
+                    else:
+                        ax.axis('off')
+                        images_gif.append([im])
+
+                    break
+
+        else:
+            break
+
+    pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
+
+
 def pred_evolution_gif(fig,
                        frames_list,
                        interval=300,
