@@ -36,7 +36,7 @@ flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) ori binary setting')
+flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
@@ -268,100 +268,11 @@ def main(argv):
                       FLAGS.output_stride]
 
         model_fn = Deeplabv3
-
     else:
         logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
     
     with strategy.scope():
         model = model_fn(*model_args)
-        
-        # if FLAGS.model_architecture == 'unet':
-        #     model_args = [FLAGS.num_filters,
-        #                  num_classes,
-        #                  FLAGS.backbone_architecture,
-        #                  FLAGS.num_conv,
-        #                  FLAGS.kernel_size,
-        #                  FLAGS.activation,
-        #                  FLAGS.use_attention,
-        #                  FLAGS.use_batchnorm,
-        #                  FLAGS.use_bias,
-        #                  FLAGS.use_dropout,
-        #                  FLAGS.dropout_rate,
-        #                  FLAGS.use_spatial,
-        #                  FLAGS.channel_order]
-        #     model = UNet(*model_args)
-
-        # elif FLAGS.model_architecture == 'r2unet':
-        #     model_args = [FLAGS.num_filters,
-        #                     num_classes,
-        #                     FLAGS.num_conv,
-        #                     FLAGS.kernel_size,
-        #                     FLAGS.activation,
-        #                     2,
-        #                     FLAGS.use_attention,
-        #                     FLAGS.use_batchnorm,
-        #                     FLAGS.use_bias,
-        #                     FLAGS.channel_order]
-        #     model = R2_UNet(*model_args)
-
-        # elif FLAGS.model_architecture == 'segnet':
-        #     model_args = [FLAGS.num_filters,
-        #                    num_classes,
-        #                    FLAGS.backbone_architecture,
-        #                    FLAGS.kernel_size,
-        #                    (2, 2),
-        #                    FLAGS.activation,
-        #                    FLAGS.use_batchnorm,
-        #                    FLAGS.use_bias,
-        #                    FLAGS.use_transpose,
-        #                    FLAGS.use_dropout,
-        #                    FLAGS.dropout_rate,
-        #                    FLAGS.use_spatial,
-        #                    FLAGS.channel_order]
-        #     model = SegNet(*model_args)
-
-        # elif FLAGS.model_architecture == 'unet++':
-        #     model_args = [FLAGS.num_filters,
-        #                         num_classes,
-        #                         FLAGS.num_conv,
-        #                         FLAGS.kernel_size,
-        #                         FLAGS.activation,
-        #                         FLAGS.use_batchnorm,
-        #                         FLAGS.use_bias,
-        #                         FLAGS.channel_order]
-        #     model = Nested_UNet(*model_args)
-
-        # elif FLAGS.model_architecture == '100-Layer-Tiramisu':
-        #     model_args = [FLAGS.growth_rate,
-        #                   FLAGS.layers_per_block,
-        #                   FLAGS.init_num_channels,
-        #                   num_classes,
-        #                   FLAGS.kernel_size,
-        #                   FLAGS.pool_size,
-        #                   FLAGS.activation,
-        #                   FLAGS.dropout_rate,
-        #                   FLAGS.strides,
-        #                   FLAGS.padding]
-        #     model = Hundred_Layer_Tiramisu(*model_args)
-
-        # elif FLAGS.model_architecture == 'deeplabv3':
-        #     model_args = [num_classes,
-        #                   FLAGS.kernel_size_initial_conv,
-        #                   FLAGS.num_filters_atrous,
-        #                   FLAGS.num_filters_DCNN,
-        #                   FLAGS.num_filters_ASPP,
-        #                   FLAGS.kernel_size_atrous,
-        #                   FLAGS.kernel_size_DCNN,
-        #                   FLAGS.kernel_size_ASPP,
-        #                   'same',
-        #                   FLAGS.activation,
-        #                   FLAGS.use_batchnorm,
-        #                   FLAGS.use_bias,
-        #                   FLAGS.channel_order,
-        #                   FLAGS.MultiGrid,
-        #                   FLAGS.rate_ASPP,
-        #                   FLAGS.output_stride]
-        #     model = Deeplabv3(*model_args)
 
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
@@ -460,6 +371,10 @@ def main(argv):
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
 
+        time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
+        logdir = os.path.join(logdir, time)
+        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch',write_images=True)
         confusion_matrix(trained_model=model,
                          weights_dir=FLAGS.weights_dir,
                          fig_dir=FLAGS.fig_dir,
@@ -467,7 +382,9 @@ def main(argv):
                          validation_steps=validation_steps,
                          multi_class=FLAGS.multi_class,
                          model_architecture=FLAGS.model_architecture,
-                         num_classes=num_classes)
+                         callbacks=[tb],
+                         num_classes=num_classes
+                         )
 
 if __name__ == '__main__':
     app.run(main)

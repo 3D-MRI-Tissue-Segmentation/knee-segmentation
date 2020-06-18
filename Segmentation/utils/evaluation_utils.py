@@ -14,7 +14,8 @@ from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
-from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix
+from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix, iou_loss_eval, dice_coef_eval
+from Segmentation.utils.losses import dice_coef, iou_loss
 
 def get_depth(conc):
     depth = 0
@@ -361,10 +362,26 @@ def confusion_matrix(trained_model,
                      validation_steps,
                      multi_class,
                      model_architecture,
-                     num_classes=7):
+                     callbacks,
+                     num_classes=7
+                     ):
 
     trained_model.load_weights(weights_dir).expect_partial()
-    trained_model.evaluate(dataset, steps=validation_steps)
+    trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
+
+    now = datetime.now().strftime("/%Y%m%d/%H%M%S")
+    # writer_dir = os.path.join('.', 'tb_checkpoints', 'eval', now)
+    # :'(
+    f = "/"+weights_dir.split('/')[-1]
+    # if weights_dir.endswith(f):
+    #     writer_dir= weights_dir[:-len(f)]
+    writer_dir = 'gs' + weights_dir.strip(f)
+    # writer_dir = ''
+    # for n in f:
+    #     writer_dir = os.path.join(writer_dir, n)
+    writer_dir = os.path.join(writer_dir, 'eval')
+    # os.makedirs(writer_dir)
+    eval_metric_writer = tf.summary.create_file_writer(writer_dir)
 
     if multi_class:
         cm = np.zeros((num_classes, num_classes))
@@ -384,6 +401,20 @@ def confusion_matrix(trained_model,
         print(step)
         pred = trained_model.predict(image)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+
+        if multi_class:
+            iou = iou_loss_eval(label, pred)
+            dice = dice_coef_eval(label, pred)
+        else:
+            iou = iou_loss(label, pred)
+            dice = dice_coef(label, pred)
+
+        with eval_metric_writer.as_default():
+            tf.summary.scalar('iou validation', iou, step=step)
+            tf.summary.scalar('dice validation', dice, step=step)
+        
+
+            
 
         if step > validation_steps - 1:
             break
