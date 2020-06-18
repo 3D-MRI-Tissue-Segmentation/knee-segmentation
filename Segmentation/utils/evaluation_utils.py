@@ -8,7 +8,7 @@ import glob
 from google.cloud import storage
 from pathlib import Path
 import os
-from datetime import datetime
+import datetime
 
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
@@ -292,6 +292,9 @@ def epoch_gif(model,
                     predicted_slice = trained_model.predict(x_slice)
                     if is_multi_class:
                         predicted_slice = np.argmax(predicted_slice, axis=-1)
+                    else:
+                        predicted_slice = np.squeeze(predicted_slice, axis=-1)
+
                     print('slice predicted\n')
 
                     print("adding prediction to the queue")
@@ -621,6 +624,7 @@ def confusion_matrix(trained_model,
 
     for step, (image, label) in enumerate(dataset):
         print(step)
+        print(image.shape)
         pred = trained_model.predict(image)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
