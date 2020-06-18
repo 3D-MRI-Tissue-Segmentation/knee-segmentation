@@ -102,7 +102,7 @@ def plot_and_eval_3D(model,
         name = name.split('.inde')[0]
         trained_model = model(*model_args)
         trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                        'checkpoint',
+                                                        'checkpoints',
                                                         tpu_name,
                                                         visual_file,
                                                         name)).expect_partial()
