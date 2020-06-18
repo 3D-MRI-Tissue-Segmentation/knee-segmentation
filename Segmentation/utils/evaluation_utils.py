@@ -52,14 +52,13 @@ def plot_and_eval_3D(model,
     print('weights_dir',weights_dir)
     ######################
 
-    session_name = os.path.join(logdir, tpu_name, visual_file)
+    session_name = os.path.join(bucket_name, tpu_name, visual_file)
 
     # Get names within folder in gcloud
     storage_client = storage.Client()
     blobs = storage_client.list_blobs(bucket_name)
     session_content = []
     for blob in blobs:
-        print('Current blob.name', blob.name)
         if session_name in blob.name:
             print('Appending blob.name to sess', blob.name)
             session_content.append(blob.name)
