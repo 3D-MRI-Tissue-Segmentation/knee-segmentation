@@ -37,24 +37,21 @@ def plot_and_eval_3D(trained_model,
     train_hist_dir = os.path.join(train_hist_dir, visual_file)
     checkpoints = Path(train_hist_dir).glob('*')
 
+    ######################
     """ Add the visualisation code here """
     print("Training history directory: {}".format(train_hist_dir))
     print("+========================================================")
     print(f"Does the selected path exist: {Path(train_hist_dir).is_dir()}")
     print(f"The glob object is: {checkpoints}")
     print("\n\nThe directories are:")
-
-    storage_client = storage.Client()
-
     print('weights_dir == "checkpoint"',weights_dir == "checkpoint")
     print('weights_dir',weights_dir)
+    ######################
 
-    if weights_dir == "checkpoint":
-        session_name = os.path.join(weights_dir, tpu_name, visual_file)
-    else:
-        session_name = os.path.join(weights_dir, visual_file)
+    session_name = os.path.join(weights_dir, tpu_name, visual_file)
 
     # Get names within folder in gcloud
+    storage_client = storage.Client()
     blobs = storage_client.list_blobs(bucket_name)
     session_content = []
     tf_records_content = []
@@ -148,37 +145,11 @@ def plot_and_eval_3D(trained_model,
                 del pred
                 del y
 
-                # pred_vols.append(pred_vol)
-                # y_vols.append(y_vol)
-
                 print("===============")
                 print("pred done")
                 print(pred_vol.shape)
                 print(y_vol.shape)
                 print("===============")
-
-                # pred_vol_dice = dice_coef(y_vol, pred_vol)
-
-                # print("DICE:", pred_vol_dice)
-
-                # pred_vol = pred_vol[50:110, 114:174, 114:174, 0]
-                # pred_vol = np.stack((pred_vol,) * 3, axis=-1)
-
-                # fig = plot_volume(pred_vol)
-                # plt.savefig(f"results/hello-hello")
-                # plt.close('all')
-
-                # if idx == 2:
-                #     print("Number of vols:", len(pred_vols), len(y_vols))
-                #     batch_pred_vols = np.concatenate(pred_vols)
-                #     batch_y_vols = np.concatenate(y_vols)
-
-                #     print("BATCH pred SIZE:", batch_pred_vols.shape)
-                #     print("BATCH y SIZE:", batch_y_vols.shape)
-
-                #     print("DICE BATCH:", dice_coef(batch_y_vols, batch_pred_vols))
-
-                    
 
                 print('is_multi_class', is_multi_class)
                 if is_multi_class:  # or np.shape(pred_vol)[-1] not
@@ -187,48 +158,6 @@ def plot_and_eval_3D(trained_model,
                     print('np.shape(pred_vol)', np.shape(pred_vol))
                     print('np.shape(y_vol)',np.shape(y_vol))
 
-
-                # Figure saving
-#                 pred_vol = pred_vol[50:110, 114:174, 114:174]
-                # print(pred_vol.shape)
-                # fig_dir = "results"
-                # fig = plot_volume(pred_vol)
-                # print("shabem")
-                # plt.savefig(f"results/hello-hello2")
-                # plt.close('all')
-
-                # # Save volume as numpy file for plotlyyy
-                # vol_name_npy = os.path.join(fig_dir, (visual_file + "_" + str(idx)))
-                # np.save(pred_vol, vol_name_npy)
-                # print("npy saved as ", vol_name_npy)
-
-#                 #create gif
-#                 print("\n\n\n\n=================")
-#                 print("checking for ffmpeg...")
-#                 if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
-#                     print("please 'pip install ffmpeg' to create gif")
-#                     print("gif not created")
-                    
-#                 else:
-#                     print("ffmpeg found")
-#                     print(f"ffmpeg found:{os.path.isfile('./../../../opt/conda/bin/ffmpeg')} ")
-#                     print("creating the gif ...")
-#                     slices = []
-#                     for i in range(pred_vol.shape[0]):
-#                         slices.append(pred_vol[i, :, :])
-#                         if i == 10:
-#                             break
-#                     pred_evolution_gif(slices, save_dir='results', file_name='gif1.mp4')
-#                     print('done')
-#                 print("=================\n\n\n\n")
-
-                # # Figure saving
-                # fig_dir = "results"
-                # fig = plot_volume(pred_vol)
-                # plt.savefig(f"results/hello-hello")
-                # plt.close('all')
-
-                # Save if save frequency
                 
                 print('should_save_np',should_save_np)
                 print('np.mod(idx_vol, save_freq)',np.mod(idx_vol, save_freq))

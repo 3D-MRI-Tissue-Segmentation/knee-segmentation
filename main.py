@@ -85,6 +85,7 @@ flags.DEFINE_integer('save_freq', 1, 'Save every x volumes as npy')
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
+flags.DEFINE_string('tpu_dir','','If loading visual file from a tpu other than the tpu you are training with.')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -324,10 +325,11 @@ def main(argv):
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
+        tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
         plot_and_eval_3D(trained_model=model,
                          logdir=FLAGS.logdir,
                          visual_file=FLAGS.visual_file,
-                         tpu_name=FLAGS.tpu,
+                         tpu_name=tpu,
                          bucket_name=FLAGS.bucket,
                          weights_dir=FLAGS.weights_dir,
                          is_multi_class=FLAGS.multi_class,
