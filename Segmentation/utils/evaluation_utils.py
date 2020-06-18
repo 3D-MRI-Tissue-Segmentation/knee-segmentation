@@ -286,14 +286,15 @@ def epoch_gif(model,
                 if idx+1 == which_volume:
                     x, _ = ds
                     # x = np.array(x)
-                    x_slice = np.array([x[which_slice-1]])
+                    x_slice = np.expand_dims(x[which_slice-1], axis=0)
                     print('Input image data type: {}, shape: {}\n\n'.format(type(x), x.shape))
 
                     print('predicting slice {}'.format(which_slice))
                     # pred_vol = trained_model.predict(x)
                     predicted_slice = trained_model.predict(x_slice)
                     if is_multi_class:
-                        pred_vol = np.argmax(pred_vol, axis=-1)
+                        # pred_vol = np.argmax(pred_vol, axis=-1)
+                        predicted_slice = np.argmax(predicted_slice, axis=-1)
                     print('slice predicted\n\n')
 
                     # im = ax.imshow(pred_vol[which_slice-1,:,:], cmap=gif_cmap, animated=True)
