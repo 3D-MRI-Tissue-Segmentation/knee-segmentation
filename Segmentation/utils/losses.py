@@ -69,14 +69,6 @@ def iou_loss(y_true, y_pred, smooth=1):
 
     return iou
 
-def iou_eval(y_true, y_pred, drop_class_idx=0):
-
-    y_true = np.delete(y_true, drop_class_idx, axis=-1)
-    y_pred = np.delete(y_true, drop_class_idx, axis=-1)
-
-    iou = iou_loss(y_true, y_pred, smooth)
-    return iou
-
 def bce_dice_loss(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
     loss = binary_crossentropy(y_true, y_pred) + dice_coef_loss(y_true, y_pred)
