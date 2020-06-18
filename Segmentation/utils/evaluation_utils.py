@@ -299,7 +299,7 @@ def epoch_gif(model,
 
                     # im = ax.imshow(pred_vol[which_slice-1,:,:], cmap=gif_cmap, animated=True)
                     print("adding prediction to the queue")
-                    im = ax.imshow(predicted_slice, cmap=gif_cmap, animated=True)
+                    im = ax.imshow(predicted_slice[0], cmap=gif_cmap, animated=True)
                     if not clean:
                         text = ax.text(0.5,1.05,f"Epoch {int(name.split('.')[1])}", 
                                     size=plt.rcParams["axes.titlesize"],
