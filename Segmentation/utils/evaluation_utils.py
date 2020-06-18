@@ -32,6 +32,10 @@ def plot_and_eval_3D(trained_model,
                      save_freq,
                      dataset):
 
+    """ plotly: Generates a numpy volume for every #save_freq number of weights
+        and saves it in local results/pred/*visual_file* and results/y/*visual_file*
+    """
+
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
     train_hist_dir = os.path.join(train_hist_dir, visual_file)
@@ -77,6 +81,7 @@ def plot_and_eval_3D(trained_model,
     target = 160
     
     for i, chkpt in enumerate(session_weights):
+        
         should_save_np = np.mod(i, save_freq) == 0
         
         ######################
