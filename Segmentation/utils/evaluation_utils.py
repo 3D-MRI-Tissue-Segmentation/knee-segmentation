@@ -8,7 +8,7 @@ import glob
 from google.cloud import storage
 from pathlib import Path
 import os
-from datetime import datetime
+import datetime
 
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
@@ -209,6 +209,7 @@ def plot_and_eval_3D(model,
 def epoch_gif(model,
               logdir,
               tfrecords_dir,
+              aug_strategy,
               visual_file,
               tpu_name,
               bucket_name,
@@ -226,7 +227,7 @@ def epoch_gif(model,
     valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
                             batch_size=160,
                             buffer_size=500,
-                            augmentation=None,
+                            augmentation=aug_strategy,
                             multi_class=is_multi_class,
                             is_training=False,
                             use_bfloat16=False,
@@ -285,12 +286,15 @@ def epoch_gif(model,
                 if idx+1 == which_volume:
                     x, _ = ds
                     x_slice = np.expand_dims(x[which_slice-1], axis=0)
-                    print('Input image data type: {}, shape: {}\n'.format(type(x), x.shape))
+                    print('Input image data type: {}, shape: {}\n'.format(type(x_slice), x_slice.shape))
 
                     print('predicting slice {}'.format(which_slice))
                     predicted_slice = trained_model.predict(x_slice)
                     if is_multi_class:
                         predicted_slice = np.argmax(predicted_slice, axis=-1)
+                    else:
+                        predicted_slice = np.squeeze(predicted_slice, axis=-1)
+
                     print('slice predicted\n')
 
                     print("adding prediction to the queue")
@@ -316,6 +320,7 @@ def epoch_gif(model,
 def volume_gif(model,
                logdir,
                tfrecords_dir,
+               aug_strategy,
                visual_file,
                tpu_name,
                bucket_name,
@@ -332,7 +337,7 @@ def volume_gif(model,
     valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
                             batch_size=160,
                             buffer_size=500,
-                            augmentation=None,
+                            augmentation=aug_strategy,
                             multi_class=is_multi_class,
                             is_training=False,
                             use_bfloat16=False,
@@ -619,6 +624,7 @@ def confusion_matrix(trained_model,
 
     for step, (image, label) in enumerate(dataset):
         print(step)
+        print(image.shape)
         pred = trained_model.predict(image)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
