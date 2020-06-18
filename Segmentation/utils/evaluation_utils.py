@@ -286,7 +286,7 @@ def epoch_gif(model,
                 if idx+1 == which_volume:
                     x, _ = ds
                     x_slice = np.expand_dims(x[which_slice-1], axis=0)
-                    print('Input image data type: {}, shape: {}\n'.format(type(x), x.shape))
+                    print('Input image data type: {}, shape: {}\n'.format(type(x_slice), x_slice.shape))
 
                     print('predicting slice {}'.format(which_slice))
                     predicted_slice = trained_model.predict(x_slice)
