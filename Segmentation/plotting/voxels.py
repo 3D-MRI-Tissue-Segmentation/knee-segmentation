@@ -13,7 +13,7 @@ def plot_volume(volume, show=False):
 
     print("Beginning voxel representation")
     print("...please wait, it's going to take a while...")
-    ax.voxels(voxel) #, facecolors=volume, linewidth=0.5)
+    ax.voxels(voxel, facecolors=volume, linewidth=0.5)
     print("done")
 
     if show:
