@@ -1,5 +1,6 @@
 from Segmentation.plotting.voxels import plot_volume, plot_to_image
 import tensorflow as tf
+import numpy as np
 
 
 colour_maps = {
@@ -83,6 +84,7 @@ def get_mid_vol(y, pred, multi_class, rad=12, check_empty=False):
     return img
 
 def plot_through_slices(batch_idx, x_crop, y_crop, mean_pred, writer, multi_class=False):
+    imgs = []
     for i in range(160):
         x_slice = tf.slice(x_crop, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
         y_slice = tf.slice(y_crop, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
@@ -102,8 +104,18 @@ def plot_through_slices(batch_idx, x_crop, y_crop, mean_pred, writer, multi_clas
             m_slice = tf.math.round(m_slice)
         if multi_class:
             x_slice = tf.squeeze(x_slice, axis=-1)
-            x_slice = tf.stack((x_slice,) * 3, axis=-1)
+            x_slice = tf.stack((x_slice,) * 3, axis=-1)        
+        if not multi_class:
+            x_min = tf.reduce_min(x_slice)
+            x_max = tf.reduce_max(x_slice)
+            x_slice = (x_slice - x_min) / (x_max - x_min)
         img = tf.concat((x_slice, y_slice, m_slice), axis=-2)
         img = tf.reshape(img, (img.shape[1:]))
         with writer.as_default():
             tf.summary.image(f"Whole Validation - All Slices", img, step=i)
+        img = tf.reshape(img, (img.shape[1:]))
+        if not multi_class:
+            img = tf.reshape(img, (img.shape[:-1]))
+            img = img * 255
+        imgs.append(img.numpy().astype(np.uint8))
+    return imgs

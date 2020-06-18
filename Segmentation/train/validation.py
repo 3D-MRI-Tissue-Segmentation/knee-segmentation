@@ -10,6 +10,7 @@ import datetime
 import itertools
 import math
 import copy
+import imageio
 
 
 def get_validation_stride_coords(pad, full_shape, iterator, strides_required):
@@ -172,7 +173,8 @@ def validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_d
         slices_writer = tf.summary.create_file_writer(log_dir_now + '/whole_val/img/all_slices' + now + f'/{idx}')
         
         if idx < 4: # plot the first 4
-            plot_through_slices(0, x_crop, y_crop, mean_pred, slices_writer, multi_class)
+            imgs = plot_through_slices(0, x_crop, y_crop, mean_pred, slices_writer, multi_class)
+            imageio.mimsave(f'{log_dir_now}/whole_val/img/all_slices/val_{idx}.gif', imgs)
 
             img = get_mid_slice(x_crop, y_crop, mean_pred, multi_class)
             del x_crop

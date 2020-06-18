@@ -325,16 +325,16 @@ if __name__ == "__main__":
         f.write(f'========================================== \n')
 
     debug = False
-    es = 200
+    es = 150
 
     main(epochs=es, name='vnet-slice-aug', lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
+         crop_size=128, depth_crop_size=2, num_channels=32, lr_drop_freq=8,
+         num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 5, 5),
+         aug=['shift', 'flip', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
 
     main(epochs=es, name='vnet-slice-noaug', lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+         crop_size=128, depth_crop_size=2, num_channels=32, lr_drop_freq=8,
+         num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 5, 5),
          aug=[], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
 
     #==================
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
          num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
+         aug=['shift', 'flip', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
 
     main(epochs=es, name='vnet-noaug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
