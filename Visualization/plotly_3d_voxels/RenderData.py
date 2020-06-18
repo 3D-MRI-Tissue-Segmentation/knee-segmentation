@@ -3,28 +3,44 @@ from VoxelData import VoxelData
 import numpy as np
 
 
-def get_steps(num_samples, num_traces, num_classes):
+def get_steps(num_samples, num_traces, num_classes_all):
     steps = []
+    # num_classes = np.amax(num_classes_all)
+    # if num_traces < num_samples:
+    #     num_traces = num_samples
     print('num_samples',num_samples)
-    print('num_traces',num_traces)
-    print('num_classes', num_classes)
-
+    # print('num_traces',num_traces)
+    # print('num_classes', num_classes)
+    assert num_traces == np.sum(num_classes_all), 'Number of segmentation classes not equal to total traces'
     # Loop through number of samples and for each make a 'step' with the 'visible' vector set True for each trace that's part of 1 volume
-    for i in range(num_samples):
+    cumm_traces = 0
+    for sample in range(num_samples):
         # Hide all traces
         step = dict(
             method = 'restyle',  
             args = ['visible', [False] * num_traces],
         )
 
+        print('prestep',step)
         # Enable the traces we want to see
-        for k in range(i*num_classes, (i+1)*num_classes):
+        print('int(np.sum(num_classes_all[:sample]))',int(np.sum(num_classes_all[:sample])))
+        print('cumm_traces',cumm_traces)
+        for k in range(cumm_traces, int(np.sum(num_classes_all[:sample]))):
+            print('k',k)
             step['args'][1][k] = True
 
-        
+        cumm_traces = int(np.sum(num_classes_all[:sample]))
+        print('cumm_traces',cumm_traces)
         print('step',step)
         # Add step to step list
         steps.append(step)
+
+    # Have last step be all traces visible at once
+    step = dict(
+        method = 'restyle',  
+        args = ['visible', [True] * num_traces],
+    )
+    steps.append(step)
 
     return steps
 
@@ -32,7 +48,8 @@ class RenderData(VoxelData):
 
     def __init__(self,seg_data):
         self.data = seg_data
-        if np.size(np.shape(self.data)) > 3:
+        self.has_mult_channels = np.size(np.shape(self.data)) > 3
+        if self.has_mult_channels:
             self.voxel_tot = np.prod(np.shape(self.data)[0:-1])  
         else:
             self.voxel_tot = np.prod(np.shape(self.data))  
@@ -53,7 +70,7 @@ class RenderData(VoxelData):
     def get_coords(self):
         indices = np.nonzero(self.data)
         indices = np.stack((indices[0], indices[1],indices[2]))
-        print('Number of non-background pixels:', len(indices))
+        print('Number of non-background voxels:', np.size(indices),'/',self.voxel_tot)
         return indices
 
     def has_voxel(self,neighbor_coord):
@@ -145,8 +162,8 @@ class RenderData(VoxelData):
         # make only outer vertices 
         print('Making voxel vertices')
         edge_verts = np.zeros((np.size(self.xyz, 0),1))
-        # num_voxels = np.size(self.xyz, 1)
-        for voxel in range(self.voxel_tot):
+        num_nonzero_voxels = np.size(self.xyz, 1)
+        for voxel in range(num_nonzero_voxels):
             cube = self.make_cube_verts(voxel)          # passing voxel num rather than 
             edge_verts = np.append(edge_verts, cube, axis=1)
         edge_verts = np.delete(edge_verts, 0,1)
