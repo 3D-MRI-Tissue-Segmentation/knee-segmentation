@@ -100,6 +100,7 @@ def plot_and_eval_3D(model,
 
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
+        trained_model = model(*model_args)
         trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                           weights_dir,
                                                           tpu_name,
