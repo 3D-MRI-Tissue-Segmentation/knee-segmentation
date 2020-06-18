@@ -3,8 +3,7 @@ import numpy as np
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.augmentation import crop_3d, crop_3d_pad_slice
 from Segmentation.utils.losses import dice_loss
-from Segmentation.train.reshape import get_mid_vol, get_mid_slice
-from Segmentation.plotting.voxels import plot_through_slices
+from Segmentation.train.reshape import get_mid_vol, get_mid_slice, plot_through_slices
 import os
 from time import time
 import datetime
@@ -92,7 +91,7 @@ def get_slice_paddings(crop_size, depth_crop_size, full_shape=(160,288,288), sli
 
 
 def validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_dir, multi_class,
-                        crop_size, depth_crop_size, predict_slice):
+                        crop_size, depth_crop_size, predict_slice, metrics):
     valid_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'), batch_size=val_batch_size, buffer_size=buffer_size, 
                                 is_training=False, use_keras_fit=False, multi_class=multi_class)
 
@@ -160,8 +159,9 @@ def validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_d
 
         mean_pred = np.divide(mean_pred, counter, dtype=np.float32)
         del counter
-        loss = dice_loss(y_crop, mean_pred)
-        p_loss = dice_loss(y_crop, y_crop)
+
+        loss = dice_loss(y_crop, mean_pred)        
+        metrics.store_metric(y_crop, mean_pred)
 
         total_loss += loss
         total_count += 1
@@ -170,18 +170,20 @@ def validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_d
         vol_writer = tf.summary.create_file_writer(log_dir_now + '/whole_val/img/vol' + now + f'/{idx}')
         slice_writer = tf.summary.create_file_writer(log_dir_now + '/whole_val/img/slice' + now + f'/{idx}')
         slices_writer = tf.summary.create_file_writer(log_dir_now + '/whole_val/img/all_slices' + now + f'/{idx}')
+        
+        if idx < 4: # plot the first 4
+            plot_through_slices(0, x_crop, y_crop, mean_pred, slices_writer, multi_class)
 
-        plot_through_slices(0, x_crop, y_crop, mean_pred, slices_writer)
+            img = get_mid_slice(x_crop, y_crop, mean_pred, multi_class)
+            del x_crop
+            with slice_writer.as_default():
+                tf.summary.image("Whole Validation - Slice", img, step=idx)
 
-        img = get_mid_slice(x_crop, y_crop, mean_pred, multi_class)
-        del x_crop
-        with slice_writer.as_default():
-            tf.summary.image("Whole Validation - Slice", img, step=idx)
+            img = get_mid_vol(y_crop, mean_pred, multi_class)
+            with vol_writer.as_default():
+                tf.summary.image("Whole Validation - Vol", img, step=idx)
 
-        img = get_mid_vol(y_crop, mean_pred, multi_class)
-        with vol_writer.as_default():
-            tf.summary.image("Whole Validation - Vol", img, step=idx)
-
+    metric_str = metrics.reset_metrics_get_str()
     total_loss /= total_count
     print("Dice Validation Loss:", total_loss)
-    return total_loss
+    return total_loss, metric_str

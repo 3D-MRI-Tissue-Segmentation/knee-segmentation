@@ -65,8 +65,10 @@ class Metric():
                     pos = 0 if training else 1
                     if metric_loss == 'metrics':
                         metric_str += f" - {val}{metric}: {self.metrics[metric_loss][metric][pos].result():.06f}"
+                        self.metrics[metric_loss][metric][pos].reset_states()
                     else:
                         metric_str += f" - {val}{metric}: {self.metrics[metric_loss][metric][pos + 1].result():.06f}"
+                        self.metrics[metric_loss][metric][pos + 1].reset_states()
         return metric_str
 
     def add_metric_summary_writer(self, log_dir_now):

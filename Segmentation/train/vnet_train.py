@@ -79,9 +79,12 @@ class Train:
                         tf.summary.image("Train - Slice", img, step=epoch)
                     if epoch % vol_visual_freq == 0:
                         if not predict_slice:
-                            img = get_mid_vol(y_train.values[0], pred.values[0], multi_class)
-                            with vol_writer.as_default():
-                                tf.summary.image("Train - Volume", img, step=epoch)
+                            if tf.math.reduce_sum(y_train.values[0]) < 10:
+                                num_to_visualise += 1
+                            else:
+                                img = get_mid_vol(y_train.values[0], pred.values[0], multi_class)
+                                with vol_writer.as_default():
+                                    tf.summary.image("Train - Volume", img, step=epoch)
                 num_train_batch += 1
             return total_loss / num_train_batch
 
@@ -98,9 +101,12 @@ class Train:
                         tf.summary.image("Validation - Slice", img, step=epoch)
                     if epoch % vol_visual_freq == 0:
                         if not predict_slice:
-                            img = get_mid_vol(y_valid.values[0], pred.values[0], multi_class)
-                            with vol_writer.as_default():
-                                tf.summary.image("Validation - Volume", img, step=epoch)
+                            if tf.math.reduce_sum(y_valid.values[0]) < 10:
+                                num_to_visualise += 1
+                            else:
+                                img = get_mid_vol(y_valid.values[0], pred.values[0], multi_class)
+                                with vol_writer.as_default():
+                                    tf.summary.image("Validation - Volume", img, step=epoch)
                 num_test_batch += 1
             return total_loss / num_test_batch
 
@@ -108,7 +114,7 @@ class Train:
             run_train_strategy = tf.function(run_train_strategy)
             run_test_strategy = tf.function(run_test_strategy)
 
-        name = "/vnet" if not self.predict_slice else "/vnet_slice"
+        name = self.model.name #"/vnet" if not self.predict_slice else "/vnet_slice"
         db = "/debug" if debug else "/test"
         mc = "/multi" if multi_class else "/binary"
         log_dir_now = self.log_dir + name + db + mc + datetime.datetime.now().strftime("/%Y%m%d/%H%M%S")
@@ -186,15 +192,15 @@ def load_datasets(batch_size, buffer_size,
     return train_ds, valid_ds
 
 
-def build_model(num_channels, num_classes, **kwargs):
+def build_model(num_channels, num_classes, name, **kwargs):
     """
     Builds standard vnet for 3D
     """
-    model = VNet(num_channels, num_classes, **kwargs)
+    model = VNet(num_channels, num_classes, name=name, **kwargs)
     return model
 
 
-def main(epochs,
+def main(epochs, name,
          log_dir_now=None,
          batch_size=2,
          val_batch_size=2,
@@ -214,6 +220,7 @@ def main(epochs,
          debug=False,
          predict_slice=False,
          tpu=False,
+         min_lr=1e-7,
          **model_kwargs,
          ):
     t0 = time()
@@ -257,10 +264,10 @@ def main(epochs,
     with strategy.scope():
         loss_func = tversky_loss if multi_class else dice_loss
 
-        lr_manager = LearningRateUpdate(lr, lr_drop, lr_drop_freq, warmup=lr_warmup)
+        lr_manager = LearningRateUpdate(lr, lr_drop, lr_drop_freq, warmup=lr_warmup, min_lr=min_lr)
 
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-        model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
+        model = build_model(num_channels, num_classes, name, predict_slice=predict_slice, **model_kwargs)
 
         trainer = Train(epochs, batch_size, enable_function,
                         model, optimizer, loss_func, lr_manager, predict_slice, metrics,
@@ -289,16 +296,16 @@ def main(epochs,
     print(f"Train Time: {train_time:.02f}")
     t1 = time()
     with strategy.scope():
-        model = build_model(num_channels, num_classes, predict_slice=predict_slice, **model_kwargs)
+        model = build_model(num_channels, num_classes, name, predict_slice=predict_slice, **model_kwargs)
         model.load_weights(os.path.join(log_dir_now + f'/best_weights.tf')).expect_partial()
     print("Validation for:", log_dir_now)
-    total_loss = validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_dir, multi_class,
-                                     crop_size, depth_crop_size, predict_slice)
+    total_loss, metric_str = validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_dir, multi_class,
+                                                 crop_size, depth_crop_size, predict_slice, Metric(metrics))
     print(f"Train Time: {train_time:.02f}")
     print(f"Validation Time: {time() - t1:.02f}")                 
     print(f"Total Time: {time() - t0:.02f}")
     with open("results/3d_result.txt","a") as f:
-        f.write(f'{log_dir_now}: total_loss {total_loss} \n')
+        f.write(f'{log_dir_now}: total_loss {total_loss} {metric_str} \n')
 
 
 if __name__ == "__main__":
@@ -310,98 +317,50 @@ if __name__ == "__main__":
         f.write(f'========================================== \n')
 
     debug = False
-    es = 2
+    es = 150
     
-    # main(epochs=es, log_dir_now='logs/vnet/test/binary/20200617/031207', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
+    main(epochs=es, name='vnet-aug', log_dir_now='logs/vnet/test/binary/20200617/031207', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+         num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+    main(epochs=es, name='vnet-noaug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+         num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+         aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
+
+    #=====================
+
+    main(epochs=es, name='vnet-multi-aug', lr=1e-6, min_lr=1e-8, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+         crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
+         num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
+         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
+
+    main(epochs=es, name='vnet-multi-noaug', lr=1e-6, min_lr=1e-8, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+         crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
+         num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
+         aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
+
+    #=====================
+
+    main(epochs=es, name='vnet-slice-aug', lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=10,
          num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
          aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
 
-    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=182, depth_crop_size=70, num_channels=1, lr_drop_freq=10,
-    #      num_conv_layers=1, batch_size=2, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['shift'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=172, depth_crop_size=60, num_channels=1, lr_drop_freq=10,
-    #      num_conv_layers=1, batch_size=2, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['shift', 'shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=192, depth_crop_size=80, num_channels=1, lr_drop_freq=10,
-    #      num_conv_layers=1, batch_size=2, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['flip'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=192, depth_crop_size=80, num_channels=1, lr_drop_freq=10,
-    #      num_conv_layers=1, batch_size=2, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=192, depth_crop_size=80, num_channels=1, lr_drop_freq=10,
-    #      num_conv_layers=1, batch_size=2, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['resize'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['shift', 'flip', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['shift', 'flip'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['shift'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    # main(epochs=es, lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
+    main(epochs=es, name='vnet-slice-noaug', lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+         crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=10,
+         num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
+         aug=[], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
 
     #=====================
 
-    # main(epochs=es, lr=1e-6, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
+    main(epochs=es, name='vnet-slice-multi-aug', lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+         crop_size=128, depth_crop_size=2, num_channels=8, lr_drop_freq=10,
+         num_conv_layers=3, batch_size=2, val_batch_size=4, multi_class=True, kernel_size=(3, 3, 3),
+         aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
 
-    # main(epochs=es, lr=1e-6, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-    #      aug=['shift'], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    # main(epochs=es, lr=1e-6, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=64, depth_crop_size=32, num_channels=8, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=2, val_batch_size=2, multi_class=True, kernel_size=(3, 3, 3),
-    #      aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
-
-    #=====================
-
-    # main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=128, depth_crop_size=2, num_channels=16, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
-
-    # main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=128, depth_crop_size=3, num_channels=16, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 3, 3),
-    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
-
-    # main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=128, depth_crop_size=1, num_channels=32, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=6, val_batch_size=4, multi_class=False, kernel_size=(3, 7, 7),
-    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
-
-    # main(epochs=es, lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-    #      crop_size=128, depth_crop_size=1, num_channels=8, lr_drop_freq=10,
-    #      num_conv_layers=3, batch_size=4, val_batch_size=4, multi_class=True, kernel_size=(3, 7, 7),
-    #      aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
+    main(epochs=es, name='vnet-slice-multi-noaug', lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+         crop_size=128, depth_crop_size=2, num_channels=8, lr_drop_freq=10,
+         num_conv_layers=3, batch_size=2, val_batch_size=4, multi_class=True, kernel_size=(3, 3, 3),
+         aug=[], use_transpose=False, debug=debug, tpu=use_tpu, predict_slice=True, strides=(1, 2, 2), slice_format="sum")
