@@ -234,14 +234,14 @@ def read_tfrecord(tfrecords_dir,
 
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
+    cycle_l = 1
     if is_training:
         shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
-        cyc_l = 8
-    else:
-        cyc_l = 1
+        cycle_l = 8
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
-                                cycle_length=cyc_l,
+                                cycle_length=cycle_l,
+
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)

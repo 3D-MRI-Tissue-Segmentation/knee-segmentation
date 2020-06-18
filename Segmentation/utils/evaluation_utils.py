@@ -12,6 +12,7 @@ from datetime import datetime
 
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
+from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix, iou_loss_eval, dice_coef_eval
 from Segmentation.utils.losses import dice_coef, iou_loss
@@ -30,7 +31,8 @@ def plot_and_eval_3D(model,
                      weights_dir,
                      is_multi_class,
                      save_freq,
-                     dataset):
+                     dataset,
+                     model_args):
 
     """ plotly: Generates a numpy volume for every #save_freq number of weights
         and saves it in local results/pred/*visual_file* and results/y/*visual_file*
@@ -91,6 +93,7 @@ def plot_and_eval_3D(model,
             print("skipping ", chkpt)
             continue
 
+
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
         trained_model.load_weights('gs://' + os.path.join(bucket_name,
@@ -98,6 +101,7 @@ def plot_and_eval_3D(model,
                                                           tpu_name,
                                                           visual_file,
                                                           name)).expect_partial()
+
 
 
         # sample_x = []    # x for current 160,288,288 vol
@@ -202,34 +206,168 @@ def plot_and_eval_3D(model,
 
 
 
+def epoch_gif(model,
+              logdir,
+              tfrecords_dir,
+              visual_file,
+              tpu_name,
+              bucket_name,
+              weights_dir,
+              is_multi_class,
+              model_args,
+              which_slice,
+              which_volume=1,
+              epoch_limit=1000,
+              gif_dir='',
+              gif_cmap='gray',
+              clean=False):
+
+    #load the database
+    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+                            batch_size=160,
+                            buffer_size=500,
+                            augmentation=None,
+                            multi_class=is_multi_class,
+                            is_training=False,
+                            use_bfloat16=False,
+                            use_RGB=False)
+
+    # load the checkpoints in the specified log directory
+    train_hist_dir = os.path.join(logdir, tpu_name)
+    train_hist_dir = os.path.join(train_hist_dir, visual_file)
+
+    print("\n\nTraining history directory: {}".format(train_hist_dir))
+    print("+========================================================")
+    print("\n\nThe directories are:")
+
+    storage_client = storage.Client()
+    session_name = os.path.join(weights_dir, tpu_name, visual_file)
+
+    blobs = storage_client.list_blobs(bucket_name)
+    session_content = []
+    for blob in blobs:
+        if session_name in blob.name:
+            session_content.append(blob.name)
+
+    session_weights = []
+    for item in session_content:
+        if ('_weights' in item) and ('.ckpt.index' in item):
+            session_weights.append(item)
+
+    for s in session_weights:
+        print(s) #print all the checkpoint directories
+    print("--")
+
+    #figure for gif
+    fig, ax = plt.subplots()
+    images_gif = []
+
+    for chkpt in session_weights:
+        name = chkpt.split('/')[-1]
+        name = name.split('.inde')[0]
+
+        if int(name.split('.')[1]) <= epoch_limit:
+
+            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+            print(f"\t\t  {name}")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+
+            trained_model = model(*model_args)
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                              weights_dir,
+                                                              tpu_name,
+                                                              visual_file,
+                                                              name)).expect_partial()
+
+            for idx, ds in enumerate(valid_ds):
+
+                if idx+1 == which_volume:
+                    x, _ = ds
+                    # x = np.array(x)
+                    x_slice = np.expand_dims(x[which_slice-1], axis=0)
+                    print('Input image data type: {}, shape: {}\n'.format(type(x), x.shape))
+
+                    print('predicting slice {}'.format(which_slice))
+                    # pred_vol = trained_model.predict(x)
+                    predicted_slice = trained_model.predict(x_slice)
+                    if is_multi_class:
+                        # pred_vol = np.argmax(pred_vol, axis=-1)
+                        predicted_slice = np.argmax(predicted_slice, axis=-1)
+                    print('slice predicted\n')
+
+                    # im = ax.imshow(pred_vol[which_slice-1,:,:], cmap=gif_cmap, animated=True)
+                    print("adding prediction to the queue")
+                    im = ax.imshow(predicted_slice[0], cmap=gif_cmap, animated=True)
+                    if not clean:
+                        text = ax.text(0.5,1.05,f"Epoch {int(name.split('.')[1])}", 
+                                    size=plt.rcParams["axes.titlesize"],
+                                    ha="center", transform=ax.transAxes)
+                        images_gif.append([im, text])
+                    else:
+                        ax.axis('off')
+                        images_gif.append([im])
+                    print("prediction added\n")
+
+                    break
+
+        else:
+            break
+
+    pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
+
+
+
 def pred_evolution_gif(fig,
                        frames_list,
                        interval=300,
                        save_dir='',
                        save=True,
+                       no_margins=True,
                        show=False):
 
-    gif = ArtistAnimation(fig, frames_list, interval, repeat=True) # create gif
+    print("\n\n\n\n=================")
+    print("checking for ffmpeg...")
+    if not os.path.isfile('./../../../opt/conda/bin/ffmpeg'):
+        print("please 'pip install ffmpeg' to create gif")
+        print("gif not created")
+        
+    else:
+        print("ffmpeg found")
+        print("creating the gif ...\n")
+        gif = ArtistAnimation(fig, frames_list, interval, repeat=True) # create gif
 
-    if save:
-        if save_dir == '':
-            time = datetime.now().strftime("%Y%m%d-%H%M%S")
-            save_dir = 'results/gif'+ time + '.gif'
+        if save:
+            if no_margins:
+                plt.tight_layout()
+                plt.gca().set_axis_off()
+                plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, 
+                                    hspace = 0, wspace = 0)
+                plt.margins(0,0)
+                plt.gca().xaxis.set_major_locator(plt.NullLocator())
+                plt.gca().yaxis.set_major_locator(plt.NullLocator())
 
-        plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # set directory of ffmpeg binary file
-        Writer = animation.writers['ffmpeg']
-        ffmwriter = Writer(fps=1000//interval, metadata=dict(artist='Me'), bitrate=1800) #set the save writer
-        gif.save('results/temp_video.mp4', writer=ffmwriter)
+            if save_dir == '':
+                time = datetime.now().strftime("%Y%m%d-%H%M%S")
+                save_dir = 'results/gif'+ time + '.gif'
 
-        codeBASH = f"ffmpeg -i 'results/temp_video.mp4' -loop 0 {save_dir}" #convert mp4 to gif
-        os.system(codeBASH)
-        os.remove("results/temp_video.mp4")
+            plt.rcParams['animation.ffmpeg_path'] = r'//opt//conda//bin//ffmpeg'  # set directory of ffmpeg binary file
+            Writer = animation.writers['ffmpeg']
+            ffmwriter = Writer(fps=1000//interval, metadata=dict(artist='Me'), bitrate=1800) #set the save writer
+            gif.save('results/temp_video.mp4', writer=ffmwriter)
 
-        plt.close('all')
+            codeBASH = f"ffmpeg -i 'results/temp_video.mp4' -loop 0 {save_dir}" #convert mp4 to gif
+            os.system(codeBASH)
+            os.remove("results/temp_video.mp4")
 
-    if show:
-        plt.show()
-        plt.close('all')
+            plt.close('all')
+
+        if show:
+            plt.show()
+            plt.close('all')
+        
+        print("\n\n=================")
+        print('done\n\n')
 
 def confusion_matrix(trained_model,
                      weights_dir,

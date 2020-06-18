@@ -18,7 +18,7 @@ from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -89,7 +89,9 @@ flags.DEFINE_string('tpu_dir','','If loading visual file from a tpu other than t
 flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
 flags.DEFINE_integer('gif_epochs', 1000, 'Number of epochs to include in the creation of the gifS')
 flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
-flags.DEFINE_integer('gif_slice', 100, 'Slice that is taken into consideration for the gif')
+flags.DEFINE_integer('gif_slice', 80, 'Slice that is taken into consideration for the gif')
+flags.DEFINE_integer('gif_volume', 1, 'Which volume from the validation dataset to consider')
+flags.DEFINE_bool('clean_gif', False, 'False includes text representing epoch number')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -340,7 +342,26 @@ def main(argv):
     elif not FLAGS.visual_file == "":
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
         print('model_fn',model_fn)
-        plot_and_eval_3D(model=model_fn,
+        
+        if not FLAGS.gif_directory == "":
+            epoch_gif(model=model_fn,
+                      logdir=FLAGS.logdir,
+                      tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                      visual_file=FLAGS.visual_file,
+                      tpu_name=tpu,
+                      bucket_name=FLAGS.bucket,
+                      weights_dir=FLAGS.weights_dir,
+                      is_multi_class=FLAGS.multi_class,
+                      model_args=model_args,
+                      which_slice=FLAGS.gif_slice,
+                      which_volume=FLAGS.gif_volume,
+                      epoch_limit=FLAGS.gif_epochs,
+                      gif_dir=FLAGS.gif_directory,
+                      gif_cmap=FLAGS.gif_cmap,
+                      clean=FLAGS.clean_gif)
+
+        else:
+            plot_and_eval_3D(model=model_fn,
                          logdir=FLAGS.logdir,
                          visual_file=FLAGS.visual_file,
                          tpu_name=tpu,
@@ -349,11 +370,8 @@ def main(argv):
                          is_multi_class=FLAGS.multi_class,
                          save_freq=FLAGS.save_freq,
                          dataset=valid_ds,
-                         model_args=model_args,
-                         which_slice=FLAGS.gif_slice,
-                         epoch_limit=FLAGS.gif_epochs,
-                         gif_dir=FLAGS.gif_directory,
-                         gif_cmap=FLAGS.gif_cmap)
+                         model_args=model_args)
+
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file
