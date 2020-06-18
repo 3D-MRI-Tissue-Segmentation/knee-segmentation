@@ -267,9 +267,9 @@ def confusion_matrix(trained_model,
     # writer_dir = os.path.join('.', 'tb_checkpoints', 'eval', now)
     # :'(
     f = "/"+weights_dir.split('/')[-1]
-    if weights_dir.endswith(f):
-        writer_dir= weights_dir[:-len(f)]
-    # writer_dir = weights_dir.strip(f)
+    # if weights_dir.endswith(f):
+    #     writer_dir= weights_dir[:-len(f)]
+    writer_dir = 'gs' + weights_dir.strip(f)
     # writer_dir = ''
     # for n in f:
     #     writer_dir = os.path.join(writer_dir, n)
