@@ -236,9 +236,12 @@ def read_tfrecord(tfrecords_dir,
     shards = tf.data.Dataset.from_tensor_slices(file_list)
     if is_training:
         shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
+        cycle_length = 8
+    else:
+        cycle_length = 1
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
-                                cycle_length=8,
+                                cycle_length=cycle_length,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)

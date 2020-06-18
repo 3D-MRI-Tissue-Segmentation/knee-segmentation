@@ -280,6 +280,7 @@ def confusion_matrix(trained_model,
     for step, (image, label) in enumerate(dataset):
         print(step)
         pred = trained_model.predict(image)
+        visualise_multi_class(label, pred)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
         # if multi_class:
