@@ -10,7 +10,7 @@ from absl import flags
 from absl import logging
 from glob import glob
 
-from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet
+from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet, Nested_UNet_v2
 from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
@@ -36,7 +36,7 @@ flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
-flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) ori binary setting')
+flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
@@ -86,6 +86,10 @@ flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
 flags.DEFINE_string('tpu_dir','','If loading visual file from a tpu other than the tpu you are training with.')
+flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
+flags.DEFINE_integer('gif_epochs', 1000, 'Number of epochs to include in the creation of the gifS')
+flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
+flags.DEFINE_integer('gif_slice', 100, 'Slice that is taken into consideration for the gif')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -168,98 +172,107 @@ def main(argv):
         tf.keras.mixed_precision.experimental.set_policy(policy)
 
     # set model architecture
+    model_fn = None
+    model_args = []
+
+    if FLAGS.model_architecture == 'unet':
+        model_args = [FLAGS.num_filters,
+                      num_classes,
+                      FLAGS.backbone_architecture,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      FLAGS.use_attention,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.use_dropout,
+                      FLAGS.dropout_rate,
+                      FLAGS.use_spatial,
+                      FLAGS.channel_order]
+
+        model_fn = UNet
+
+    elif FLAGS.model_architecture == 'r2unet':
+        model_args = [FLAGS.num_filters,
+                      num_classes,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      2,
+                      FLAGS.use_attention,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order]
+
+        model_fn = R2_UNet
+
+    elif FLAGS.model_architecture == 'segnet':
+        model_args = [FLAGS.num_filters,
+                      num_classes,
+                      FLAGS.backbone_architecture,
+                      FLAGS.kernel_size,
+                      (2, 2),
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.use_transpose,
+                      FLAGS.use_dropout,
+                      FLAGS.dropout_rate,
+                      FLAGS.use_spatial,
+                      FLAGS.channel_order]
+
+        model_fn = SegNet
+
+    elif FLAGS.model_architecture == 'unet++':
+        model_args = [FLAGS.num_filters,
+                      num_classes,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order]
+
+        model_fn = Nested_UNet
+
+    elif FLAGS.model_architecture == '100-Layer-Tiramisu':
+        model_args = [FLAGS.growth_rate,
+                      FLAGS.layers_per_block,
+                      FLAGS.init_num_channels,
+                      num_classes,
+                      FLAGS.kernel_size,
+                      FLAGS.pool_size,
+                      FLAGS.activation,
+                      FLAGS.dropout_rate,
+                      FLAGS.strides,
+                      FLAGS.padding]
+
+        model_fn = Hundred_Layer_Tiramisu
+
+    elif FLAGS.model_architecture == 'deeplabv3':
+        model_args = [num_classes,
+                      FLAGS.kernel_size_initial_conv,
+                      FLAGS.num_filters_atrous,
+                      FLAGS.num_filters_DCNN,
+                      FLAGS.num_filters_ASPP,
+                      FLAGS.kernel_size_atrous,
+                      FLAGS.kernel_size_DCNN, 
+                      FLAGS.kernel_size_ASPP,
+                      'same',
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order,
+                      FLAGS.MultiGrid,
+                      FLAGS.rate_ASPP,
+                      FLAGS.output_stride]
+
+        model_fn = Deeplabv3
+    else:
+        logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
+    
     with strategy.scope():
-
-        if FLAGS.model_architecture == 'unet':
-
-            model = UNet(FLAGS.num_filters,
-                         num_classes,
-                         FLAGS.backbone_architecture,
-                         FLAGS.num_conv,
-                         FLAGS.kernel_size,
-                         FLAGS.activation,
-                         FLAGS.use_attention,
-                         FLAGS.use_batchnorm,
-                         FLAGS.use_bias,
-                         FLAGS.use_dropout,
-                         FLAGS.dropout_rate,
-                         FLAGS.use_spatial,
-                         FLAGS.channel_order)
-
-        elif FLAGS.model_architecture == 'r2unet':
-
-            model = R2_UNet(FLAGS.num_filters,
-                            num_classes,
-                            FLAGS.num_conv,
-                            FLAGS.kernel_size,
-                            FLAGS.activation,
-                            2,
-                            FLAGS.use_attention,
-                            FLAGS.use_batchnorm,
-                            FLAGS.use_bias,
-                            FLAGS.channel_order)
-
-        elif FLAGS.model_architecture == 'segnet':
-
-            model = SegNet(FLAGS.num_filters,
-                           num_classes,
-                           FLAGS.backbone_architecture,
-                           FLAGS.kernel_size,
-                           (2, 2),
-                           FLAGS.activation,
-                           FLAGS.use_batchnorm,
-                           FLAGS.use_bias,
-                           FLAGS.use_transpose,
-                           FLAGS.use_dropout,
-                           FLAGS.dropout_rate,
-                           FLAGS.use_spatial,
-                           FLAGS.channel_order)
-
-        elif FLAGS.model_architecture == 'unet++':
-
-            model = Nested_UNet(FLAGS.num_filters,
-                                num_classes,
-                                FLAGS.num_conv,
-                                FLAGS.kernel_size,
-                                FLAGS.activation,
-                                FLAGS.use_batchnorm,
-                                FLAGS.use_bias,
-                                FLAGS.channel_order)
-
-        elif FLAGS.model_architecture == '100-Layer-Tiramisu':
-
-            model = Hundred_Layer_Tiramisu(FLAGS.growth_rate,
-                                           FLAGS.layers_per_block,
-                                           FLAGS.init_num_channels,
-                                           num_classes,
-                                           FLAGS.kernel_size,
-                                           FLAGS.pool_size,
-                                           FLAGS.activation,
-                                           FLAGS.dropout_rate,
-                                           FLAGS.strides,
-                                           FLAGS.padding)
-
-        elif FLAGS.model_architecture == 'deeplabv3':
-
-            model = Deeplabv3(num_classes,
-                              FLAGS.kernel_size_initial_conv,
-                              FLAGS.num_filters_atrous,
-                              FLAGS.num_filters_DCNN,
-                              FLAGS.num_filters_ASPP,
-                              FLAGS.kernel_size_atrous,
-                              FLAGS.kernel_size_DCNN,
-                              FLAGS.kernel_size_ASPP,
-                              'same',
-                              FLAGS.activation,
-                              FLAGS.use_batchnorm,
-                              FLAGS.use_bias,
-                              FLAGS.channel_order,
-                              FLAGS.MultiGrid,
-                              FLAGS.rate_ASPP,
-                              FLAGS.output_stride)
-
-        else:
-            logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
+        model = model_fn(*model_args)
 
         if FLAGS.custom_decay_lr:
             lr_decay_epochs = FLAGS.lr_decay_epochs
@@ -289,13 +302,13 @@ def main(argv):
                 model.build((batch_size, 288, 288, 3))
 
             model.summary()
-        
+
         if FLAGS.multi_class:
             model.compile(optimizer=optimiser,
                           loss=loss_fn,
                           metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
         else:
-            model.compile(optimizer=optimiser, 
+            model.compile(optimizer=optimiser,
                           loss=loss_fn,
                           metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 
@@ -326,7 +339,8 @@ def main(argv):
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
-        plot_and_eval_3D(trained_model=model,
+        print('model_fn',model_fn)
+        plot_and_eval_3D(model=model_fn,
                          logdir=FLAGS.logdir,
                          visual_file=FLAGS.visual_file,
                          tpu_name=tpu,
@@ -334,11 +348,21 @@ def main(argv):
                          weights_dir=FLAGS.weights_dir,
                          is_multi_class=FLAGS.multi_class,
                          save_freq=FLAGS.save_freq,
-                         dataset=valid_ds)
+                         dataset=valid_ds,
+                         model_args=model_args,
+                         which_slice=FLAGS.gif_slice,
+                         epoch_limit=FLAGS.gif_epochs,
+                         gif_dir=FLAGS.gif_directory,
+                         gif_cmap=FLAGS.gif_cmap)
+
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
 
+        time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
+        logdir = os.path.join(logdir, time)
+        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch',write_images=True)
         confusion_matrix(trained_model=model,
                          weights_dir=FLAGS.weights_dir,
                          fig_dir=FLAGS.fig_dir,
@@ -346,7 +370,9 @@ def main(argv):
                          validation_steps=validation_steps,
                          multi_class=FLAGS.multi_class,
                          model_architecture=FLAGS.model_architecture,
-                         num_classes=num_classes)
+                         callbacks=[tb],
+                         num_classes=num_classes
+                         )
 
 if __name__ == '__main__':
     app.run(main)

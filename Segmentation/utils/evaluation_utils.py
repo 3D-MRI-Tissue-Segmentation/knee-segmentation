@@ -201,11 +201,6 @@ def plot_and_eval_3D(model,
                 break
 
 
-                
-
-            
-
-
 
 def pred_evolution_gif(fig,
                        frames_list,
