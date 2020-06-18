@@ -31,8 +31,8 @@ htmlcov/
 *.hdf5
 *.csv
 *.tfrecords
-*.cfg
-*.sh
+# *.cfg
+# *.sh
 *.zsh
 
 # IDE
