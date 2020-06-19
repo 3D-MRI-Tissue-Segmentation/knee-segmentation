@@ -683,18 +683,19 @@ def take_slice(model,
                     y_slice = y[which_slice-1]
 
                     print('predicting slice {}'.format(which_slice))
-                    pred_vol = trained_model.predict(x_slice)
+                    pred_slice = trained_model.predict(x_slice)
+                    print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
                     if is_multi_class:
-                        pred_vol = np.argmax(pred_vol, axis=-1)
+                        pred_slice = np.argmax(pred_slice, axis=-1)
                         y_slice = np.argmax(y_slice, axis=-1)
                     else:
-                        pred_vol = np.squeeze(pred_vol, axis=-1)
+                        pred_slice = np.squeeze(pred_slice, axis=-1)
                         y_slice = np.squeeze(y_slice, axis=-1)
                     print('slice predicted\n')
 
                     print('input image data type: {}, shape: {}'.format(type(x), x.shape))
                     print('label image data type: {}, shape: {}'.format(type(y), y.shape))
-                    print('prediction image data type: {}, shape: {}\n'.format(type(pred_vol), pred_vol.shape))
+                    print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
 
                     print("Creating label image")
                     fig_y = plt.figure()
@@ -704,7 +705,7 @@ def take_slice(model,
                     print("Creating prediction image")
                     fig_pred = plt.figure()
                     ax_pred = fig_pred.add_subplot(1, 1, 1)
-                    ax_y.imshow(pred_vol[0])
+                    ax_pred.imshow(pred_slice[0])
                     ax_pred.axis('off')
 
                     print("Saving images")
