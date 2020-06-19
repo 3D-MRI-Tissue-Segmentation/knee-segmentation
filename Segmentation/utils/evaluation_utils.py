@@ -686,10 +686,10 @@ def take_slice(model,
                     pred_vol = trained_model.predict(x_slice)
                     if is_multi_class:
                         pred_vol = np.argmax(pred_vol, axis=-1)
-                        y = np.argmax(y, axis=-1)
+                        y_slice = np.argmax(y, axis=-1)
                     else:
                         pred_vol = np.squeeze(pred_vol, axis=-1)
-                        y = np.squeeze(y, axis=-1)
+                        y_slice = np.squeeze(y, axis=-1)
                     print('slice predicted\n')
 
                     print('input image data type: {}, shape: {}'.format(type(x), x.shape))
@@ -699,7 +699,7 @@ def take_slice(model,
                     print("Creating label image")
                     fig_y = plt.figure()
                     ax_y = fig_y.add_subplot(1, 1, 1)
-                    ax_y.imshow(y)
+                    ax_y.imshow(y_slice)
                     ax_y.axis('off')
                     print("Creating prediction image")
                     fig_pred = plt.figure()
