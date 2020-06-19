@@ -681,7 +681,6 @@ def take_slice(model,
                     x, y = ds
                     x_slice = np.expand_dims(x[which_slice-1], axis=0)
                     y_slice = y[which_slice-1]
-                    y_slice = np.squeeze(y_slice, axis=0)
 
                     print('predicting slice {}'.format(which_slice))
                     pred_vol = trained_model.predict(x_slice)
@@ -705,7 +704,7 @@ def take_slice(model,
                     print("Creating prediction image")
                     fig_pred = plt.figure()
                     ax_pred = fig_pred.add_subplot(1, 1, 1)
-                    ax_y.imshow(pred_vol)
+                    ax_y.imshow(pred_vol[0])
                     ax_pred.axis('off')
 
                     print("Saving images")
