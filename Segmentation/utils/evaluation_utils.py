@@ -694,7 +694,7 @@ def take_slice(model,
 
                     print('input image data type: {}, shape: {}'.format(type(x), x.shape))
                     print('label image data type: {}, shape: {}'.format(type(y), y.shape))
-                    print('prediction image data type: {}, shape: {}\n'.format(type(pred), pred.shape))
+                    print('prediction image data type: {}, shape: {}\n'.format(type(pred_vol), pred_vol.shape))
 
                     print("Creating label image")
                     fig_y = plt.figure()
