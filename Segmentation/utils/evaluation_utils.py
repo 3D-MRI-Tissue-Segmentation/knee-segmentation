@@ -707,7 +707,7 @@ def take_slice(model,
 
                     print("Saving images")
                     save_dir_y = save_dir + '_y.png'
-                    save_dir_pred = save_dir + "_pred.png"
+                    save_dir_pred = save_dir + '_pred.png'
                     fig_y.savefig(save_dir_y)
                     fig_pred.savefig(save_dir_pred)
 
