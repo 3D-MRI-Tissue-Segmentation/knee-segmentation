@@ -416,6 +416,8 @@ def volume_gif(model,
                     pred_vol = trained_model.predict(x)
                     if is_multi_class:
                         pred_vol = np.argmax(pred_vol, axis=-1)
+                    else:
+                        pred_vol = np.squeeze(pred_vol, axis=-1)
                     print('volume predicted\n')
 
                     for i in range(x.shape[0]):
