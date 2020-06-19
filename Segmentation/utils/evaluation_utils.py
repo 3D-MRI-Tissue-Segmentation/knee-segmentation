@@ -88,7 +88,7 @@ def plot_and_eval_3D(model,
     
     for i, chkpt in enumerate(session_weights):
         
-        should_save_np = np.mod(i, save_freq) == 0
+        should_save_np = np.mod((i+1), save_freq) == 0
         
         ######################
         print('should_save_np',should_save_np)
