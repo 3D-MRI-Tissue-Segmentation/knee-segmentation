@@ -698,6 +698,12 @@ def take_slice(model,
                     print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
 
                     print("Creating label image")
+                    x_s = np.squeeze(x[which_slice-1], axis=-1)
+                    fig_x = plt.figure()
+                    ax_x = fig_x.add_subplot(1, 1, 1)
+                    ax_x.imshow(x_s)
+                    ax_x.axis('off')
+                    print("Creating label image")
                     fig_y = plt.figure()
                     ax_y = fig_y.add_subplot(1, 1, 1)
                     ax_y.imshow(y_slice)
@@ -709,8 +715,10 @@ def take_slice(model,
                     ax_pred.axis('off')
 
                     print("Saving images")
+                    save_dir_x = save_dir + '_x.png'
                     save_dir_y = save_dir + '_y.png'
                     save_dir_pred = save_dir + '_pred.png'
+                    fig_x.savefig(save_dir_x)
                     fig_y.savefig(save_dir_y)
                     fig_pred.savefig(save_dir_pred)
 
