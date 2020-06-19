@@ -605,7 +605,7 @@ def pred_evolution_gif(fig,
 def take_slice(model,
                logdir,
                tfrecords_dir,
-               aug_strategy=aug_strategy
+               aug_strategy=aug_strategy,
                visual_file,
                tpu_name,
                bucket_name,
