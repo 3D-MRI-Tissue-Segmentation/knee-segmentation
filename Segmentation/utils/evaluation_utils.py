@@ -36,6 +36,12 @@ def plot_and_eval_3D(model,
 
     """ plotly: Generates a numpy volume for every #save_freq number of weights
         and saves it in local results/pred/*visual_file* and results/y/*visual_file*
+
+        Once numpy's are generated, run the following in console to get an embeddable html file:
+            python3 Visualization/plotly_3d_voxels/run_plotly.py -dir_l FOLDER_TO_Y_SAMPLES
+             -dir_r FOLDER_TO_PREDICTIONS
+
+
     """
 
     # load the checkpoints in the specified log directory
@@ -46,23 +52,24 @@ def plot_and_eval_3D(model,
     """ Add the visualisation code here """
     print("\n\nTraining history directory: {}".format(train_hist_dir))
     print("+========================================================")
+    print('bucket_name',bucket_name)
     print("\n\nThe directories are:")
     print('weights_dir == "checkpoint"',weights_dir == "checkpoint")
     print('weights_dir',weights_dir)
     ######################
 
-    session_name = os.path.join(weights_dir, tpu_name, visual_file)
+    session_name = weights_dir.split('/')[3]
+    session_name = os.path.join(session_name, tpu_name, visual_file)
 
     # Get names within folder in gcloud
     storage_client = storage.Client()
     blobs = storage_client.list_blobs(bucket_name)
     session_content = []
-    tf_records_content = []
-    for blob in blobs:
+    print('session_name',session_name)
+    for i,blob in enumerate(blobs):
         if session_name in blob.name:
             session_content.append(blob.name)
-        if os.path.join('tfrecords', 'valid') in blob.name:
-            tf_records_content.append(blob.name)
+
 
     session_weights = []
     for item in session_content:
@@ -81,7 +88,7 @@ def plot_and_eval_3D(model,
     
     for i, chkpt in enumerate(session_weights):
         
-        should_save_np = np.mod(i, save_freq) == 0
+        should_save_np = np.mod((i+1), save_freq) == 0
         
         ######################
         print('should_save_np',should_save_np)
@@ -96,11 +103,12 @@ def plot_and_eval_3D(model,
 
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
+        trained_model = model(*model_args)
         trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                          weights_dir,
-                                                          tpu_name,
-                                                          visual_file,
-                                                          name)).expect_partial()
+                                                        'checkpoints',
+                                                        tpu_name,
+                                                        visual_file,
+                                                        name)).expect_partial()
 
 
 
@@ -108,7 +116,7 @@ def plot_and_eval_3D(model,
         sample_pred = []  # prediction for current 160,288,288 vol
         sample_y = []    # y for current 160,288,288 vol
 
-
+        which_volume = 2
         for idx, ds in enumerate(dataset):
 
             ######################
@@ -116,8 +124,14 @@ def plot_and_eval_3D(model,
             print('Current chkpt name',name)
             ######################
 
+
             x, y = ds
             batch_size = x.shape[0]
+
+            if batch_size == 160:
+                if not (int(idx) == int(which_volume)):
+                    continue
+
             x = np.array(x)
             y = np.array(y)
         
@@ -286,7 +300,7 @@ def epoch_gif(model,
                 if idx+1 == which_volume:
                     x, _ = ds
                     x_slice = np.expand_dims(x[which_slice-1], axis=0)
-                    print('Input image data type: {}, shape: {}\n'.format(type(x), x.shape))
+                    print('Input image data type: {}, shape: {}\n'.format(type(x_slice), x_slice.shape))
 
                     print('predicting slice {}'.format(which_slice))
                     predicted_slice = trained_model.predict(x_slice)
@@ -423,7 +437,7 @@ def volume_gif(model,
     pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
 
-def volume_comarison_gif(model,
+def volume_comparison_gif(model,
                          logdir,
                          tfrecords_dir,
                          visual_file,
@@ -624,7 +638,6 @@ def confusion_matrix(trained_model,
 
     for step, (image, label) in enumerate(dataset):
         print(step)
-        print(image.shape)
         pred = trained_model.predict(image)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 

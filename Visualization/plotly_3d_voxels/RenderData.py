@@ -21,17 +21,14 @@ def get_steps(num_samples, num_traces, num_classes_all):
             args = ['visible', [False] * num_traces],
         )
 
-        print('prestep',step)
         # Enable the traces we want to see
         print('int(np.sum(num_classes_all[:sample]))',int(np.sum(num_classes_all[:sample])))
-        print('cumm_traces',cumm_traces)
         for k in range(cumm_traces, int(np.sum(num_classes_all[:sample]))):
             print('k',k)
             step['args'][1][k] = True
 
         cumm_traces = int(np.sum(num_classes_all[:sample]))
         print('cumm_traces',cumm_traces)
-        print('step',step)
         # Add step to step list
         steps.append(step)
 

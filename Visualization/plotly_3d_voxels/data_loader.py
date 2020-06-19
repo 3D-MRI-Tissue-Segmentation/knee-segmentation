@@ -39,7 +39,7 @@ def load_data(opt):
                     if is_acceptable(fname):
                         data_path = os.path.join(root,fname)
                         data_paths_left.append(data_path)
-            for root, dir, fnames in sorted(os.walk(opt.data_paths_right)):
+            for root, dir, fnames in sorted(os.walk(opt.dataroot_right)):
                 for fname in fnames:
                     if is_acceptable(fname):
                         data_path = os.path.join(root,fname)
