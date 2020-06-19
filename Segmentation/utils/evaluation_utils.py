@@ -36,6 +36,12 @@ def plot_and_eval_3D(model,
 
     """ plotly: Generates a numpy volume for every #save_freq number of weights
         and saves it in local results/pred/*visual_file* and results/y/*visual_file*
+
+        Once numpy's are generated, run the following in console to get an embeddable html file:
+            python3 Visualization/plotly_3d_voxels/run_plotly.py -dir_l FOLDER_TO_Y_SAMPLES
+             -dir_r FOLDER_TO_PREDICTIONS
+
+
     """
 
     # load the checkpoints in the specified log directory
@@ -61,10 +67,7 @@ def plot_and_eval_3D(model,
     session_content = []
     print('session_name',session_name)
     for i,blob in enumerate(blobs):
-        if np.mod(i,100)==0:
-            print('current blob.name',blob.name)
         if session_name in blob.name:
-            print('Appending blob.name to sess', blob.name)
             session_content.append(blob.name)
 
 
