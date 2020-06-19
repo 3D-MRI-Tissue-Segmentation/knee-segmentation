@@ -36,6 +36,12 @@ def plot_and_eval_3D(model,
 
     """ plotly: Generates a numpy volume for every #save_freq number of weights
         and saves it in local results/pred/*visual_file* and results/y/*visual_file*
+
+        Once numpy's are generated, run the following in console to get an embeddable html file:
+            python3 Visualization/plotly_3d_voxels/run_plotly.py -dir_l FOLDER_TO_Y_SAMPLES
+             -dir_r FOLDER_TO_PREDICTIONS
+
+
     """
 
     # load the checkpoints in the specified log directory
@@ -61,10 +67,7 @@ def plot_and_eval_3D(model,
     session_content = []
     print('session_name',session_name)
     for i,blob in enumerate(blobs):
-        if np.mod(i,100)==0:
-            print('current blob.name',blob.name)
         if session_name in blob.name:
-            print('Appending blob.name to sess', blob.name)
             session_content.append(blob.name)
 
 
@@ -85,7 +88,7 @@ def plot_and_eval_3D(model,
     
     for i, chkpt in enumerate(session_weights):
         
-        should_save_np = np.mod(i, save_freq) == 0
+        should_save_np = np.mod((i+1), save_freq) == 0
         
         ######################
         print('should_save_np',should_save_np)
@@ -113,7 +116,7 @@ def plot_and_eval_3D(model,
         sample_pred = []  # prediction for current 160,288,288 vol
         sample_y = []    # y for current 160,288,288 vol
 
-
+        which_volume = 2
         for idx, ds in enumerate(dataset):
 
             ######################
@@ -121,8 +124,14 @@ def plot_and_eval_3D(model,
             print('Current chkpt name',name)
             ######################
 
+
             x, y = ds
             batch_size = x.shape[0]
+
+            if batch_size == 160:
+                if not (int(idx) == int(which_volume)):
+                    continue
+
             x = np.array(x)
             y = np.array(y)
         
@@ -186,7 +195,7 @@ def plot_and_eval_3D(model,
 
 
                 # Get middle xx slices cuz 288x288x160 too big
-                roi = int(50 / 2)
+                roi = int(80 / 2)
                 d1,d2,d3 = np.shape(pred_vol)[0:3]
                 d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
                 pred_vol = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
@@ -407,6 +416,8 @@ def volume_gif(model,
                     pred_vol = trained_model.predict(x)
                     if is_multi_class:
                         pred_vol = np.argmax(pred_vol, axis=-1)
+                    else:
+                        pred_vol = np.squeeze(pred_vol, axis=-1)
                     print('volume predicted\n')
 
                     for i in range(x.shape[0]):
@@ -429,19 +440,19 @@ def volume_gif(model,
 
 
 def volume_comparison_gif(model,
-                         logdir,
-                         tfrecords_dir,
-                         visual_file,
-                         tpu_name,
-                         bucket_name,
-                         weights_dir,
-                         is_multi_class,
-                         model_args,
-                         which_epoch,
-                         which_volume=1,
-                         gif_dir='',
-                         gif_cmap='gray',
-                         clean=False):
+                          logdir,
+                          tfrecords_dir,
+                          visual_file,
+                          tpu_name,
+                          bucket_name,
+                          weights_dir,
+                          is_multi_class,
+                          model_args,
+                          which_epoch,
+                          which_volume=1,
+                          gif_dir='',
+                          gif_cmap='gray',
+                          clean=False):
 
     #load the database
     valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
@@ -590,6 +601,118 @@ def pred_evolution_gif(fig,
         
         print("\n\n=================")
         print('done\n\n')
+
+def take_slice(model,
+               logdir,
+               tfrecords_dir,
+               visual_file,
+               tpu_name,
+               bucket_name,
+               weights_dir,
+               is_multi_class,
+               model_args,
+               which_epoch,
+               which_slice,
+               which_volume=1,
+               save_dir=''):
+
+    #load the database
+    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+                            batch_size=160,
+                            buffer_size=500,
+                            augmentation=None,
+                            multi_class=is_multi_class,
+                            is_training=False,
+                            use_bfloat16=False,
+                            use_RGB=False)
+
+    # load the checkpoints in the specified log directory
+    train_hist_dir = os.path.join(logdir, tpu_name)
+    train_hist_dir = os.path.join(train_hist_dir, visual_file)
+
+    print("\n\nTraining history directory: {}".format(train_hist_dir))
+    print("+========================================================")
+    print("\n\nThe directories are:")
+
+    storage_client = storage.Client()
+    session_name = os.path.join(weights_dir, tpu_name, visual_file)
+
+    blobs = storage_client.list_blobs(bucket_name)
+    session_content = []
+    for blob in blobs:
+        if session_name in blob.name:
+            session_content.append(blob.name)
+
+    session_weights = []
+    for item in session_content:
+        if ('_weights' in item) and ('.ckpt.index' in item):
+            session_weights.append(item)
+
+    for s in session_weights:
+        print(s) #print all the checkpoint directories
+    print("--")
+
+    #figure for gif
+    fig, axes = plt.subplots(1, 3)
+    images_gif = []
+
+    for chkpt in session_weights:
+        name = chkpt.split('/')[-1]
+        name = name.split('.inde')[0]
+
+        if int(name.split('.')[1]) == which_epoch:
+
+            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+            print(f"\t\t  {name}")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+
+            trained_model = model(*model_args)
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                              weights_dir,
+                                                              tpu_name,
+                                                              visual_file,
+                                                              name)).expect_partial()
+
+            for idx, ds in enumerate(valid_ds):
+
+                if idx+1 == which_volume:
+                    x, y = ds
+                    x_slice = np.expand_dims(x[which_slice-1], axis=0)
+                    y_slice = y[which_slice-1]
+
+                    print('predicting slice {}'.format(which_slice))
+                    pred_vol = trained_model.predict(x)
+                    if is_multi_class:
+                        pred_vol = np.argmax(pred_vol, axis=-1)
+                        y = np.argmax(y, axis=-1)
+                    else:
+                        pred_vol = np.squeeze(pred_vol, axis=-1)
+                        y = np.squeeze(y, axis=-1)
+                    print('slice predicted\n')
+
+                    print('input image data type: {}, shape: {}'.format(type(x), x.shape))
+                    print('label image data type: {}, shape: {}'.format(type(y), y.shape))
+                    print('prediction image data type: {}, shape: {}\n'.format(type(pred), pred.shape))
+
+                    print("Creating label image")
+                    fig_y = plt.figure()
+                    ax_y = fig_y.add_subplot(1, 1, 1)
+                    ax_y.axis('off')
+                    print("Creating prediction image")
+                    fig_pred = plt.figure()
+                    ax_pred = fig_pred.add_subplot(1, 1, 1)
+                    ax_pred.axis('off')
+
+                    print("Saving images")
+                    save_dir_y = save_dir + '_y.png'
+                    save_dir_pred = save_dir + "_pred.png"
+                    fig_y.savefig(save_dir_y)
+                    fig_pred.savefig(save_dir_pred)
+
+                    break
+            
+            break
 
 def confusion_matrix(trained_model,
                      weights_dir,

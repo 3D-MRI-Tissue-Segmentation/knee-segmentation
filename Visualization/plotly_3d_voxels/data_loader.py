@@ -39,7 +39,7 @@ def load_data(opt):
                     if is_acceptable(fname):
                         data_path = os.path.join(root,fname)
                         data_paths_left.append(data_path)
-            for root, dir, fnames in sorted(os.walk(opt.data_paths_right)):
+            for root, dir, fnames in sorted(os.walk(opt.dataroot_right)):
                 for fname in fnames:
                     if is_acceptable(fname):
                         data_path = os.path.join(root,fname)
@@ -85,7 +85,7 @@ def load_data(opt):
         if not opt.dataroot_left or not opt.dataroot_right:
             assert data_paths, 'The directory %s may not contain files with valid extensions %s' % (opt.dataroot, EXTENSIONS)        
             data = []
-            if len(data_paths) == 1:
+            if not (type(data_paths) == list):
                 data = np.load(data_paths)
             else:
                 for i, path in enumerate(data_paths):
