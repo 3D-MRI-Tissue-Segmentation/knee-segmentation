@@ -4,16 +4,17 @@ import numpy as np
 
 
 def get_steps(num_samples, num_traces, num_classes_all):
+    """ Loop through number of samples and for each make a 
+        'step' with the 'visible' vector set True for each 
+        trace that's part of 1 volume
+    """
     steps = []
-    # num_classes = np.amax(num_classes_all)
-    # if num_traces < num_samples:
-    #     num_traces = num_samples
-    print('num_samples',num_samples)
-    # print('num_traces',num_traces)
-    # print('num_classes', num_classes)
-    assert num_traces == np.sum(num_classes_all), 'Number of segmentation classes not equal to total traces'
-    # Loop through number of samples and for each make a 'step' with the 'visible' vector set True for each trace that's part of 1 volume
     cumm_traces = 0
+    print('Generating slider steps')
+    print('Number of sample volumes',num_samples)
+
+    assert num_traces == np.sum(num_classes_all), 'Number of segmentation classes not equal to total traces'
+    
     for sample in range(num_samples):
         # Hide all traces
         step = dict(
@@ -22,13 +23,11 @@ def get_steps(num_samples, num_traces, num_classes_all):
         )
 
         # Enable the traces we want to see
-        print('int(np.sum(num_classes_all[:sample]))',int(np.sum(num_classes_all[:sample])))
         for k in range(cumm_traces, int(np.sum(num_classes_all[:sample]))):
-            print('k',k)
             step['args'][1][k] = True
-
         cumm_traces = int(np.sum(num_classes_all[:sample]))
-        print('cumm_traces',cumm_traces)
+        # print('cummulative traces',cumm_traces)
+
         # Add step to step list
         steps.append(step)
 
@@ -40,6 +39,8 @@ def get_steps(num_samples, num_traces, num_classes_all):
     steps.append(step)
 
     return steps
+
+
 
 class RenderData(VoxelData):
 
