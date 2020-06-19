@@ -699,10 +699,12 @@ def take_slice(model,
                     print("Creating label image")
                     fig_y = plt.figure()
                     ax_y = fig_y.add_subplot(1, 1, 1)
+                    ax_y.imshow(y)
                     ax_y.axis('off')
                     print("Creating prediction image")
                     fig_pred = plt.figure()
                     ax_pred = fig_pred.add_subplot(1, 1, 1)
+                    ax_y.imshow(pred_vol)
                     ax_pred.axis('off')
 
                     print("Saving images")
