@@ -21,6 +21,7 @@ __pycache__/
 htmlcov/
 
 # Files
+*.DS_Store
 *.json
 *.png
 *.jpg
