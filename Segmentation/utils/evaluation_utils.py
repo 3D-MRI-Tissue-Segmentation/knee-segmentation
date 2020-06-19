@@ -686,10 +686,10 @@ def take_slice(model,
                     pred_vol = trained_model.predict(x_slice)
                     if is_multi_class:
                         pred_vol = np.argmax(pred_vol, axis=-1)
-                        y_slice = np.argmax(y, axis=-1)
+                        y_slice = np.argmax(y_slice, axis=-1)
                     else:
                         pred_vol = np.squeeze(pred_vol, axis=-1)
-                        y_slice = np.squeeze(y, axis=-1)
+                        y_slice = np.squeeze(y_slice, axis=-1)
                     print('slice predicted\n')
 
                     print('input image data type: {}, shape: {}'.format(type(x), x.shape))
