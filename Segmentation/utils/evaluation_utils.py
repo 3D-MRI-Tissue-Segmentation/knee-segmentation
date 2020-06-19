@@ -688,6 +688,8 @@ def take_slice(model,
                     if is_multi_class:
                         pred_slice = np.argmax(pred_slice, axis=-1)
                         y_slice = np.argmax(y_slice, axis=-1)
+                        pred_slice[pred_slice>0] = 1
+                        y_slice[y_slice>0] = 1
                     else:
                         pred_slice = np.squeeze(pred_slice, axis=-1)
                         y_slice = np.squeeze(y_slice, axis=-1)
@@ -701,17 +703,17 @@ def take_slice(model,
                     x_s = np.squeeze(x[which_slice-1], axis=-1)
                     fig_x = plt.figure()
                     ax_x = fig_x.add_subplot(1, 1, 1)
-                    ax_x.imshow(x_s)
+                    ax_x.imshow(x_s, cmap='gray')
                     ax_x.axis('off')
                     print("Creating label image")
                     fig_y = plt.figure()
                     ax_y = fig_y.add_subplot(1, 1, 1)
-                    ax_y.imshow(y_slice)
+                    ax_y.imshow(y_slice, cmap='gray')
                     ax_y.axis('off')
                     print("Creating prediction image")
                     fig_pred = plt.figure()
                     ax_pred = fig_pred.add_subplot(1, 1, 1)
-                    ax_pred.imshow(pred_slice[0])
+                    ax_pred.imshow(pred_slice[0], cmap='gray')
                     ax_pred.axis('off')
 
                     print("Saving images")
