@@ -93,6 +93,7 @@ def make_fig(data, opt, col_num):
                 showlegend=True
                 ), row=1, col=col_num)
     
+        print('Appending ',Voxels.num_classes, 'classes')
         num_classes_all.append(Voxels.num_classes)
 
     return fig, num_classes_all, num_samples
@@ -135,18 +136,20 @@ if __name__ == "__main__":
     if opt.dataroot_left and opt.dataroot_right:
         fig = make_subplots(rows=1, 
                             cols=2,
-                            specs=[{'type': 'mesh3D'}, {'type': 'mesh3D'}])
+                            specs=[[{'type': 'mesh3D'}, {'type': 'mesh3D'}]])
         print('type(fig)',type(fig))
 
         data_l, data_r = load_data(opt)
         col_l = 1
         col_r = 2
 
-        fig, classes_counts_l, num_samples_l = make_fig(data_l, opt,col_l)
-        fig, classes_counts_r, num_samples_r = make_fig(data_r, opt,col_r)
+        fig, num_classes_all_l, num_samples_l = make_fig(data_l, opt,col_l)
+        fig, num_classes_all_r, num_samples_r = make_fig(data_r, opt,col_r)
 
-        fig = update_fig(fig,classes_counts_l,num_samples_l)
-        fig = update_fig(fig,classes_counts_r,num_samples_r)
+        num_classes_all = [num_classes_all_l, num_classes_all_r]
+        num_samples = num_samples_l + num_samples_r
+
+        fig = update_fig(fig,num_classes_all,num_samples)
 
     else:
         fig = make_subplots(rows=1, 

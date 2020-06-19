@@ -36,6 +36,12 @@ def plot_and_eval_3D(model,
 
     """ plotly: Generates a numpy volume for every #save_freq number of weights
         and saves it in local results/pred/*visual_file* and results/y/*visual_file*
+
+        Once numpy's are generated, run the following in console to get an embeddable html file:
+            python3 Visualization/plotly_3d_voxels/run_plotly.py -dir_l FOLDER_TO_Y_SAMPLES
+             -dir_r FOLDER_TO_PREDICTIONS
+
+
     """
 
     # load the checkpoints in the specified log directory
@@ -61,10 +67,7 @@ def plot_and_eval_3D(model,
     session_content = []
     print('session_name',session_name)
     for i,blob in enumerate(blobs):
-        if np.mod(i,100)==0:
-            print('current blob.name',blob.name)
         if session_name in blob.name:
-            print('Appending blob.name to sess', blob.name)
             session_content.append(blob.name)
 
 
@@ -85,7 +88,7 @@ def plot_and_eval_3D(model,
     
     for i, chkpt in enumerate(session_weights):
         
-        should_save_np = np.mod(i, save_freq) == 0
+        should_save_np = np.mod((i+1), save_freq) == 0
         
         ######################
         print('should_save_np',should_save_np)
@@ -113,7 +116,7 @@ def plot_and_eval_3D(model,
         sample_pred = []  # prediction for current 160,288,288 vol
         sample_y = []    # y for current 160,288,288 vol
 
-
+        which_volume = 2
         for idx, ds in enumerate(dataset):
 
             ######################
@@ -121,8 +124,14 @@ def plot_and_eval_3D(model,
             print('Current chkpt name',name)
             ######################
 
+
             x, y = ds
             batch_size = x.shape[0]
+
+            if batch_size == 160:
+                if idx not which_volume:
+                    continue
+
             x = np.array(x)
             y = np.array(y)
         
