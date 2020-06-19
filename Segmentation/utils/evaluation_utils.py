@@ -46,23 +46,27 @@ def plot_and_eval_3D(model,
     """ Add the visualisation code here """
     print("\n\nTraining history directory: {}".format(train_hist_dir))
     print("+========================================================")
+    print('bucket_name',bucket_name)
     print("\n\nThe directories are:")
     print('weights_dir == "checkpoint"',weights_dir == "checkpoint")
     print('weights_dir',weights_dir)
     ######################
 
-    session_name = os.path.join(weights_dir, tpu_name, visual_file)
+    session_name = weights_dir.split('/')[3]
+    session_name = os.path.join(session_name, tpu_name, visual_file)
 
     # Get names within folder in gcloud
     storage_client = storage.Client()
     blobs = storage_client.list_blobs(bucket_name)
     session_content = []
-    tf_records_content = []
-    for blob in blobs:
+    print('session_name',session_name)
+    for i,blob in enumerate(blobs):
+        if np.mod(i,100)==0:
+            print('current blob.name',blob.name)
         if session_name in blob.name:
+            print('Appending blob.name to sess', blob.name)
             session_content.append(blob.name)
-        if os.path.join('tfrecords', 'valid') in blob.name:
-            tf_records_content.append(blob.name)
+
 
     session_weights = []
     for item in session_content:
@@ -96,11 +100,12 @@ def plot_and_eval_3D(model,
 
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
+        trained_model = model(*model_args)
         trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                          weights_dir,
-                                                          tpu_name,
-                                                          visual_file,
-                                                          name)).expect_partial()
+                                                        'checkpoints',
+                                                        tpu_name,
+                                                        visual_file,
+                                                        name)).expect_partial()
 
 
 
@@ -423,7 +428,7 @@ def volume_gif(model,
     pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
 
-def volume_comarison_gif(model,
+def volume_comparison_gif(model,
                          logdir,
                          tfrecords_dir,
                          visual_file,
@@ -624,7 +629,6 @@ def confusion_matrix(trained_model,
 
     for step, (image, label) in enumerate(dataset):
         print(step)
-        print(image.shape)
         pred = trained_model.predict(image)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
