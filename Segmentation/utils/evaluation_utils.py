@@ -116,7 +116,7 @@ def plot_and_eval_3D(model,
         sample_pred = []  # prediction for current 160,288,288 vol
         sample_y = []    # y for current 160,288,288 vol
 
-
+        which_volume = 2
         for idx, ds in enumerate(dataset):
 
             ######################
@@ -124,8 +124,14 @@ def plot_and_eval_3D(model,
             print('Current chkpt name',name)
             ######################
 
+
             x, y = ds
             batch_size = x.shape[0]
+
+            if batch_size == 160:
+                if idx not which_volume:
+                    continue
+
             x = np.array(x)
             y = np.array(y)
         
