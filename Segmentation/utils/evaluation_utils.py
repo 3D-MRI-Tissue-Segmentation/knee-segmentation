@@ -440,19 +440,19 @@ def volume_gif(model,
 
 
 def volume_comparison_gif(model,
-                         logdir,
-                         tfrecords_dir,
-                         visual_file,
-                         tpu_name,
-                         bucket_name,
-                         weights_dir,
-                         is_multi_class,
-                         model_args,
-                         which_epoch,
-                         which_volume=1,
-                         gif_dir='',
-                         gif_cmap='gray',
-                         clean=False):
+                          logdir,
+                          tfrecords_dir,
+                          visual_file,
+                          tpu_name,
+                          bucket_name,
+                          weights_dir,
+                          is_multi_class,
+                          model_args,
+                          which_epoch,
+                          which_volume=1,
+                          gif_dir='',
+                          gif_cmap='gray',
+                          clean=False):
 
     #load the database
     valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
@@ -601,6 +601,132 @@ def pred_evolution_gif(fig,
         
         print("\n\n=================")
         print('done\n\n')
+
+def take_slice(model,
+               logdir,
+               tfrecords_dir,
+               aug_strategy,
+               visual_file,
+               tpu_name,
+               bucket_name,
+               weights_dir,
+               is_multi_class,
+               model_args,
+               which_epoch,
+               which_slice,
+               which_volume=1,
+               save_dir=''):
+
+    #load the database
+    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+                            batch_size=160,
+                            buffer_size=500,
+                            augmentation=aug_strategy,
+                            multi_class=is_multi_class,
+                            is_training=False,
+                            use_bfloat16=False,
+                            use_RGB=False)
+
+    # load the checkpoints in the specified log directory
+    train_hist_dir = os.path.join(logdir, tpu_name)
+    train_hist_dir = os.path.join(train_hist_dir, visual_file)
+
+    print("\n\nTraining history directory: {}".format(train_hist_dir))
+    print("+========================================================")
+    print("\n\nThe directories are:")
+
+    storage_client = storage.Client()
+    session_name = os.path.join(weights_dir, tpu_name, visual_file)
+
+    blobs = storage_client.list_blobs(bucket_name)
+    session_content = []
+    for blob in blobs:
+        if session_name in blob.name:
+            session_content.append(blob.name)
+
+    session_weights = []
+    for item in session_content:
+        if ('_weights' in item) and ('.ckpt.index' in item):
+            session_weights.append(item)
+
+    for s in session_weights:
+        print(s) #print all the checkpoint directories
+    print("--")
+
+    #figure for gif
+    fig, axes = plt.subplots(1, 3)
+    images_gif = []
+
+    for chkpt in session_weights:
+        name = chkpt.split('/')[-1]
+        name = name.split('.inde')[0]
+
+        if int(name.split('.')[1]) == which_epoch:
+
+            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+            print(f"\t\t  {name}")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+
+            trained_model = model(*model_args)
+            trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                              weights_dir,
+                                                              tpu_name,
+                                                              visual_file,
+                                                              name)).expect_partial()
+
+            for idx, ds in enumerate(valid_ds):
+
+                if idx+1 == which_volume:
+                    x, y = ds
+                    x_slice = np.expand_dims(x[which_slice-1], axis=0)
+                    y_slice = y[which_slice-1]
+
+                    print('predicting slice {}'.format(which_slice))
+                    pred_slice = trained_model.predict(x_slice)
+                    print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
+                    if is_multi_class:
+                        pred_slice = np.argmax(pred_slice, axis=-1)
+                        y_slice = np.argmax(y_slice, axis=-1)
+                        pred_slice[pred_slice>0] = 1
+                        y_slice[y_slice>0] = 1
+                    else:
+                        pred_slice = np.squeeze(pred_slice, axis=-1)
+                        y_slice = np.squeeze(y_slice, axis=-1)
+                    print('slice predicted\n')
+
+                    print('input image data type: {}, shape: {}'.format(type(x), x.shape))
+                    print('label image data type: {}, shape: {}'.format(type(y), y.shape))
+                    print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
+
+                    print("Creating label image")
+                    x_s = np.squeeze(x[which_slice-1], axis=-1)
+                    fig_x = plt.figure()
+                    ax_x = fig_x.add_subplot(1, 1, 1)
+                    ax_x.imshow(x_s, cmap='gray')
+                    ax_x.axis('off')
+                    print("Creating label image")
+                    fig_y = plt.figure()
+                    ax_y = fig_y.add_subplot(1, 1, 1)
+                    ax_y.imshow(y_slice, cmap='gray')
+                    ax_y.axis('off')
+                    print("Creating prediction image")
+                    fig_pred = plt.figure()
+                    ax_pred = fig_pred.add_subplot(1, 1, 1)
+                    ax_pred.imshow(pred_slice[0], cmap='gray')
+                    ax_pred.axis('off')
+
+                    print("Saving images")
+                    save_dir_x = save_dir + '_x.png'
+                    save_dir_y = save_dir + '_y.png'
+                    save_dir_pred = save_dir + '_pred.png'
+                    fig_x.savefig(save_dir_x)
+                    fig_y.savefig(save_dir_y)
+                    fig_pred.savefig(save_dir_pred)
+
+                    break
+            
+            break
 
 def confusion_matrix(trained_model,
                      weights_dir,
