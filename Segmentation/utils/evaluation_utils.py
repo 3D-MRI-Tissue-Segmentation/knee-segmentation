@@ -129,7 +129,7 @@ def plot_and_eval_3D(model,
             batch_size = x.shape[0]
 
             if batch_size == 160:
-                if idx not which_volume:
+                if not (int(idx) == int(which_volume)):
                     continue
 
             x = np.array(x)
