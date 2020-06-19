@@ -683,7 +683,7 @@ def take_slice(model,
                     y_slice = y[which_slice-1]
 
                     print('predicting slice {}'.format(which_slice))
-                    pred_vol = trained_model.predict(x)
+                    pred_vol = trained_model.predict(x_slice)
                     if is_multi_class:
                         pred_vol = np.argmax(pred_vol, axis=-1)
                         y = np.argmax(y, axis=-1)
