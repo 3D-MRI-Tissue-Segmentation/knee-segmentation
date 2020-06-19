@@ -681,6 +681,7 @@ def take_slice(model,
                     x, y = ds
                     x_slice = np.expand_dims(x[which_slice-1], axis=0)
                     y_slice = y[which_slice-1]
+                    y_slice = np.squeeze(y_slice, axis=0)
 
                     print('predicting slice {}'.format(which_slice))
                     pred_vol = trained_model.predict(x_slice)
