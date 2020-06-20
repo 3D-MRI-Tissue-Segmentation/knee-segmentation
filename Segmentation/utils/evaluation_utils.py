@@ -214,7 +214,7 @@ def plot_and_eval_3D(model,
                 del y_vol
 
                 ######################
-                print("breaking after saving vol ", idx, "for ", name)
+                print("Total voxels saved, pred:", np.sum(pred_vol), "y:", np.sum(y_vol))
                 ######################
                 break
 
