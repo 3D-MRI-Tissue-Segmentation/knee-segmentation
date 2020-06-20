@@ -184,8 +184,8 @@ def plot_and_eval_3D(model,
 
                 # Save volume as numpy file for plotlyyy
                 fig_dir = "results"
-                name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name + "_" +str(idx_vol).zfill(3)))
-                name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + name + "_" + str(idx_vol).zfill(3)))
+                name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name)
+                name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + str(which_volume).zfill(3)))
                 
                 ######################
                 print("npy save pred as ", name_pred_npy)
