@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import time
+import random
 from glob import glob
 import imageio
 import subprocess
@@ -474,7 +475,7 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     df_experiments = pd.DataFrame(data=train_cols)
     df_experiments.to_csv("vnet_train_experiments.csv", index=False, header=False, mode='a')
 
-    return time_taken
+    return time_taken, min_roll_loss, min_roll_val_loss
 
 
 if __name__ == "__main__":
@@ -507,77 +508,92 @@ if __name__ == "__main__":
         df = pd.DataFrame(data=train_cols)
         df.to_csv("vnet_train_experiments.csv", index=False)
 
+    if not os.path.exists("vnet_train_hp.csv"):
+        hp_cols = {
+            'batch_size': [],
+            'schedule_epoch_drops': [],
+            'schedule_drops': [],
+            'lr': [],
+            'epochs': [],
+            'noise': [],
+            'input_width': [],
+            'normalise': [],
+            'remove_outliers': [],
+            'skip_empty': [],
+            'time_taken': [],
+            'min_roll_loss': [],
+            'min_roll_val_loss': [],
+        }
+        df = pd.DataFrame(data=hp_cols)
+        df.to_csv("vnet_train_hp.csv", index=False)
+
     debug = False
     if not debug:
 
         check_run = False
 
-        e = 50
         if check_run:
-            e = 3
-        learn_rate = 5e-4
-        repeats = 5
+            e = 1
+            repeats = 1
+        
+        batch_sizes = [1, 2, 3, 4]
+        schedule_epochs_drops = [3, 4, 5, 6, 8]
+        schedule_drops = [0.5, 0.8, 0.85, 0.9, 0.95, 0.99]
+        lrs = [1e-1, 5e-1, 1e-2, 5e-2, 1e-3, 5e-3, 1e-4]
+        es = [20, 25, 30, 35, 40]
+        noises = [0.0, 0.001, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 1.0]
+        input_shapes = [160, 240, 288, 320]
 
-        # for archer
-        for i in range(repeats):
-            sample_shape = (64, 64, 64)
-            train("tiny", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
+        for i in range(1000):
+            
+            batch_size = random.choice(batch_sizes)
+            schedule_epochs_drop = random.choice(schedule_epochs_drops)
+            schedule_drop = random.choice(schedule_drops)
+            learn_rate = random.choice(lrs)
+            e = random.choice(es)
+            noise = random.choice(noises)
+            input_width = random.choice(input_shapes)
+            if (input_width == 320) or (input_width == 288):
+                if batch_size > 2:
+                    batch_size = random.choice([1,2])
+            normalise_input = True
+            remove_outliers = bool(random.getrandbits(1))
+            skip_empty = bool(random.getrandbits(1))
+
+            print("---------------------")
+            print(batch_size, schedule_epochs_drop, schedule_drop, learn_rate, e, noise, input_width, normalise_input, remove_outliers, skip_empty)
+
+            sample_shape = (input_width, input_width, 160)
+            time_taken, min_roll_loss, min_roll_val_loss = train("large", batch_size=batch_size, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
                   train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
+                  use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                  schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
                   use_stride_2=True, use_res_connect=True,
-                  notes=f"Training Tiny VNet {sample_shape}, repeat: {i+1}/{repeats}")
+                  normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                  notes=f"Training Large VNet {sample_shape} - HP Search")
 
-            sample_shape = (160, 160, 160)
-            train("tiny", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-                  train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
-                  use_stride_2=True, use_res_connect=True,
-                  notes=f"Training Tiny VNet {sample_shape}, repeat: {i+1}/{repeats}")
+            print("---------------------")
+            print(time_taken, min_roll_loss, min_roll_val_loss)
+            print(batch_size, schedule_epochs_drop, schedule_drop, learn_rate, e, noise, input_width, normalise_input, remove_outliers, skip_empty)
+            print("=====================")
 
-            sample_shape = (160, 160, 160)
-            train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-                  train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
-                  use_stride_2=True, use_res_connect=True,
-                  notes=f"Training Small VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-            sample_shape = (160, 160, 160)
-            train("small_relative", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-                  train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
-                  use_stride_2=True, use_res_connect=True,
-                  notes=f"Training Small Relative VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-            sample_shape = (160, 160, 5)
-            train("slice", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-                  train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-                  use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
-                  use_stride_2=True, use_res_connect=True,
-                  notes=f"Training Small Slice VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-        # # for pompeii
-        # for i in range(repeats):
-        #     sample_shape = (240, 240, 160)
-        #     train("small", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
-        #           use_stride_2=True, use_res_connect=True,
-        #           notes=f"Training Small VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-        #     sample_shape = (240, 240, 160)
-        #     train("large", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=3, schedule_drop=0.9,
-        #           use_stride_2=True, use_res_connect=True,
-        #           notes=f"Training Large VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
-        #     sample_shape = (240, 240, 160)
-        #     train("large_relative", batch_size=1, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-        #           train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-        #           use_optimizer="adam_schedule", start_lr=learn_rate, schedule_epochs_drop=5, schedule_drop=0.9,
-        #           use_stride_2=True, use_res_connect=True,
-        #           notes=f"Training Large Relative VNet {sample_shape}, repeat: {i+1}/{repeats}")
-
+            hp_cols = {
+                'batch_size': [batch_size],
+                'schedule_epoch_drops': [schedule_epochs_drop],
+                'schedule_drops': [schedule_drop],
+                'lr': [learn_rate],
+                'epochs': [e],
+                'noise': [noise],
+                'input_width': [input_width],
+                'normalise': [normalise_input],
+                'remove_outliers': [remove_outliers],
+                'skip_empty': [skip_empty],
+                'time_taken': [time_taken],
+                'min_roll_loss': [min_roll_loss],
+                'min_roll_val_loss': [min_roll_val_loss],
+            }
+            df = pd.DataFrame(data=hp_cols)
+            df.to_csv("vnet_train_hp.csv", index=False, header=False, mode='a')
     else:
         e = 3
         train("tiny", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
