@@ -37,23 +37,20 @@ def make_fig(data, opt, col_num):
     
     is_multiple_samples = type(data) == list
     if is_multiple_samples:
+        print('There are multiple samples')
         num_samples = len(data)
     else: 
+        print('There is 1 sample')
         num_samples = 1
 
     num_classes_all = []
 
     for j in range(num_samples):
         
-        if not is_multiple_samples:
-            print('There is 1 samplpe')
-            curr_data = data
-        else:
-            print('There are multiple samples')
-            curr_data = data[j]
+        curr_data = data if not is_multiple_samples else data[j]
         
         Voxels = VoxelData(curr_data)
-        print('np.sum(curr_data)',np.sum(curr_data))
+        # print('np.sum(curr_data)',np.sum(curr_data))
     
         # print("Voxels.data\n",Voxels.data)
         # print("Voxels.vertices\n",Voxels.vertices)
@@ -61,7 +58,7 @@ def make_fig(data, opt, col_num):
 
         # has_background = False
         for i, seg_class in enumerate(Voxels.unique_classes):
-            print("Making segmentation voxels ", (i+1), "/", Voxels.num_classes)
+            print("Making volume", j, "segmentation voxels of class", (i+1), "/", Voxels.num_classes)
             if seg_class == background_seg:
                 # put points so that full graph appears even if empty
                 # has_background = True
@@ -76,7 +73,7 @@ def make_fig(data, opt, col_num):
                 continue
 
             curr_class = RenderData(Voxels.get_class_voxels(seg_class))
-            curr_color = colors[int(seg_class)]
+            curr_color = colors if opt.binary_color else colors[int(seg_class)]
             print('For class', int(seg_class), 'curr_color',curr_color)
 
             fig.add_trace(go.Mesh3d(
@@ -93,7 +90,7 @@ def make_fig(data, opt, col_num):
                 showlegend=True
                 ), row=1, col=col_num)
     
-        print('Appending ',Voxels.num_classes, 'classes')
+        # print('Appending ',Voxels.num_classes, 'classes')
         num_classes_all.append(Voxels.num_classes)
 
     return fig, num_classes_all, num_samples
@@ -128,6 +125,7 @@ if __name__ == "__main__":
 
     # Colors
     colors = get_colors(opt)
+    colors = colors[opt.binary_color] if opt.binary_color else colors
     background_seg = 0
 
     # fig = go.Figure()

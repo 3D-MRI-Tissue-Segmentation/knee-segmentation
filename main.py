@@ -18,7 +18,7 @@ from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -81,6 +81,7 @@ flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
 flags.DEFINE_integer('save_freq', 1, 'Save every x volumes as npy')
+flags.DEFINE_integer('roi_npy', 80, 'Save the middle x*x*x voxels') 
 
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
@@ -365,22 +366,37 @@ def main(argv):
                            clean=FLAGS.clean_gif)
 
             else:
-                epoch_gif(model=model_fn,
-                          logdir=FLAGS.logdir,
-                          tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                          aug_strategy=FLAGS.aug_strategy,
-                          visual_file=FLAGS.visual_file,
-                          tpu_name=FLAGS.tpu_dir,
-                          bucket_name=FLAGS.bucket,
-                          weights_dir=FLAGS.weights_dir,
-                          is_multi_class=FLAGS.multi_class,
-                          model_args=model_args,
-                          which_slice=FLAGS.gif_slice,
-                          which_volume=FLAGS.gif_volume,
-                          epoch_limit=FLAGS.gif_epochs,
-                          gif_dir=FLAGS.gif_directory,
-                          gif_cmap=FLAGS.gif_cmap,
-                          clean=FLAGS.clean_gif)
+                # epoch_gif(model=model_fn,
+                #           logdir=FLAGS.logdir,
+                #           tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                #           aug_strategy=FLAGS.aug_strategy,
+                #           visual_file=FLAGS.visual_file,
+                #           tpu_name=FLAGS.tpu_dir,
+                #           bucket_name=FLAGS.bucket,
+                #           weights_dir=FLAGS.weights_dir,
+                #           is_multi_class=FLAGS.multi_class,
+                #           model_args=model_args,
+                #           which_slice=FLAGS.gif_slice,
+                #           which_volume=FLAGS.gif_volume,
+                #           epoch_limit=FLAGS.gif_epochs,
+                #           gif_dir=FLAGS.gif_directory,
+                #           gif_cmap=FLAGS.gif_cmap,
+                #           clean=FLAGS.clean_gif)
+
+                take_slice(model=model_fn,
+                           logdir=FLAGS.logdir,
+                           tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                           aug_strategy=FLAGS.aug_strategy,
+                           visual_file=FLAGS.visual_file,
+                           tpu_name=FLAGS.tpu_dir,
+                           bucket_name=FLAGS.bucket,
+                           weights_dir=FLAGS.weights_dir,
+                           is_multi_class=FLAGS.multi_class,
+                           model_args=model_args,
+                           which_epoch=FLAGS.gif_epochs,
+                           which_slice=FLAGS.gif_slice,
+                           which_volume=FLAGS.gif_volume,
+                           save_dir=FLAGS.gif_directory)
 
         else:
             plot_and_eval_3D(model=model_fn,

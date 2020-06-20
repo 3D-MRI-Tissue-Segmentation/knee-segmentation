@@ -101,14 +101,14 @@ def load_data(opt):
             assert data_paths_right, 'The directory %s may not contain files with valid extensions %s' % (opt.data_paths_right, EXTENSIONS)        
             data_left = []
             data_right = []
-            if len(data_paths_left) == 1:
+            if not (type(data_paths_left) == list):
                 data_left = np.load(data_paths_left)
             else:
                 for i, path in enumerate(data_paths_left):
                     should_get_loaded = np.mod(i,opt.slider_interval) == 0
                     if should_get_loaded or i==0:
                         data_left.append(np.load(path))
-            if len(data_paths_right) == 1:
+            if not (type(data_paths_right) == list):
                 data_right = np.load(data_paths_right)
             else:
                 for i, path in enumerate(data_paths_right):
