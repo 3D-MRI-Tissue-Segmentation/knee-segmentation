@@ -210,12 +210,12 @@ def plot_and_eval_3D(model,
                 np.save(name_pred_npy,pred_vol)
                 np.save(name_y_npy,y_vol)
                 idx_vol += 1
-                del pred_vol
-                del y_vol
-
                 ######################
                 print("Total voxels saved, pred:", np.sum(pred_vol), "y:", np.sum(y_vol))
                 ######################
+                del pred_vol
+                del y_vol
+
                 break
 
 
