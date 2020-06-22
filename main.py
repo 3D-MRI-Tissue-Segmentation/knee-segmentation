@@ -15,7 +15,7 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.vnet import VNet
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
-from Segmentation.utils.data_loader import read_tfrecord
+from Segmentation.utils.data_loader import read_tfrecord, parse_fn_2d, parse_fn_3d
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
@@ -143,7 +143,7 @@ def main(argv):
     # set dataset configuration
     if FLAGS.dataset == 'oai_challenge':
 
-        batch_size = FLAGS.batch_size * FLAGS.num_cores
+        batch_size = FLAGS.batch_size * FLAGS.num_cores 
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size
         logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
@@ -153,6 +153,7 @@ def main(argv):
                                      batch_size=batch_size,
                                      buffer_size=FLAGS.buffer_size,
                                      augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_2d,
                                      multi_class=FLAGS.multi_class,
                                      is_training=True,
                                      use_bfloat16=FLAGS.use_bfloat16,
@@ -161,30 +162,38 @@ def main(argv):
                                      batch_size=batch_size,
                                      buffer_size=FLAGS.buffer_size,
                                      augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_2d,
                                      multi_class=FLAGS.multi_class,
                                      is_training=False,
                                      use_bfloat16=FLAGS.use_bfloat16,
                                      use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
         else:
-            train_ds = read_tfrecord(tfrercords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
+            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
                                      batch_size=batch_size,
                                      buffer_size=FLAGS.buffer_size,
                                      augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_3d,
                                      multi_class=FLAGS.multi_class,
                                      is_training=True,
                                      use_bfloat16=FLAGS.use_bfloat16,
                                      use_RGB=False)
 
-            valid_ds = read_tfrecord(tfrercords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
+            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
                                      batch_size=batch_size,
                                      buffer_size=FLAGS.buffer_size,
                                      augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_3d,
                                      multi_class=FLAGS.multi_class,
                                      is_training=False,
                                      use_bfloat16=FLAGS.use_bfloat16,
                                      use_RGB=False)
 
-        num_classes = 7 if FLAGS.multi_class else 1
+        num_classes = 7 if FLAGS.multi_class else 1 
+        
+        for step, (image, label) in enumerate(train_ds):
+            print(step)
+            print(image.shape)
+            print(label.shape)
 
     if FLAGS.multi_class:
         loss_fn = tversky_loss
@@ -218,9 +227,8 @@ def main(argv):
 
         model_fn = UNet
     elif FLAGS.model_architecture == 'vnet':
-        model_args = [FLAGS.num_filters[0],
+        model_args = [64,
                       num_classes,
-                      FLAGS.backbone_architecture,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
                       FLAGS.activation,
@@ -335,17 +343,25 @@ def main(argv):
 
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
         if FLAGS.train:
-            if FLAGS.backbone_architecture == 'default':
-                model.build((batch_size, 288, 288, 1))
+            if FLAGS.model_architecture != 'vnet':
+                if FLAGS.backbone_architecture == 'default':
+                    model.build((None, 288, 288, 1))
+                else:
+                    model.build((None, 288, 288, 3))
             else:
-                model.build((batch_size, 288, 288, 3))
-
+                model.build((None, 160, 384, 384, 1))
+            
             model.summary()
 
         if FLAGS.multi_class:
-            model.compile(optimizer=optimiser,
-                          loss=loss_fn,
-                          metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+            if FLAGS.model_architecture != 'vnet':
+                model.compile(optimizer=optimiser,
+                              loss=loss_fn,
+                              metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+            else:
+                model.compile(optimizer=optimiser,
+                              loss=loss_fn,
+                              metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
         else:
             model.compile(optimizer=optimiser,
                           loss=loss_fn,
