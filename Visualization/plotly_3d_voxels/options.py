@@ -40,9 +40,17 @@ class Options():
         if self.opt.file_name:
             assert self.opt.dataroot=='./', 'Please input either a filename or a folder with the files you wish to load in (or take default option)'    
 
-        if self.opt.dataroot_left or self.opt.dataroot_right:
-            assert self.opt.dataroot_left, 'If specifying directory for plot on right, also specify directory for plot on left'    
-            assert self.opt.dataroot_right, 'If specifying directory for plot on left, also specify directory for plot on right'    
+        # Check that a left has a right
+        if self.opt.dataroot_left:
+            assert self.opt.dataroot_left and (self.opt.dataroot_right or self.opt.file_name_right), 'If specifying directory for plot on right, also specify directory or filename for plot on left'    
+        if self.opt.file_name_left:
+            assert self.opt.file_name_left and (self.opt.dataroot_right or self.opt.file_name_right), 'If specifying filename for plot on right, also specify directory or filename for plot on left'    
+        if self.opt.dataroot_right:
+            assert self.opt.dataroot_right and (self.opt.dataroot_left or self.opt.file_name_left), 'If specifying directory for plot on left, also specify directory for plot on right'    
+        if self.opt.file_name_right:
+            assert self.opt.file_name_right and (self.opt.dataroot_left or self.opt.file_name_left), 'If specifying filename for plot on left, also specify directory or filename for plot on left'    
+            
+            
 
         # Output dir
         # TODO: set whatever you wanna output

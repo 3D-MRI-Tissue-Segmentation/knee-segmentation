@@ -12,78 +12,94 @@ EXTENSIONS = ['.npy', '.NPY']
 def is_acceptable(filename):
     return any(filename.endswith(extension) for extension in EXTENSIONS)
 
-def load_data(opt):
+def make_toy_ds(opt):
+    print('Making toy dataset')
+    d = opt.toy_dataset
+    # data = np.floor(np.random.rand(d,d,d)*2)
+    # data = data > 0
+
+    n_reps, n_classes = 4, 3
+    width, height, depth = d,d,d
+    colour_channels = 1
+
+    td = Toy_Volume(n_classes, width, height, depth, colour_channels)
+
+    for rep in range(n_reps):
+        for colour_idx in range(n_classes):
+            #td.set_colour_to_random_xyz(colour_idx)
+            x, y, z = td.get_random_xyz()
+            rand_x_len = randint(1, int(td.width/4))
+            rand_y_len = randint(1, int(td.height/4))
+            rand_z_len = randint(1, int(td.depth/4))
+            rnd_i = randint(0, 1)
+            if rnd_i == 0:
+                td.set_rect_cuboid_to_xyz(x, y, z, 
+                                        rand_x_len, rand_y_len, rand_z_len, 
+                                        colour_idx)
+            elif rnd_i == 1:
+                td.set_ellipsoid_to_xyz(x, y, z,
+                                        rand_x_len, rand_y_len, rand_z_len, 
+                                        colour_idx)
+
+    data = td.volume
+    data = data[:,:,:,1]
+    # data = data[1:2,:,:,:]
+    return data
+
+def get_paths(opt):
     data_paths = []
+    for root, dir, fnames in sorted(os.walk(opt.dataroot)):
+        for fname in fnames:
+            if is_acceptable(fname):
+                data_path = os.path.join(root,fname)
+                data_paths.append(data_path)
+    return data_paths 
+
+def load_data(opt):
     data = []
 
+    # Get filenames
     # Read in all numpy arrays in curr dir unless 'filename' was specified
     if not opt.file_name:         # if no filename given
         assert os.path.isdir(opt.dataroot), '%s is not a valid directory' % opt.dataroot
 
-        if not opt.dataroot_left or not opt.dataroot_right:
-
-            for root, dir, fnames in sorted(os.walk(opt.dataroot)):
-                for fname in fnames:
-                    if is_acceptable(fname):
-                        data_path = os.path.join(root,fname)
-                        data_paths.append(data_path)
+        if not (opt.dataroot_left or opt.file_name_left) or not (opt.dataroot_right or opt.file_name_right):
+            data_paths = get_paths(opt.dataroot)
         else:
 
-            assert os.path.isdir(opt.dataroot_left), '%s is not a valid directory' % opt.dataroot_left
-            assert os.path.isdir(opt.dataroot_right), '%s is not a valid directory' % opt.dataroot_right
+            left = opt.dataroot_left if opt.dataroot_left else opt.file_name_left
+            right = opt.dataroot_right if opt.dataroot_right else opt.file_name_right
+            assert os.path.isdir(left), '%s is not a valid directory' % left
+            assert os.path.isdir(right), '%s is not a valid directory' % right 
 
             data_paths_left = []
             data_paths_right = []
-            for root, dir, fnames in sorted(os.walk(opt.dataroot_left)):
+            
+            for root, dir, fnames in sorted(os.walk(left)):
                 for fname in fnames:
                     if is_acceptable(fname):
                         data_path = os.path.join(root,fname)
                         data_paths_left.append(data_path)
-            for root, dir, fnames in sorted(os.walk(opt.dataroot_right)):
+            for root, dir, fnames in sorted(os.walk(right)):
                 for fname in fnames:
                     if is_acceptable(fname):
                         data_path = os.path.join(root,fname)
                         data_paths_right.append(data_path)
+            
+            num_in_left = len(data_paths_left) if not (type(data_paths_left) == list) else 1
+            num_in_right = len(data_paths_left) if not (type(data_paths_left) == list) else 1
     else: 
         data_paths = opt.file_name
         
+
+
+    # Load data
     # Make toy dataset if no files found or opt set
     if opt.toy_dataset:          
-        print('Making toy dataset')
-        d = opt.toy_dataset
-        # data = np.floor(np.random.rand(d,d,d)*2)
-        # data = data > 0
-
-        n_reps, n_classes = 4, 3
-        width, height, depth = d,d,d
-        colour_channels = 1
-
-        td = Toy_Volume(n_classes, width, height, depth, colour_channels)
-
-        for rep in range(n_reps):
-            for colour_idx in range(n_classes):
-                #td.set_colour_to_random_xyz(colour_idx)
-                x, y, z = td.get_random_xyz()
-                rand_x_len = randint(1, int(td.width/4))
-                rand_y_len = randint(1, int(td.height/4))
-                rand_z_len = randint(1, int(td.depth/4))
-                rnd_i = randint(0, 1)
-                if rnd_i == 0:
-                    td.set_rect_cuboid_to_xyz(x, y, z, 
-                                            rand_x_len, rand_y_len, rand_z_len, 
-                                            colour_idx)
-                elif rnd_i == 1:
-                    td.set_ellipsoid_to_xyz(x, y, z,
-                                            rand_x_len, rand_y_len, rand_z_len, 
-                                            colour_idx)
-
-        data = td.volume
-        data = data[:,:,:,1]
-        # data = data[1:2,:,:,:]
-        
+        data = make_toy_ds(opt)
     else:
-        if not opt.dataroot_left or not opt.dataroot_right:
-            assert data_paths, 'The directory %s may not contain files with valid extensions %s' % (opt.dataroot, EXTENSIONS)        
+        if not (left and right):
+            assert data_paths, 'The directory %s possibly does contain files with valid extensions %s' % (opt.dataroot, EXTENSIONS)        
             data = []
             if not (type(data_paths) == list):
                 data = np.load(data_paths)
@@ -116,7 +132,7 @@ def load_data(opt):
                     if should_get_loaded or i==0:
                         data_right.append(np.load(path))
             
-            return data_left, data_right
+            return data_left, data_right, num_in_left, num_in_right
 
     
 

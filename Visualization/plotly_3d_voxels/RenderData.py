@@ -9,7 +9,6 @@ def get_steps(num_samples, num_traces, num_classes_all):
         trace that's part of that (set of) volume(s)
     """
     steps = []
-    cumm_traces = 0
     print('Generating slider steps')
     print('Number of sample volumes',num_samples)
 
@@ -23,7 +22,7 @@ def get_steps(num_samples, num_traces, num_classes_all):
     assert num_traces == np.sum(num_classes_all), 'Number of segmentation classes not equal to total traces'
     
     start_trace = 0
-    for sample_set in range(min(min(num_samples))):
+    for sample_set in range(min(num_samples)):
         # Hide all traces
         visible = [False] * num_traces
         tot_sample_types = len(np.shape(num_classes_all))       # eg the number of input sample directories

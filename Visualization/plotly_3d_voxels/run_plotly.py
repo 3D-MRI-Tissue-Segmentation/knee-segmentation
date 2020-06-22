@@ -32,7 +32,7 @@ def get_colors(opt):
     return colors
 
 
-def make_fig(data, opt, col_num):
+def make_fig(data, opt, col_num, num_in):
     print("Generating figure")
     
     is_multiple_samples = type(data) == list
@@ -41,7 +41,10 @@ def make_fig(data, opt, col_num):
         num_samples = len(data)
     else: 
         print('There is 1 sample')
-        num_samples = 1
+        if opt.dataroot_left and opt.file_name_right:
+            num_samples = get_num_samples
+        else:
+            num_samples = 1
 
     num_classes_all = []
 
@@ -137,12 +140,12 @@ if __name__ == "__main__":
                             specs=[[{'type': 'mesh3D'}, {'type': 'mesh3D'}]])
         print('type(fig)',type(fig))
 
-        data_l, data_r = load_data(opt)
+        data_l, data_r, num_in_l, num_in_r = load_data(opt)
         col_l = 1
         col_r = 2
 
-        fig, num_classes_all_l, num_samples_l = make_fig(data_l, opt,col_l)
-        fig, num_classes_all_r, num_samples_r = make_fig(data_r, opt,col_r)
+        fig, num_classes_all_l, num_samples_l = make_fig(data_l, opt,col_l, num_in_l)
+        fig, num_classes_all_r, num_samples_r = make_fig(data_r, opt,col_r, num_in_r)
 
         num_classes_all = [num_classes_all_l, num_classes_all_r]
         num_samples = [num_samples_l, num_samples_r]
@@ -159,7 +162,7 @@ if __name__ == "__main__":
         data = load_data(opt)    
         print('np.shape(data)',np.shape(data))
         col_num = 1
-        fig, num_classes_all, num_samples = make_fig(data, opt,col_num)
+        fig, num_classes_all, num_samples = make_fig(data, opt,col_num, 0)
         fig = update_fig(fig,num_classes_all,num_samples)
 
 
