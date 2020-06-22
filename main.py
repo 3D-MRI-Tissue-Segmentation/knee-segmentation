@@ -15,7 +15,7 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
+from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
@@ -27,7 +27,7 @@ flags.DEFINE_float('base_learning_rate', 3.2e-04, 'base learning rate at the sta
 flags.DEFINE_integer('lr_warmup_epochs', 1, 'No. of epochs for a warmup to the base_learning_rate. 0 for no warmup')
 flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
 flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay learning rate.')
-flags.DEFINE_list('lr_decay_epochs', None, 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
+flags.DEFINE_list('lr_decay_epochs', [10, 20, 40, 60], 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
@@ -165,6 +165,7 @@ def main(argv):
 
         num_classes = 7 if FLAGS.multi_class else 1
 
+    
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -294,6 +295,8 @@ def main(argv):
             optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
         elif FLAGS.optimizer == 'rms-prop':
             optimiser = tf.keras.optimizers.RMSprop(learning_rate=lr_rate)
+        elif FLAGS.optimizer == 'sgd':
+            optimiser = tf.keras.optimizers.SGD(learning_rate=lr_rate)
         else:
             print('Not a valid input optimizer, using Adam.')
             optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
@@ -301,7 +304,6 @@ def main(argv):
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
         if FLAGS.train:
             if FLAGS.backbone_architecture == 'default':
-
                 model.build((batch_size, 288, 288, 1))
             else:
                 model.build((batch_size, 288, 288, 3))

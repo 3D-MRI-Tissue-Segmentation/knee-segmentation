@@ -139,4 +139,4 @@ def focal_tversky(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
     pt_1 = tversky_loss(y_true, y_pred)
     gamma = 0.75
-    return K.pow((1 - pt_1), gamma)
+    return K.pow((pt_1), gamma)
