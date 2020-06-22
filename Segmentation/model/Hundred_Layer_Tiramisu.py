@@ -40,13 +40,6 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                                     padding='same')
         self.dense_block_list = []
         self.up_transition_list = []   
-        '''self.final_dense_block = dense_layer(layers_per_block[0],
-                                             growth_rate,
-                                             kernel_size,
-                                             dropout_rate,
-                                             nonlinearity,
-                                             use_dropout=False,
-                                             use_concat=False)'''
 
         self.conv_1x1 = tfkl.Conv2D(filters=num_classes, 
                                     kernel_size=(1, 1),
@@ -54,8 +47,11 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
 
         layers_counter = 0
         num_filters = num_channels
+        
+        print(len(self.layers_per_block))
 
-        for idx in range(0, len(self.layers_per_block) - 1):
+        for idx in range(0, len(self.layers_per_block)):
+            print(idx)
             num_conv_layers = layers_per_block[idx]
             self.dense_block_list.append(dense_layer(num_conv_layers,
                                                      growth_rate,
@@ -68,7 +64,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
             layers_counter = layers_counter + num_conv_layers
             num_filters = num_channels + layers_counter * growth_rate
 
-            if idx != len(self.layers_per_block) - 1:
+            if idx != len(self.layers_per_block)-1:
                 self.dense_block_list.append(down_transition(num_channels=num_filters,
                                                              kernel_size=(1, 1),
                                                              pool_size=(2, 2),
@@ -84,20 +80,20 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                                                          growth_rate=self.growth_rate,
                                                          kernel_size=(3, 3),
                                                          strides=(2, 2),
-                                                         padding='same'))
+                                                         padding='same',
+                                                         use_concat=False))
    
     def call(self, inputs, training=False):
         blocks = []
         x = self.conv_3x3(inputs)
         for i, down in enumerate(self.dense_block_list):
             x = down(x, training=training)
-            if i % 2 == 0 and i != len(self.dense_block_list):
+            if i % 2 == 0 and  i != len(self.dense_block_list)-1:
                 blocks.append(x)
 
         for i, up in enumerate(self.up_transition_list):
-            x = up(x, blocks[- i - 1], training=training)
-
-        # x = self.final_dense_block(x)
+            x = up(x, blocks[- i-1], training=training)
+           
         x = self.conv_1x1(x)
         if self.num_classes == 1:
             output = tfkl.Activation('sigmoid')(x)
@@ -219,6 +215,7 @@ class down_transition(tf.keras.Sequential):
                                          epsilon=0.001))
         self.add(tfkl.Activation(nonlinearity))
         self.add(tfkl.Conv2D(num_channels, kernel_size, padding='same'))
+
         if use_dropout:
             self.add(tfkl.Dropout(rate=self.dropout_rate))
 
@@ -242,6 +239,7 @@ class up_transition(tf.keras.Model):
                  strides=(2, 2),
                  padding='same',
                  nonlinearity='relu',
+                 use_concat=False,
                  **kwargs):
         
         super(up_transition, self).__init__(**kwargs)
@@ -253,6 +251,7 @@ class up_transition(tf.keras.Model):
         self.strides = strides
         self.padding = padding
         self.nonlinearity = nonlinearity
+        self.use_concat = use_concat
 
         self.up_conv = tfkl.Conv2DTranspose(num_channels,
                                             kernel_size,
@@ -263,7 +262,8 @@ class up_transition(tf.keras.Model):
                                        growth_rate, 
                                        kernel_size,
                                        strides,
-                                       nonlinearity)
+                                       nonlinearity,
+                                       use_concat=self.use_concat)
 
     def call(self, inputs, bridge, training=False):
         
