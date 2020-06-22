@@ -81,7 +81,7 @@ flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
 flags.DEFINE_integer('save_freq', 1, 'Save every x volumes as npy')
-flags.DEFINE_integer('roi_npy', 80, 'Save the middle x*x*x voxels') 
+flags.DEFINE_integer('roi_npy', 80, 'Save the middle x*x*x voxels')
 
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
@@ -92,7 +92,7 @@ flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
 flags.DEFINE_integer('gif_slice', 80, 'Slice that is taken into consideration for the gif')
 flags.DEFINE_integer('gif_volume', 1, 'Which volume from the validation dataset to consider')
 flags.DEFINE_bool('clean_gif', False, 'False includes text representing epoch number')
-flags.DEFINE_string('tpu_dir','','If loading visual file from a tpu other than the tpu you are training with.')
+flags.DEFINE_string('tpu_dir', '', 'If loading visual file from a tpu other than the tpu you are training with.')
 flags.DEFINE_string('which_representation', '', 'Whether to do epoch gif ("epoch") or volume gif ("volume") or "slice"')
 
 
@@ -261,7 +261,7 @@ def main(argv):
                       FLAGS.num_filters_DCNN,
                       FLAGS.num_filters_ASPP,
                       FLAGS.kernel_size_atrous,
-                      FLAGS.kernel_size_DCNN, 
+                      FLAGS.kernel_size_DCNN,
                       FLAGS.kernel_size_ASPP,
                       'same',
                       FLAGS.activation,
@@ -275,7 +275,7 @@ def main(argv):
         model_fn = Deeplabv3
     else:
         logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
-    
+
     with strategy.scope():
         model = model_fn(*model_args)
 
@@ -344,8 +344,8 @@ def main(argv):
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
-        print('model_fn',model_fn)
-        
+        print('model_fn', model_fn)
+
         if not FLAGS.which_representation == '':
 
             if FLAGS.which_representation == 'volume':
@@ -416,7 +416,6 @@ def main(argv):
                              save_freq=FLAGS.save_freq,
                              model_args=model_args)
 
-
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
@@ -424,7 +423,7 @@ def main(argv):
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
         logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         logdir = os.path.join(logdir, time)
-        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch',write_images=True)
+        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch', write_images=True)
         confusion_matrix(trained_model=model,
                          weights_dir=FLAGS.weights_dir,
                          fig_dir=FLAGS.fig_dir,
