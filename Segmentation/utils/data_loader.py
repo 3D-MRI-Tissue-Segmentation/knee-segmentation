@@ -193,7 +193,12 @@ def parse_fn_2d(example_proto, training, augmentation, multi_class=True, use_bfl
 
     return (image, seg)
 
-def parse_fn_3d(example_proto, training, multi_class=True):
+def parse_fn_3d(example_proto, training, augmentation=None, multi_class=True, use_bfloat16=False, use_RGB=False):
+
+    if use_bfloat16:
+        dtype = tf.bfloat16
+    else:
+        dtype = tf.float32
 
     features = {
         'height': tf.io.FixedLenFeature([], tf.int64),
@@ -208,11 +213,12 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
     image = tf.reshape(image_raw, [image_features['height'], image_features['width'], image_features['depth']])
+    image = tf.cast(image, dtype)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
     seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
                                image_features['depth'], image_features['num_channels']])
-    seg = tf.cast(seg, tf.float32)
+    seg = tf.cast(seg, dtype)
 
     if not multi_class:
         seg = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])

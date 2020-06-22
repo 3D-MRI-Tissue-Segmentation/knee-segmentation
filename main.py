@@ -13,6 +13,7 @@ from glob import glob
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet, Nested_UNet_v2
 from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3
+from Segmentation.model.vnet import VNet
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
@@ -146,26 +147,45 @@ def main(argv):
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size
         logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
-        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
-                                 batch_size=batch_size,
-                                 buffer_size=FLAGS.buffer_size,
-                                 augmentation=FLAGS.aug_strategy,
-                                 multi_class=FLAGS.multi_class,
-                                 is_training=True,
-                                 use_bfloat16=FLAGS.use_bfloat16,
-                                 use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
-        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                                 batch_size=batch_size,
-                                 buffer_size=FLAGS.buffer_size,
-                                 augmentation=FLAGS.aug_strategy,
-                                 multi_class=FLAGS.multi_class,
-                                 is_training=False,
-                                 use_bfloat16=FLAGS.use_bfloat16,
-                                 use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
+
+        if FLAGS.model_architecture != 'vnet':
+            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=True,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
+            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=False,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
+        else:
+            train_ds = read_tfrecord(tfrercords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=True,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False)
+
+            valid_ds = read_tfrecord(tfrercords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=False,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False)
 
         num_classes = 7 if FLAGS.multi_class else 1
 
-    
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -197,7 +217,19 @@ def main(argv):
                       FLAGS.channel_order]
 
         model_fn = UNet
+    elif FLAGS.model_architecture == 'vnet':
+        model_args = [FLAGS.num_filters[0],
+                      num_classes,
+                      FLAGS.backbone_architecture,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.dropout_rate,
+                      FLAGS.use_spatial,
+                      FLAGS.channel_order]
 
+        model_fn = VNet
     elif FLAGS.model_architecture == 'r2unet':
         model_args = [FLAGS.num_filters,
                       num_classes,
