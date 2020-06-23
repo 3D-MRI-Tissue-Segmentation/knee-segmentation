@@ -46,9 +46,9 @@ def make_toy_ds(opt):
     # data = data[1:2,:,:,:]
     return data
 
-def get_paths(opt):
+def get_paths(dataroot):
     data_paths = []
-    for root, dir, fnames in sorted(os.walk(opt.dataroot)):
+    for root, dir, fnames in sorted(os.walk(dataroot)):
         for fname in fnames:
             if is_acceptable(fname):
                 data_path = os.path.join(root,fname)
@@ -69,25 +69,10 @@ def load_data(opt):
 
             left = opt.dataroot_left if opt.dataroot_left else opt.file_name_left
             right = opt.dataroot_right if opt.dataroot_right else opt.file_name_right
-            assert os.path.isdir(left), '%s is not a valid directory' % left
-            assert os.path.isdir(right), '%s is not a valid directory' % right 
 
-            data_paths_left = []
-            data_paths_right = []
+            data_paths_left = get_paths(left) if opt.dataroot_left else opt.file_name_left
+            data_paths_right = get_paths(right) if opt.dataroot_right else opt.file_name_right
             
-            for root, dir, fnames in sorted(os.walk(left)):
-                for fname in fnames:
-                    if is_acceptable(fname):
-                        data_path = os.path.join(root,fname)
-                        data_paths_left.append(data_path)
-            for root, dir, fnames in sorted(os.walk(right)):
-                for fname in fnames:
-                    if is_acceptable(fname):
-                        data_path = os.path.join(root,fname)
-                        data_paths_right.append(data_path)
-            
-            num_in_left = len(data_paths_left) if not (type(data_paths_left) == list) else 1
-            num_in_right = len(data_paths_left) if not (type(data_paths_left) == list) else 1
     else: 
         data_paths = opt.file_name
         
@@ -109,22 +94,25 @@ def load_data(opt):
                     if should_get_loaded or i==0:
                         data.append(np.load(path))
 
+            print('Loaded data_paths', data_paths)
+
             return data
 
 
         else:
-            assert data_paths_left, 'The directory %s may not contain files with valid extensions %s' % (opt.data_paths_left, EXTENSIONS)        
-            assert data_paths_right, 'The directory %s may not contain files with valid extensions %s' % (opt.data_paths_right, EXTENSIONS)        
+            assert data_paths_left, 'The directory %s may not contain files with valid extensions %s' % (data_paths_left, EXTENSIONS)        
+            assert data_paths_right, 'The directory %s may not contain files with valid extensions %s' % (data_paths_right, EXTENSIONS)        
             data_left = []
             data_right = []
-            if not (type(data_paths_left) == list):
+
+            if not (type(data_paths_left) == list) or opt.file_name_left:
                 data_left = np.load(data_paths_left)
             else:
                 for i, path in enumerate(data_paths_left):
                     should_get_loaded = np.mod(i,opt.slider_interval) == 0
                     if should_get_loaded or i==0:
                         data_left.append(np.load(path))
-            if not (type(data_paths_right) == list):
+            if not (type(data_paths_right) == list) or opt.file_name_right:
                 data_right = np.load(data_paths_right)
             else:
                 for i, path in enumerate(data_paths_right):
@@ -132,7 +120,21 @@ def load_data(opt):
                     if should_get_loaded or i==0:
                         data_right.append(np.load(path))
             
-            return data_left, data_right, num_in_left, num_in_right
+            print('Loaded data paths', data_paths_left, data_paths_right)
+            
+            num_in_left = len(data_paths_left) if (type(data_paths_left) == list) else 1
+            num_in_right = len(data_paths_right) if (type(data_paths_right) == list) else 1
+            if opt.file_name_left or opt.file_name_right:
+                num_in = max(num_in_left, num_in_right)
+            else:
+                num_in = min(num_in_left, num_in_right)
+            
+
+            print('num_in_left',num_in_left)
+            print('num_in_right',num_in_right)
+            print('num_in', num_in)
+            
+            return data_left, data_right, num_in
 
     
 

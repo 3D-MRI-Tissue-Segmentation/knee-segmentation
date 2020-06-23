@@ -36,24 +36,26 @@ def make_fig(data, opt, col_num, num_in):
     print("Generating figure")
     
     is_multiple_samples = type(data) == list
-    if is_multiple_samples:
-        print('There are multiple samples')
-        num_samples = len(data)
-    else: 
-        print('There is 1 sample')
-        if opt.dataroot_left and opt.file_name_right:
-            num_samples = get_num_samples
-        else:
-            num_samples = 1
+    # if is_multiple_samples:
+    #     print('There are multiple samples')
+    #     num_samples = len(data)
+    # else: 
+    #     print('There is 1 sample')
+    #     if opt.dataroot_left and opt.file_name_right:
+    #         num_samples = get_num_samples
+    #     else:
+    #         num_samples = 1
 
     num_classes_all = []
 
-    for j in range(num_samples):
+    for j in range(num_in):
         
         curr_data = data if not is_multiple_samples else data[j]
         
-        Voxels = VoxelData(curr_data)
-        # print('np.sum(curr_data)',np.sum(curr_data))
+        if not j:   # Make the first Voxel
+            Voxels = VoxelData(curr_data)
+        if is_multiple_samples:     # Get the next voxel
+            Voxels = VoxelData(curr_data)
     
         # print("Voxels.data\n",Voxels.data)
         # print("Voxels.vertices\n",Voxels.vertices)
@@ -89,14 +91,14 @@ def make_fig(data, opt, col_num, num_in):
                 j=curr_class.triangles[1],
                 k=curr_class.triangles[2],
                 color=curr_color,
-                opacity=0.7,
+                opacity=1,
                 showlegend=True
                 ), row=1, col=col_num)
     
         # print('Appending ',Voxels.num_classes, 'classes')
         num_classes_all.append(Voxels.num_classes)
 
-    return fig, num_classes_all, [num_samples]
+    return fig, num_classes_all
 
 
 
@@ -134,21 +136,21 @@ if __name__ == "__main__":
     # fig = go.Figure()
     
 
-    if opt.dataroot_left and opt.dataroot_right:
+    if (opt.dataroot_left or opt.file_name_left) and (opt.dataroot_right or opt.file_name_right):
         fig = make_subplots(rows=1, 
                             cols=2,
                             specs=[[{'type': 'mesh3D'}, {'type': 'mesh3D'}]])
         print('type(fig)',type(fig))
 
-        data_l, data_r, num_in_l, num_in_r = load_data(opt)
+        data_l, data_r, num_in = load_data(opt)
         col_l = 1
         col_r = 2
 
-        fig, num_classes_all_l, num_samples_l = make_fig(data_l, opt,col_l, num_in_l)
-        fig, num_classes_all_r, num_samples_r = make_fig(data_r, opt,col_r, num_in_r)
+        fig, num_classes_all_l = make_fig(data_l, opt,col_l, num_in)
+        fig, num_classes_all_r = make_fig(data_r, opt,col_r, num_in)
 
         num_classes_all = [num_classes_all_l, num_classes_all_r]
-        num_samples = [num_samples_l, num_samples_r]
+        num_samples = [num_in, num_in]
 
         fig = update_fig(fig,num_classes_all,num_samples)
 
@@ -162,7 +164,8 @@ if __name__ == "__main__":
         data = load_data(opt)    
         print('np.shape(data)',np.shape(data))
         col_num = 1
-        fig, num_classes_all, num_samples = make_fig(data, opt,col_num, 0)
+        fig, num_classes_all = make_fig(data, opt,col_num, 1)
+        num_samples = num_samples = len(data)
         fig = update_fig(fig,num_classes_all,num_samples)
 
 
