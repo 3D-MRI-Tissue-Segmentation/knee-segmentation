@@ -274,7 +274,7 @@ def main(argv):
 
         model_fn = Deeplabv3
 
-    elif FLAGS.model_architecture == 'deeplabv3 plus':
+    elif FLAGS.model_architecture == 'deeplabv3_plus':
         model_args = [num_classes,
                       FLAGS.kernel_size_initial_conv,
                       FLAGS.num_filters_atrous,
