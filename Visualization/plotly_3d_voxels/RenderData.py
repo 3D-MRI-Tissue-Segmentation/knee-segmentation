@@ -4,32 +4,57 @@ import numpy as np
 
 
 def get_steps(num_samples, num_traces, num_classes_all):
-    """ Loop through number of samples and for each make a 
-        'step' with the 'visible' vector set True for each 
-        trace that's part of 1 volume
+    """ Loop through number of samples (if 2 sets, loop through larger) 
+        and for each (set) make a 'step' with the 'visible' vector set True for each 
+        trace that's part of that (set of) volume(s)
     """
     steps = []
     cumm_traces = 0
     print('Generating slider steps')
     print('Number of sample volumes',num_samples)
 
+    # Make sample info iterable
+    is_mult_classes = len(np.shape(num_classes_all)) > 1
+    num_classes_all = num_classes_all if is_mult_classes else np.reshape(num_classes_all,(np.shape(num_classes_all)[0],1)) 
+
+    print('is_mult_classes',is_mult_classes)
+    print('np.shape(num_classes_all)',np.shape(num_classes_all))
+    print('num_classes_all',num_classes_all)
     assert num_traces == np.sum(num_classes_all), 'Number of segmentation classes not equal to total traces'
     
-    for sample in range(num_samples):
+    start_trace = 0
+    for sample_set in range(min(min(num_samples))):
         # Hide all traces
+        visible = [False] * num_traces
+        tot_sample_types = len(np.shape(num_classes_all))       # eg the number of input sample directories
+        
+        # Set the traces for this slider step to true
+        for sample_type in range(tot_sample_types):         # eg left samples vs right (type) samples
+            cum_traces = np.sum(num_classes_all[:sample_type][:]) if not sample_type else 0
+
+            start_trace = (cum_traces + np.sum(num_classes_all[sample_type][:sample_set])) if not sample_type else (cum_traces + 0)
+            end_trace = cum_traces + np.sum(num_classes_all[sample_type][:(sample_set+1)])
+
+            start_trace = int(start_trace)
+            end_trace = int(end_trace)
+            # Basically this: visible[start_trace:end_trace] = True
+            print("###########")
+            print("For sample set", sample_set, ", sample_type", sample_type, "we have")
+            print("cum_traces", cum_traces, "start_trace", start_trace, "end_trace", end_trace)
+            print("###########")
+            for trace in range(start_trace,end_trace):
+                visible[trace]=True
+
         step = dict(
             method = 'restyle',  
-            args = ['visible', [False] * num_traces],
+            args = ['visible', visible],
         )
 
-        # Enable the traces we want to see
-        for k in range(cumm_traces, int(np.sum(num_classes_all[:sample]))):
-            step['args'][1][k] = True
-        cumm_traces = int(np.sum(num_classes_all[:sample]))
-        # print('cummulative traces',cumm_traces)
-
-        # Add step to step list
         steps.append(step)
+
+    print('steps',steps)
+
+        
 
     # Have last step be all traces visible at once
     step = dict(

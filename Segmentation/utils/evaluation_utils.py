@@ -184,8 +184,8 @@ def plot_and_eval_3D(model,
 
                 # Save volume as numpy file for plotlyyy
                 fig_dir = "results"
-                name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name + "_" +str(idx_vol).zfill(3)))
-                name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + name + "_" + str(idx_vol).zfill(3)))
+                name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name))
+                name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + str(which_volume).zfill(3)))
                 
                 ######################
                 print("npy save pred as ", name_pred_npy)
@@ -210,12 +210,12 @@ def plot_and_eval_3D(model,
                 np.save(name_pred_npy,pred_vol)
                 np.save(name_y_npy,y_vol)
                 idx_vol += 1
+                ######################
+                print("Total voxels saved, pred:", np.sum(pred_vol), "y:", np.sum(y_vol))
+                ######################
                 del pred_vol
                 del y_vol
 
-                ######################
-                print("breaking after saving vol ", idx, "for ", name)
-                ######################
                 break
 
 
@@ -752,6 +752,7 @@ def confusion_matrix(trained_model,
     trained_model.load_weights(weights_dir).expect_partial()
     trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
 
+
     f = weights_dir.split('/')[-1]
     # Excluding parenthese before f too
     if weights_dir.endswith(f):
@@ -759,6 +760,7 @@ def confusion_matrix(trained_model,
     writer_dir = os.path.join(writer_dir, 'eval')
     # os.makedirs(writer_dir)
     eval_metric_writer = tf.summary.create_file_writer(writer_dir)
+
 
     if multi_class:
         cm = np.zeros((num_classes, num_classes))
@@ -777,6 +779,7 @@ def confusion_matrix(trained_model,
     for step, (image, label) in enumerate(dataset):
         print(step)
         pred = trained_model.predict(image)
+        visualise_multi_class(label, pred)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
         if multi_class:

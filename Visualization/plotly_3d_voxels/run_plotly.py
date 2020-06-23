@@ -93,16 +93,16 @@ def make_fig(data, opt, col_num):
         # print('Appending ',Voxels.num_classes, 'classes')
         num_classes_all.append(Voxels.num_classes)
 
-    return fig, num_classes_all, num_samples
+    return fig, num_classes_all, [num_samples]
 
 
 
 
 def update_fig(fig, num_classes_all, num_samples):
     print('num_classes_all',num_classes_all)
-    num_traces = len(fig.data)
-    print('Total traces', num_traces)
-    steps = get_steps(num_samples, num_traces, num_classes_all) 
+    tot_traces = len(fig.data)
+    print('Total traces', tot_traces)
+    steps = get_steps(num_samples, tot_traces, num_classes_all) 
     sliders = [dict(
         currentvalue={"prefix": "Vol num: "},
         pad={"t": 50},
@@ -145,7 +145,7 @@ if __name__ == "__main__":
         fig, num_classes_all_r, num_samples_r = make_fig(data_r, opt,col_r)
 
         num_classes_all = [num_classes_all_l, num_classes_all_r]
-        num_samples = num_samples_l + num_samples_r
+        num_samples = [num_samples_l, num_samples_r]
 
         fig = update_fig(fig,num_classes_all,num_samples)
 

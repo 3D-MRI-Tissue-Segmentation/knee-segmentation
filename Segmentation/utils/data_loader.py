@@ -9,6 +9,9 @@ import tensorflow as tf
 
 from Segmentation.utils.augmentation import crop_randomly_image_pair_2d, adjust_contrast_randomly_image_pair_2d
 from Segmentation.utils.augmentation import adjust_brightness_randomly_image_pair_2d
+from Segmentation.utils.augmentation import apply_centre_crop_3d, apply_valid_random_crop_3d
+from Segmentation.utils.augmentation import apply_random_brightness_3d, apply_random_contrast_3d, apply_random_gamma_3d
+from Segmentation.utils.augmentation import apply_flip_3d, apply_rotate_3d, normalise
 
 def get_multiclass(label):
 
@@ -193,7 +196,12 @@ def parse_fn_2d(example_proto, training, augmentation, multi_class=True, use_bfl
 
     return (image, seg)
 
-def parse_fn_3d(example_proto, training, multi_class=True):
+def parse_fn_3d(example_proto, training, augmentation, multi_class=True, use_bfloat16=False, use_RGB=False):
+
+    if use_bfloat16:
+        dtype = tf.bfloat16
+    else:
+        dtype = tf.float32
 
     features = {
         'height': tf.io.FixedLenFeature([], tf.int64),
@@ -208,11 +216,12 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
     image = tf.reshape(image_raw, [image_features['height'], image_features['width'], image_features['depth']])
+    image = tf.cast(image, dtype)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
     seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
                                image_features['depth'], image_features['num_channels']])
-    seg = tf.cast(seg, tf.float32)
+    seg = tf.cast(seg, dtype)
 
     if not multi_class:
         seg = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])
@@ -238,10 +247,10 @@ def read_tfrecord(tfrecords_dir,
     if is_training:
         shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
         cycle_l = 8
-    shards = shards.repeat()
+    if parse_fn is parse_fn_2d:
+        shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
                                 cycle_length=cycle_l,
-
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
@@ -264,4 +273,52 @@ def read_tfrecord(tfrecords_dir,
     dataset = dataset.with_options(options)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
+    return dataset
+
+def read_tfrecord_3d(tfrecords_dir,
+                     batch_size,
+                     buffer_size,
+                     is_training,
+                     crop_size=None,
+                     depth_crop_size=80,
+                     aug=[],
+                     predict_slice=False,
+                     **kwargs):
+
+    dataset = read_tfrecord(tfrecords_dir,
+                            batch_size,
+                            buffer_size,
+                            None,
+                            parse_fn_3d,
+                            is_training=is_training,
+                            **kwargs)
+
+    if crop_size is not None:
+        if is_training:
+            resize = "resize" in aug
+            random_shift = "shift" in aug
+            parse_crop = partial(apply_valid_random_crop_3d,
+                                 crop_size=crop_size,
+                                 depth_crop_size=depth_crop_size,
+                                 resize=resize,
+                                 random_shift=random_shift,
+                                 output_slice=predict_slice)
+            dataset = dataset.map(map_func=parse_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            if "bright" in aug:
+                dataset = dataset.map(apply_random_brightness_3d)
+            if "contrast" in aug:
+                dataset = dataset.map(apply_random_contrast_3d)
+            if "gamma" in aug:
+                dataset = dataset.map(apply_random_gamma_3d)
+            if "flip" in aug:
+                dataset = dataset.map(apply_flip_3d)
+            if "rotate" in aug:
+                dataset = dataset.map(apply_rotate_3d)
+        else:
+            parse_crop = partial(apply_centre_crop_3d,
+                                 crop_size=crop_size,
+                                 depth_crop_size=depth_crop_size,
+                                 output_slice=predict_slice)
+            dataset = dataset.map(map_func=parse_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.map(normalise)
     return dataset
