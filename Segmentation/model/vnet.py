@@ -16,7 +16,6 @@ class VNet(tf.keras.Model):
                  use_spatial_dropout=True,
                  predict_slice=False,
                  slice_format="mean",
-                 data_format='channels_last',
                  name="vnet",
                  **kwargs):
 
@@ -33,7 +32,6 @@ class VNet(tf.keras.Model):
             'use_batchnorm': use_batchnorm,
             'dropout_rate': dropout_rate,
             'use_spatial_dropout': use_spatial_dropout,
-            'data_format': data_format,
         }
         
         self.conv_1 = Conv3d_ResBlock(num_channels=num_channels, **block_args, **kwargs)
@@ -47,13 +45,13 @@ class VNet(tf.keras.Model):
         self.upconv_1 = Up_ResBlock(num_channels=num_channels, **block_args, **kwargs)
 
         # convolution num_channels at the output
-        self.conv_output = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation=None, padding='same', data_format=data_format)
+        self.conv_output = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation=None, padding='same')
         if activation is 'prelu':
-            self.activation = tf.keras.layers.PReLU()#alpha_initializer=tf.keras.initializers.Constant(value=0.25))
+            self.activation = tf.keras.layers.PReLU()  # alpha_initializer=tf.keras.initializers.Constant(value=0.25))
         else:
             self.activation = tf.keras.layers.Activation(activation)
 
-        self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), padding='same', data_format=data_format)
+        self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), padding='same')
         
         self.output_act = tf.keras.layers.Activation('sigmoid' if num_classes == 1 else 'softmax')
 

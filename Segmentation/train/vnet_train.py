@@ -287,19 +287,6 @@ def main(epochs, name,
         if log_dir_now is None:
             log_dir_now = trainer.train_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
 
-        # print("Train")
-        # for ds in train_ds:
-        #     x, y = ds
-        #     tf.print(tf.shape(x.values[0]))
-        #     tf.print(tf.shape(y.values[0]))
-        #     break
-        # print("Valid")
-        # for ds in valid_ds:
-        #     x, y = ds
-        #     tf.print(tf.shape(x.values[0]))
-        #     tf.print(tf.shape(y.values[0]))
-        #     break
-
     train_time = time() - t0
     print(f"Train Time: {train_time:.02f}")
     t1 = time()
@@ -307,13 +294,15 @@ def main(epochs, name,
         model = build_model(num_channels, num_classes, name, predict_slice=predict_slice, **model_kwargs)
         model.load_weights(os.path.join(log_dir_now + f'/best_weights.tf')).expect_partial()
     print("Validation for:", log_dir_now)
-    total_loss, metric_str = validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_dir, multi_class,
-                                                 crop_size, depth_crop_size, predict_slice, Metric(metrics))
-    print(f"Train Time: {train_time:.02f}")
-    print(f"Validation Time: {time() - t1:.02f}")                 
-    print(f"Total Time: {time() - t0:.02f}")
-    with open("results/3d_result.txt","a") as f:
-        f.write(f'{log_dir_now}: total_loss {total_loss} {metric_str} \n')
+    
+    if not predict_slice:
+        total_loss, metric_str = validate_best_model(model, log_dir_now, val_batch_size, buffer_size, tfrec_dir, multi_class,
+                                                    crop_size, depth_crop_size, predict_slice, Metric(metrics))
+        print(f"Train Time: {train_time:.02f}")
+        print(f"Validation Time: {time() - t1:.02f}")                 
+        print(f"Total Time: {time() - t0:.02f}")
+        with open("results/3d_result.txt","a") as f:
+            f.write(f'{log_dir_now}: total_loss {total_loss} {metric_str} \n')
 
 
 if __name__ == "__main__":
@@ -325,7 +314,7 @@ if __name__ == "__main__":
         f.write(f'========================================== \n')
 
     debug = False
-    es = 150
+    es = 300
 
     main(epochs=es, name='vnet-slice-aug', lr=1e-5, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
          crop_size=128, depth_crop_size=2, num_channels=32, lr_drop_freq=8,
@@ -339,12 +328,38 @@ if __name__ == "__main__":
 
     #==================
 
-    main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-         aug=['shift', 'flip', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
+    for i in range(2):
+        main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+            aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
 
-    main(epochs=es, name='vnet-noaug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-         crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-         num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-         aug=[], use_transpose=False, debug=debug, tpu=use_tpu)
+        main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+            aug=['shift', 'flip', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
+
+        main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+            aug=['shift', 'flip'], use_transpose=False, debug=debug, tpu=use_tpu)
+
+        main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+            aug=['shift', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
+
+        main(epochs=es, name='vnet-noaug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+            aug=['shift', 'bright'], use_transpose=False, debug=debug, tpu=use_tpu)
+
+        main(epochs=es, name='vnet-noaug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+            aug=['shift', 'contrast'], use_transpose=False, debug=debug, tpu=use_tpu)
+
+        main(epochs=es, name='vnet-noaug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
+            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+            aug=['shift', 'gamma'], use_transpose=False, debug=debug, tpu=use_tpu)
