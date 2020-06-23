@@ -38,7 +38,7 @@ class Deeplabv3_plus(tf.keras.Model):
                               (First element) and the middle convolution
                               of the resnet_block (Second element)  """
 
-        super(Deeplabv3, self).__init__(**kwargs)
+        super(Deeplabv3_plus, self).__init__(**kwargs)
 
         self.num_classes = num_classes
 
