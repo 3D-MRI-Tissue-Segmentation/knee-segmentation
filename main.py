@@ -143,9 +143,15 @@ def main(argv):
     # set dataset configuration
     if FLAGS.dataset == 'oai_challenge':
 
-        batch_size = FLAGS.batch_size * FLAGS.num_cores 
-        steps_per_epoch = 19200 // batch_size
-        validation_steps = 4480 // batch_size
+        batch_size = FLAGS.batch_size * FLAGS.num_cores
+        
+        if FLAGS.model_architecture != 'vnet':
+            steps_per_epoch = 19200 // batch_size
+            validation_steps = 4480 // batch_size
+        else:
+            steps_per_epoch = 120 // batch_size
+            validation_steps = 28 // batch_size
+
         logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
 
         if FLAGS.model_architecture != 'vnet':
@@ -174,7 +180,7 @@ def main(argv):
                                      augmentation=FLAGS.aug_strategy,
                                      parse_fn=parse_fn_3d,
                                      multi_class=FLAGS.multi_class,
-                                     is_training=True,
+                                     is_training=False,
                                      use_bfloat16=FLAGS.use_bfloat16,
                                      use_RGB=False)
 
@@ -188,13 +194,9 @@ def main(argv):
                                      use_bfloat16=FLAGS.use_bfloat16,
                                      use_RGB=False)
 
-        num_classes = 7 if FLAGS.multi_class else 1 
+        num_classes = 7 if FLAGS.multi_class else 1
         
-        for step, (image, label) in enumerate(train_ds):
-            print(step)
-            print(image.shape)
-            print(label.shape)
-
+        
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -227,7 +229,7 @@ def main(argv):
 
         model_fn = UNet
     elif FLAGS.model_architecture == 'vnet':
-        model_args = [64,
+        model_args = [32,
                       num_classes,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
@@ -349,7 +351,7 @@ def main(argv):
                 else:
                     model.build((None, 288, 288, 3))
             else:
-                model.build((None, 160, 384, 384, 1))
+                model.build((None, None, None, None, None))
             
             model.summary()
 

@@ -212,12 +212,11 @@ def parse_fn_3d(example_proto, training, augmentation=None, multi_class=True, us
     # Parse the input tf.Example proto using the dictionary above.
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
-    image = tf.reshape(image_raw, [image_features['height'], image_features['width'], image_features['depth']])
+    image = tf.reshape(image_raw, [384, 384, 160, 1])
     image = tf.cast(image, dtype)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
-    seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
-                               image_features['depth'], image_features['num_channels']])
+    seg = tf.reshape(seg_raw, [384, 384, 160, 7])
     seg = tf.cast(seg, dtype)
 
     if not multi_class:
@@ -242,14 +241,16 @@ def read_tfrecord(tfrecords_dir,
     shards = tf.data.Dataset.from_tensor_slices(file_list)
     cycle_l = 1
     if is_training:
-        shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
+        shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64)) 
         cycle_l = 8
+
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
                                 cycle_length=cycle_l,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
+        
 
     parser = partial(parse_fn,
                      training=is_training,
