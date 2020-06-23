@@ -12,7 +12,7 @@ from glob import glob
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet, Nested_UNet_v2
 from Segmentation.model.segnet import SegNet
-from Segmentation.model.deeplabv3 import Deeplabv3
+from Segmentation.model.deeplabv3 import Deeplabv3, Deeplabv3_plus
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
@@ -273,6 +273,33 @@ def main(argv):
                       FLAGS.output_stride]
 
         model_fn = Deeplabv3
+
+    elif FLAGS.model_architecture == 'deeplabv3 plus':
+        model_args = [num_classes,
+                      FLAGS.kernel_size_initial_conv,
+                      FLAGS.num_filters_atrous,
+                      FLAGS.num_filters_DCNN,
+                      FLAGS.num_filters_ASPP,
+                      FLAGS.kernel_size_atrous,
+                      FLAGS.kernel_size_DCNN, 
+                      FLAGS.kernel_size_ASPP,
+                      48,
+                      [256, 128],
+                      3,
+                      (2, 2),
+                      False,
+                      False,
+                      'same',
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order,
+                      FLAGS.MultiGrid,
+                      FLAGS.rate_ASPP,
+                      FLAGS.output_stride]
+
+        model_fn = Deeplabv3_plus
+
     else:
         logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
     
