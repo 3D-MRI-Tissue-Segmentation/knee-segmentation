@@ -1,84 +1,66 @@
 import numpy as np
+import tensorflow as tf
 from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import itertools
+import os
+from Segmentation.utils.losses import dice_coef, iou_loss
 
-def accuracy(confusion: np.ndarray, mask: np.ndarray) -> float:
-    """
-    Return the global accuracy from a confusion matrix.
-    Args:
-        confusion: the confusion matrix between ground truth and predictions
-        mask: a mask for ignoring specific labels
-    Returns:
-        a float representing the global accuracy in the confusion matrix
-    """
-    # extract the number of correct guesses from the diagonal
-    preds_correct = mask * np.sum(confusion * np.eye(len(confusion)), axis=-1)
-    # extract the number of total values per class from ground truth
-    trues = mask * np.sum(confusion, axis=-1)
-    # calculate the total accuracy
-    return np.sum(preds_correct) / np.sum(trues)
+def iou_loss_eval(y_true, y_pred):
 
+    y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
+    y_pred = tf.slice(y_pred, [0, 0, 0, 1], [-1, -1, -1, 6])
+    iou = iou_loss(y_true, y_pred)
 
-def class_accuracy(confusion: np.ndarray) -> np.ndarray:
-    """
-    Return the per class accuracy from confusion matrix.
-    Args:
-        confusion: the confusion matrix between ground truth and predictions
-    Returns:
-        a vector representing the per class accuracy
-    """
-    # extract the number of correct guesses from the diagonal
-    preds_correct = np.sum(confusion * np.eye(len(confusion)), axis=-1)
-    # extract the number of total values per class from ground truth
-    trues = np.sum(confusion, axis=-1)
-    # get per class accuracy by dividing correct by total
-    return preds_correct / trues
+    return iou
 
+def dice_coef_eval(y_true, y_pred):
 
-def iou(confusion: np.ndarray) -> np.ndarray:
-    """
-    Return the per class Intersection over Union (I/U) from confusion matrix.
-    Args:
-        confusion: the confusion matrix between ground truth and predictions
-    Returns:
-        a vector representing the per class I/U
-    Reference:
-        https://en.wikipedia.org/wiki/Jaccard_index
-    """
-    # get |intersection| (AND) from the diagonal of the confusion matrix
-    intersection = (confusion * np.eye(len(confusion))).sum(axis=-1)
-    # calculate the total ground truths and predictions per class
-    preds = confusion.sum(axis=0)
-    trues = confusion.sum(axis=-1)
-    # get |union| (OR) from the predictions, ground truths, and intersection
-    union = trues + preds - intersection
-    # return the intersection over the union
-    return intersection / union
+    y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
+    y_pred = tf.slice(y_pred, [0, 0, 0, 1], [-1, -1, -1, 6])
 
+    dice = dice_coef(y_true, y_pred)
 
-def metrics(confusion: np.ndarray, mask: np.ndarray) -> tuple:
-    """
-    Return metrics evaluating a categorical classification task.
-    Args:
-        confusion: the confusion matrix between ground truth and predictions
-        mask: the mask to use for the metrics
-    Returns:
-        a tuple of metrics for evaluation:
-        -   float: the global accuracy
-        -   float: the mean per class accuracy
-        -   float: the mean I/U
-        -   ndarray: a vector representing the per class I/U
-    """
-    # set the mask to all 1 if there are none specified
-    mask = np.ones(y_pred.shape[-1]) if mask is None else mask
-    # calculate the global accuracy from the confusion matrix
-    _accuracy = accuracy(confusion, mask)
-    # calculate the class accuracies from the confusion matrix
-    _class_accuracy = class_accuracy(confusion)[mask.astype(bool)]
-    # take the mean of the class accuracies
-    mean_per_class_accuracy = _class_accuracy.mean()
-    # calculate the per class IoUs from the confusion matrix
-    _iou = iou(confusion)[mask.astype(bool)]
-    # take the mean of the per class I/Us
-    mean_iou = _iou.mean()
+    return dice
 
-    return _accuracy, mean_per_class_accuracy, mean_iou, _iou
+def get_confusion_matrix(y_true, y_pred, classes=None):
+
+    y_true = np.reshape(y_true, (y_true.shape[0] * y_true.shape[1] * y_true.shape[2], y_true.shape[3]))
+    y_pred = np.reshape(y_pred, (y_pred.shape[0] * y_pred.shape[1] * y_pred.shape[2], y_pred.shape[3]))
+    y_true_max = np.argmax(y_true, axis=1)
+    y_pred_max = np.argmax(y_pred, axis=1)
+
+    if classes is None:
+        cm = confusion_matrix(y_true_max, y_pred_max)
+    else:
+        cm = confusion_matrix(y_true_max, y_pred_max, labels=classes)
+    print(cm)
+
+    return cm
+
+def plot_confusion_matrix(cm, savefig, classes, normalise=True, title='confusion matrix', cmap=plt.cm.Blues):
+
+    if normalise:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+    plt.figure()
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' if normalise else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.tight_layout()
+    plt.show()
+    if savefig is not None:
+        plt.savefig(savefig)

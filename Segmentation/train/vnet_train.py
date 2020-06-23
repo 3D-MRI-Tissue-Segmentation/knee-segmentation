@@ -10,7 +10,7 @@ from Segmentation.train.utils import setup_gpu, LearningRateUpdate, Metric
 from Segmentation.train.reshape import get_mid_slice, get_mid_vol
 from Segmentation.train.validation import validate_best_model
 from Segmentation.utils.data_loader import read_tfrecord_3d
-from Segmentation.utils.losses import dice_loss, tversky_loss, iou_loss, iou_loss_eval_3d, dice_coef_eval_3d, dice_loss_weighted_3d, focal_tversky_loss
+from Segmentation.utils.losses import dice_loss, tversky_loss, iou_loss, iou_loss_eval_3d, dice_coef_eval_3d, dice_loss_weighted_3d, focal_tversky
 from Segmentation.model.vnet import VNet
 
 
@@ -268,7 +268,7 @@ def main(epochs, name,
         elif multi_class and custom_loss == "weighted":
             loss_func = dice_loss_weighted_3d
         elif multi_class and custom_loss == "focal":
-            loss_func = focal_tversky_loss
+            loss_func = focal_tversky
         else:
             raise NotImplementedError(f"Custom loss: {custom_loss} not implemented.")
 

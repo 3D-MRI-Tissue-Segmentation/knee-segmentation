@@ -10,6 +10,7 @@ web_env/
 ui_env/
 **/ml_env/
 ml_env/
+*/figures/
 
 # Python
 __pycache__/
@@ -21,6 +22,7 @@ __pycache__/
 htmlcov/
 
 # Files
+.DS_Store
 *.json
 *.png
 *.jpg
@@ -28,8 +30,12 @@ htmlcov/
 *.seg
 *.npy
 *.h5
+*.hdf5
 *.csv
 *.tfrecords
+*.cfg
+*.sh
+*.zsh
 
 # IDE
 .vscode/
@@ -40,9 +46,11 @@ htmlcov/
 **/logs_old/
 **/logs_old_2/
 
-# Data
+# Checkpoints
 checkpoints/
 
 # Unignore
 !/results/
 !/results/**
+
+ok.py
