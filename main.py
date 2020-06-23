@@ -12,10 +12,10 @@ from glob import glob
 
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet, Nested_UNet_v2
 from Segmentation.model.segnet import SegNet
-from Segmentation.model.deeplabv3 import Deeplabv3
+from Segmentation.model.deeplabv3 import Deeplabv3, Deeplabv3_plus
 from Segmentation.model.vnet import VNet
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
-from Segmentation.utils.data_loader import read_tfrecord, parse_fn_2d, parse_fn_3d
+from Segmentation.utils.data_loader import read_tfrecord, read_tfrecord_3d
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
@@ -159,7 +159,6 @@ def main(argv):
                                      batch_size=batch_size,
                                      buffer_size=FLAGS.buffer_size,
                                      augmentation=FLAGS.aug_strategy,
-                                     parse_fn=parse_fn_2d,
                                      multi_class=FLAGS.multi_class,
                                      is_training=True,
                                      use_bfloat16=FLAGS.use_bfloat16,
@@ -168,35 +167,41 @@ def main(argv):
                                      batch_size=batch_size,
                                      buffer_size=FLAGS.buffer_size,
                                      augmentation=FLAGS.aug_strategy,
-                                     parse_fn=parse_fn_2d,
                                      multi_class=FLAGS.multi_class,
                                      is_training=False,
                                      use_bfloat16=FLAGS.use_bfloat16,
                                      use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
         else:
-            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     parse_fn=parse_fn_3d,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=False,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False)
 
-            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     parse_fn=parse_fn_3d,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=False,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False)
+            train_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
+                                        batch_size=batch_size,
+                                        buffer_size=FLAGS.buffer_size,
+                                        is_training=True,
+                                        crop_size=144,
+                                        depth_crop_size=80,
+                                        aug=[],
+                                        predict_slice=True,
+                                        multi_class=FLAGS.multi_class,
+                                        use_bfloat16=FLAGS.use_bfloat16)
 
-        num_classes = 7 if FLAGS.multi_class else 1
-        
-        
+            valid_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
+                                        batch_size=batch_size,
+                                        buffer_size=FLAGS.buffer_size,
+                                        is_training=False,
+                                        crop_size=144,
+                                        depth_crop_size=80,
+                                        aug=[],
+                                        predict_slice=True,
+                                        multi_class=FLAGS.multi_class,
+                                        use_bfloat16=FLAGS.use_bfloat16)
+
+        num_classes = 7 if FLAGS.multi_class else 1 
+
+        for step, (image, label) in enumerate(valid_ds):
+            print(step)
+            print(image.shape)
+            print(label.shape)
+
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -316,6 +321,33 @@ def main(argv):
                       FLAGS.output_stride]
 
         model_fn = Deeplabv3
+
+    elif FLAGS.model_architecture == 'deeplabv3_plus':
+        model_args = [num_classes,
+                      FLAGS.kernel_size_initial_conv,
+                      FLAGS.num_filters_atrous,
+                      FLAGS.num_filters_DCNN,
+                      FLAGS.num_filters_ASPP,
+                      FLAGS.kernel_size_atrous,
+                      FLAGS.kernel_size_DCNN, 
+                      FLAGS.kernel_size_ASPP,
+                      48,
+                      [256, 128],
+                      3,
+                      (2, 2),
+                      False,
+                      False,
+                      'same',
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.use_bias,
+                      FLAGS.channel_order,
+                      FLAGS.MultiGrid,
+                      FLAGS.rate_ASPP,
+                      FLAGS.output_stride]
+
+        model_fn = Deeplabv3_plus
+
     else:
         logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
 
