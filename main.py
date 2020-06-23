@@ -63,7 +63,7 @@ flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
 flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
 
-# Deeplab parametersi
+# Deeplab parameters
 flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
 flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
 flags.DEFINE_integer('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
@@ -75,6 +75,12 @@ flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'kernel size for the ASPP te
 flags.DEFINE_list('MultiGrid', [1, 2, 4], 'relative convolution rates for the atrous convolutions')
 flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], 'rates for the ASPP term convolutions')
 flags.DEFINE_integer('output_stride', 16, 'final output stride (taking into account max pooling)')
+
+flags.DEFINE_integer('num_filters_final_encoder', 512, 'Number of filters of the last convolution of the encoder')
+flags.DEFINE_list('num_filters_from_backbone', [128, 96], 'Number of filters for the 1x1 convolutions to reshape input from the backbone')
+flags.DEFINE_list('num_channels_UpConv', [512, 256, 128], 'Number of filters for the upsampling convolutions in the decoder')
+flags.DEFINE_integer('kernel_size_UpConv', 3, 'Kernel size for the upsampling convolutions')
+flags.DEFINE_bool('use_transpose', False, 'Whetehr to use transpose convolutions or upsampling in the decoder')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
@@ -95,7 +101,6 @@ flags.DEFINE_integer('gif_volume', 1, 'Which volume from the validation dataset 
 flags.DEFINE_bool('clean_gif', False, 'False includes text representing epoch number')
 flags.DEFINE_string('tpu_dir', '', 'If loading visual file from a tpu other than the tpu you are training with.')
 flags.DEFINE_string('which_representation', '', 'Whether to do epoch gif ("epoch") or volume gif ("volume") or "slice"')
-
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -324,12 +329,13 @@ def main(argv):
                       FLAGS.kernel_size_atrous,
                       FLAGS.kernel_size_DCNN, 
                       FLAGS.kernel_size_ASPP,
-                      48,
-                      [256, 128],
-                      3,
+                      FLAGS.num_filters_final_encoder,
+                      FLAGS.num_filters_from_backbone,
+                      FLAGS.num_channels_UpConv,
+                      FLAGS.kernel_size_UpConv,
                       (2, 2),
                       False,
-                      False,
+                      FLAGS.use_transpose,
                       'same',
                       FLAGS.activation,
                       FLAGS.use_batchnorm,

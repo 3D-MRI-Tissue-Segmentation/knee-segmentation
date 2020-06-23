@@ -5,14 +5,15 @@ class Deeplabv3_plus(tf.keras.Model):
     def __init__(self,
                  num_classes,
                  kernel_size_initial_conv,
-                 num_channels_atrous,
+                 num_channels_atrous=512,
                  num_channels_DCNN=[256, 512, 1024],
                  num_channels_ASPP=256,
                  kernel_size_atrous=3,
                  kernel_size_DCNN=[1, 3],
                  kernel_size_ASPP=[1, 3, 3, 3],
-                 num_channels_from_backcone=48,
-                 num_channels_UpConv=[256, 128],
+                 num_filters_final_encoder=512,
+                 num_channels_from_backcone=[128, 96],
+                 num_channels_UpConv=[512, 256, 128],
                  kernel_size_UpConv=3,
                  stride_UpConv=(2, 2),
                  use_batchnorm_UpConv=False,
@@ -58,6 +59,7 @@ class Deeplabv3_plus(tf.keras.Model):
                                    use_batchnorm,
                                    use_bias,
                                    data_format)
+
         self.block2 = resnet_block(True,
                                    num_channels_DCNN[1],
                                    kernel_size_DCNN,
@@ -99,14 +101,12 @@ class Deeplabv3_plus(tf.keras.Model):
         #Final convolution of encoder
         self.final_encoder_conv = aspp_block(1,
                                              1,
-                                             num_classes,
+                                             num_filters_final_encoder,
                                              padding,
                                              use_batchnorm,
                                              'linear',
                                              use_bias,
                                              data_format)
-
-        self.final_encoder_upsampling = tfkl.UpSampling2D(size=(2, 2))
 
         #Decoder
         self.decoder_term = Decoder(num_channels_from_backcone=num_channels_from_backcone,
@@ -132,29 +132,27 @@ class Deeplabv3_plus(tf.keras.Model):
 
         before_final_stride = self.block1(before_final_stride, training=training)  # output stride 2
         before_final_stride = self.block2(before_final_stride, training=training)  # output stride 4
-        encoder_out = self.block3(before_final_stride, training=training)  # output stride 8
+        atrous_out = self.block3(before_final_stride, training=training)  # output stride 8
 
-        encoder_out = self.atrous_conv(encoder_out, training=training)
-        encoder_out = self.aspp_term(encoder_out, training=training)
-        encoder_out = self.final_encoder_conv(encoder_out, training=training)
-
-        encoder_out = self.final_encoder_upsampling(encoder_out)
+        atrous_out = self.atrous_conv(atrous_out, training=training)
+        out = self.aspp_term(atrous_out, training=training)
+        out = self.final_encoder_conv(out, training=training)
 
         ###Decoder
-        decoder_out = self.decoder_term(before_final_stride, encoder_out, training=training)
+        out = self.decoder_term(in_atrous=atrous_out ,in_encoder=encoder_out, in_DCNN=before_final_stride, training=training)
 
-        decoder_out = self.output_conv(decoder_out, training=training)
+        out = self.output_conv(out, training=training)
         if self.num_classes == 1:
-            decoder_out = tfkl.Activation('sigmoid')(decoder_out)
+            out = tfkl.Activation('sigmoid')(out)
         else:
-            decoder_out = tfkl.Activation('softmax')(decoder_out)
+            out = tfkl.Activation('softmax')(out)
         
         # Upsample to same size as the input
         # print(f"Input Shape: {x.shape}, Out Shape: {decoder_out.shape}")
         # input_size = tf.shape(x)[1:3]
         # decoder_out = tf.image.resize(decoder_out, input_size)
 
-        return decoder_out
+        return out
 
 
 class Deeplabv3(tf.keras.Sequential):
@@ -447,7 +445,7 @@ class Atrous_conv(tf.keras.Model):
                                            use_batchnorm,
                                            use_bias,
                                            data_format,
-                                           rate=(multiplier * MultiGrid[0]))
+                                           rate=int(multiplier * MultiGrid[0]))
 
         self.second_conv = basic_conv_block(num_channels,
                                             kernel_size,
@@ -457,7 +455,7 @@ class Atrous_conv(tf.keras.Model):
                                             use_batchnorm,
                                             use_bias,
                                             data_format,
-                                            rate=(multiplier * MultiGrid[1]))
+                                            rate=int(multiplier * MultiGrid[1]))
 
         self.third_conv = basic_conv_block(num_channels,
                                            kernel_size,
@@ -467,7 +465,7 @@ class Atrous_conv(tf.keras.Model):
                                            use_batchnorm,
                                            use_bias,
                                            data_format,
-                                           rate=(multiplier * MultiGrid[2]))
+                                           rate=int(multiplier * MultiGrid[2]))
 
     def call(self, x, training=False):
 
@@ -570,8 +568,8 @@ class aspp_block(tf.keras.Sequential):
 class Decoder(tf.keras.Model):
 
     def __init__(self,
-                 num_channels_from_backcone=48,
-                 num_channels_UpConv=[256, 128],
+                 num_channels_from_backcone=[48],
+                 num_channels_UpConv=[512, 256, 128],
                  kernel_size_UpConv=3,
                  stride_UpConv=(2, 2),
                  use_batchnorm_UpConv=False,
@@ -583,27 +581,43 @@ class Decoder(tf.keras.Model):
 
         super(Decoder, self).__init__(**kwargs)
 
-        self.conv1x1 = tfkl.Conv2D(num_channels_from_backcone,
-                                   kernel_size=1,
-                                   padding=padding,
-                                   data_format=data_format)
+        self.first_conv1x1 = tfkl.Conv2D(num_channels_from_backcone[0],
+                                         kernel_size=1,
+                                         padding=padding,
+                                         data_format=data_format)
 
-        self.conv2 = Up_Conv2D(num_channels_conv=num_channels_UpConv[0],
+        self.second_conv1x1 = tfkl.Conv2D(num_channels_from_backcone[1],
+                                          kernel_size=1,
+                                          padding=padding,
+                                          data_format=data_format)
+
+        self.conv1 = Up_Conv2D(num_channels_conv=num_channels_UpConv[0],
                                kernel_size=kernel_size_UpConv,
                                use_batchnorm=use_batchnorm_UpConv,
                                use_transpose=use_transpose_UpConv,
                                strides=stride_UpConv)
 
-        self.conv3 = Up_Conv2D(num_channels_conv=num_channels_UpConv[1],
+        self.conv2 = Up_Conv2D(num_channels_conv=num_channels_UpConv[1],
                                kernel_size=kernel_size_UpConv,
                                use_batchnorm=use_batchnorm_UpConv,
                                use_transpose=use_transpose_UpConv,
                                strides=stride_UpConv)
 
-    def call (self, in_DCNN, in_encoder, training=False):
+        self.conv3 = Up_Conv2D(num_channels_conv=num_channels_UpConv[2],
+                               kernel_size=kernel_size_UpConv,
+                               use_batchnorm=use_batchnorm_UpConv,
+                               use_transpose=use_transpose_UpConv,
+                               strides=stride_UpConv)
 
-        in_DCNN = self.conv1x1(in_DCNN, training=training)
-        out = tf.concat([in_DCNN, in_encoder], axis=3)
+    def call (self, in_atrous, in_encoder, in_DCNN, training=False):
+
+        in_atrous = self.first_conv1x1(in_atrous, training=training)
+        in_DCNN = self.second_conv1x1(in_DCNN, training=training)
+
+        out = tf.concat([in_atrous, in_encoder], axis=3)
+        out = self.conv1(out, training=training)
+
+        out = out = tf.concat([in_DCNN, out], axis=3)
         out = self.conv2(out, training=training)
         out = self.conv3(out, training=training)
 
