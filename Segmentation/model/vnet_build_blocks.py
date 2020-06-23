@@ -1,5 +1,4 @@
 import tensorflow as tf
-import tensorflow.keras.layers as tfkl
 
 
 class Conv3d_ResBlock(tf.keras.layers.Layer):
@@ -62,7 +61,7 @@ class Conv3D_Block(tf.keras.layers.Layer):
                  name="convolution_block",
                  **kwargs):
 
-        super(Conv3D_Block, self).__init__(**kwargs)
+        super(Conv3D_Block, self).__init__(name=name)
 
         self.num_conv_layers = num_conv_layers
         self.use_batchnorm = use_batchnorm
@@ -101,7 +100,6 @@ class Conv3D_Block(tf.keras.layers.Layer):
                     x = self.dropout(x)
         return x
 
-        return outputs
 
 class Up_Conv3D(tf.keras.layers.Layer):
     def __init__(self,
@@ -114,7 +112,7 @@ class Up_Conv3D(tf.keras.layers.Layer):
                  name="upsampling_conv_block",
                  **kwargs):
 
-        super(Up_Conv3D, self).__init__(**kwargs)
+        super(Up_Conv3D, self).__init__(name=name)
 
         self.use_batchnorm = use_batchnorm
         self.use_transpose = use_transpose

@@ -210,7 +210,7 @@ def parse_fn_2d(example_proto, training, augmentation, multi_class=True, use_bfl
 
     return (image, seg)
 
-def parse_fn_3d(example_proto, training, augmentation, multi_class=True, use_bfloat16=False, use_RGB=False):
+def parse_fn_3d(example_proto, training, multi_class=True, use_bfloat16=False, use_RGB=False):
 
     if use_bfloat16:
         dtype = tf.bfloat16
@@ -283,10 +283,8 @@ def read_tfrecord_2d(tfrecords_dir, batch_size, buffer_size, augmentation,
 
 # def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_size=None, depth_crop_size=80, aug=[], predict_slice=False, **kwargs):
 #     dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
-    
 #     if "resize" in aug:
 #         assert "shift" in aug, "Need to use shift if using resize"
-
 #     if is_training:
 #         if crop_size is not None:
 #             if (crop_size > 172) or (depth_crop_size > 70):
@@ -313,7 +311,9 @@ def read_tfrecord_2d(tfrecords_dir, batch_size, buffer_size, augmentation,
 #         dataset = dataset.map(normalise)
 #     return dataset
 
-def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_size=None, depth_crop_size=80, aug=[], predict_slice=False, **kwargs):
+def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training,
+                     crop_size=None, depth_crop_size=80, aug=[],
+                     predict_slice=False, use_keras_fit=False, multi_class=False):
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
     if is_training:
@@ -325,7 +325,7 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
 
-    parser = partial(parse_fn, training=is_training, multi_class=multi_class)
+    parser = partial(parse_fn_3d, training=is_training, multi_class=multi_class)
 
     dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
@@ -338,8 +338,7 @@ def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_s
     options.experimental_optimization.map_parallelization = True
     dataset = dataset.with_options(options)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-    
-    # dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
+
     if crop_size is not None:
         if is_training:
             resize = "resize" in aug
