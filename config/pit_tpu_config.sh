@@ -62,4 +62,4 @@
 
 
 ###################################################
-python3 main.py --train_epochs=80 --batch_size=32 --base_learning_rate=8.0e-06 --lr_drop_ratio=0.95 --lr_warmup_epochs=1 --model_architecture=deeplabv3_plus --tfrec_dir=gs://oai-challenge-dataset/tfrecords/ --logdir=gs://oai-challenge-dataset/checkpoints/ --tpu=pit-tpu  --MultiGrid='1 2 3' --rate_ASPP='1 4 6 12' --num_filters_atrous=512 --kernel_size_initial_conv=3 --num_filters_final_encoder=512 --num_filters_from_backbone='128 96' --num_channels_UpConv='512 256 128' --use_transpose=False
+python3 main.py --train_epochs=80 --batch_size=32 --base_learning_rate=8.0e-06 --lr_drop_ratio=0.95 --lr_warmup_epochs=1 --model_architecture=deeplabv3_plus --tfrec_dir=gs://oai-challenge-dataset/tfrecords/ --logdir=gs://oai-challenge-dataset/checkpoints/ --tpu=pit-tpu  --MultiGrid='1','2','3' --rate_ASPP='1','4','6','12' --num_filters_atrous=512 --kernel_size_initial_conv=3 --num_filters_final_encoder=512 --num_filters_from_backbone='128','96' --num_channels_UpConv='512','256','128' --use_transpose=False
