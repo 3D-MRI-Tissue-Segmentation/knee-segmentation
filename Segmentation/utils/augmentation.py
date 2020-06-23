@@ -139,6 +139,74 @@ def crop_3d(img, crop_size, depth_crop_size, centre, output_slice, target=None):
         img = tf.slice(img, [0, dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [-1, depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
     return img
 
+def crop_3d_pad_slice(img, crop_size, depth_crop_size, centre):
+    """ Gets slice with same padding, used for 3D to 3D slice with x """
+    dc, hc, wc = centre
+
+    img = tf.slice(img, [0, dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [-1, 1 + (depth_crop_size * 2), crop_size * 2, crop_size * 2, -1])
+    return img
+
+
+def apply_random_brightness_3d(image_tensor, label_tensor):
+    do_brightness = tf.random.uniform([]) > 0.75
+    norm = tf.math.abs(tf.random.normal([], 0.0, 0.1))
+    norm = tf.clip_by_value(norm, 0, 0.999)
+    image_tensor = tf.cond(do_brightness, lambda: tf.image.adjust_brightness(image_tensor, norm), lambda: image_tensor)
+    return image_tensor, label_tensor
+
+
+def apply_random_contrast_3d(image_tensor, label_tensor):
+    do_contrast = tf.random.uniform([]) > 0.75
+    contrast = tf.random.uniform([], 0.9, 1.1)
+    image_tensor = tf.cond(do_contrast, lambda: tf.image.adjust_contrast(image_tensor, contrast), lambda: image_tensor)
+    return image_tensor, label_tensor
+
+
+def apply_random_gamma_3d(image_tensor, label_tensor):
+    do_gamma = tf.random.uniform([]) > 0.75
+    gamma = tf.random.uniform([], 0.9, 1.1)
+    gain = tf.random.uniform([], 0.95, 1.05)
+    image_tensor = tf.cond(do_gamma, lambda: tf.image.adjust_gamma(image_tensor, gamma=gamma, gain=gain), lambda: image_tensor)
+    return image_tensor, label_tensor
+
+
+def normalise(image_tensor, label_tensor):
+    image_tensor = tf.map_fn(lambda x: normalise_per_batch(x), image_tensor)
+    return image_tensor, label_tensor
+
+
+def normalise_per_batch(image_tensor):
+    mean = tf.math.reduce_mean(image_tensor)
+    std = tf.math.reduce_std(image_tensor)
+    image_tensor = tf.divide(tf.math.subtract(image_tensor, mean), std)
+    return image_tensor
+
+
+def apply_flip_3d_axis(image_tensor, label_tensor, axis):
+    do_flip = tf.random.uniform([]) > 0.5
+    image_tensor = tf.cond(do_flip, lambda: tf.reverse(image_tensor, [axis]), lambda: image_tensor)
+    label_tensor = tf.cond(do_flip, lambda: tf.reverse(label_tensor, [axis]), lambda: label_tensor)
+    return image_tensor, label_tensor
+
+
+def apply_flip_3d(image_tensor, label_tensor):
+    image_tensor, label_tensor = tf.map_fn(lambda x: apply_flip_3d_axis(x[0], x[1], axis=-2), (image_tensor, label_tensor))
+    image_tensor, label_tensor = tf.map_fn(lambda x: apply_flip_3d_axis(x[0], x[1], axis=-3), (image_tensor, label_tensor))
+    image_tensor, label_tensor = tf.map_fn(lambda x: apply_flip_3d_axis(x[0], x[1], axis=-4), (image_tensor, label_tensor))
+    return image_tensor, label_tensor
+
+
+def apply_rotate_3d(image_tensor, label_tensor):
+    image_tensor, label_tensor = tf.map_fn(lambda x: rotate_per_batch_3d(x[0], x[1]), (image_tensor, label_tensor))
+    return image_tensor, label_tensor
+
+
+def rotate_per_batch_3d(image_tensor, label_tensor):
+    k = tf.random.uniform([], minval=0, maxval=3, dtype=tf.int32)
+    image_tensor = tf.image.rot90(image_tensor, k=k)
+    label_tensor = tf.image.rot90(label_tensor, k=k)
+    return image_tensor, label_tensor
+
 """
 def rotate_randomly_image_pair_2d(image_tensor, label_tensor, min_angle, max_angle):
 
