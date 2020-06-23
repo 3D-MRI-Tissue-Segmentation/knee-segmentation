@@ -13,9 +13,10 @@ from glob import glob
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet, Nested_UNet_v2
 from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3, Deeplabv3_plus
+from Segmentation.model.vnet import VNet
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
-from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
+from Segmentation.utils.data_loader import read_tfrecord, parse_fn_2d, parse_fn_3d
+from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
@@ -27,7 +28,7 @@ flags.DEFINE_float('base_learning_rate', 3.2e-04, 'base learning rate at the sta
 flags.DEFINE_integer('lr_warmup_epochs', 1, 'No. of epochs for a warmup to the base_learning_rate. 0 for no warmup')
 flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
 flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay learning rate.')
-flags.DEFINE_list('lr_decay_epochs', None, 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
+flags.DEFINE_list('lr_decay_epochs', [10, 20, 40, 60], 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
@@ -81,7 +82,7 @@ flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
 flags.DEFINE_integer('save_freq', 1, 'Save every x volumes as npy')
-flags.DEFINE_integer('roi_npy', 80, 'Save the middle x*x*x voxels') 
+flags.DEFINE_integer('roi_npy', 80, 'Save the middle x*x*x voxels')
 
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
@@ -92,7 +93,7 @@ flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
 flags.DEFINE_integer('gif_slice', 80, 'Slice that is taken into consideration for the gif')
 flags.DEFINE_integer('gif_volume', 1, 'Which volume from the validation dataset to consider')
 flags.DEFINE_bool('clean_gif', False, 'False includes text representing epoch number')
-flags.DEFINE_string('tpu_dir','','If loading visual file from a tpu other than the tpu you are training with.')
+flags.DEFINE_string('tpu_dir', '', 'If loading visual file from a tpu other than the tpu you are training with.')
 flags.DEFINE_string('which_representation', '', 'Whether to do epoch gif ("epoch") or volume gif ("volume") or "slice"')
 
 
@@ -142,28 +143,57 @@ def main(argv):
     # set dataset configuration
     if FLAGS.dataset == 'oai_challenge':
 
-        batch_size = FLAGS.batch_size * FLAGS.num_cores
+        batch_size = FLAGS.batch_size * FLAGS.num_cores 
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size
         logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
-        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
-                                 batch_size=batch_size,
-                                 buffer_size=FLAGS.buffer_size,
-                                 augmentation=FLAGS.aug_strategy,
-                                 multi_class=FLAGS.multi_class,
-                                 is_training=True,
-                                 use_bfloat16=FLAGS.use_bfloat16,
-                                 use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
-        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                                 batch_size=batch_size,
-                                 buffer_size=FLAGS.buffer_size,
-                                 augmentation=FLAGS.aug_strategy,
-                                 multi_class=FLAGS.multi_class,
-                                 is_training=False,
-                                 use_bfloat16=FLAGS.use_bfloat16,
-                                 use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
 
-        num_classes = 7 if FLAGS.multi_class else 1
+        if FLAGS.model_architecture != 'vnet':
+            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_2d,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=True,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
+            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_2d,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=False,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
+        else:
+            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_3d,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=True,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False)
+
+            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_3d,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=False,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False)
+
+        num_classes = 7 if FLAGS.multi_class else 1 
+        
+        for step, (image, label) in enumerate(train_ds):
+            print(step)
+            print(image.shape)
+            print(label.shape)
 
     if FLAGS.multi_class:
         loss_fn = tversky_loss
@@ -196,7 +226,18 @@ def main(argv):
                       FLAGS.channel_order]
 
         model_fn = UNet
+    elif FLAGS.model_architecture == 'vnet':
+        model_args = [64,
+                      num_classes,
+                      FLAGS.num_conv,
+                      FLAGS.kernel_size,
+                      FLAGS.activation,
+                      FLAGS.use_batchnorm,
+                      FLAGS.dropout_rate,
+                      FLAGS.use_spatial,
+                      FLAGS.channel_order]
 
+        model_fn = VNet
     elif FLAGS.model_architecture == 'r2unet':
         model_args = [FLAGS.num_filters,
                       num_classes,
@@ -261,7 +302,7 @@ def main(argv):
                       FLAGS.num_filters_DCNN,
                       FLAGS.num_filters_ASPP,
                       FLAGS.kernel_size_atrous,
-                      FLAGS.kernel_size_DCNN, 
+                      FLAGS.kernel_size_DCNN,
                       FLAGS.kernel_size_ASPP,
                       'same',
                       FLAGS.activation,
@@ -302,7 +343,7 @@ def main(argv):
 
     else:
         logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
-    
+
     with strategy.scope():
         model = model_fn(*model_args)
 
@@ -321,24 +362,33 @@ def main(argv):
             optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
         elif FLAGS.optimizer == 'rms-prop':
             optimiser = tf.keras.optimizers.RMSprop(learning_rate=lr_rate)
+        elif FLAGS.optimizer == 'sgd':
+            optimiser = tf.keras.optimizers.SGD(learning_rate=lr_rate)
         else:
             print('Not a valid input optimizer, using Adam.')
             optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
 
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
         if FLAGS.train:
-            if FLAGS.backbone_architecture == 'default':
-
-                model.build((batch_size, 288, 288, 1))
+            if FLAGS.model_architecture != 'vnet':
+                if FLAGS.backbone_architecture == 'default':
+                    model.build((None, 288, 288, 1))
+                else:
+                    model.build((None, 288, 288, 3))
             else:
-                model.build((batch_size, 288, 288, 3))
-
+                model.build((None, 160, 384, 384, 1))
+            
             model.summary()
 
         if FLAGS.multi_class:
-            model.compile(optimizer=optimiser,
-                          loss=loss_fn,
-                          metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+            if FLAGS.model_architecture != 'vnet':
+                model.compile(optimizer=optimiser,
+                              loss=loss_fn,
+                              metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+            else:
+                model.compile(optimizer=optimiser,
+                              loss=loss_fn,
+                              metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
         else:
             model.compile(optimizer=optimiser,
                           loss=loss_fn,
@@ -371,8 +421,8 @@ def main(argv):
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
     elif not FLAGS.visual_file == "":
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
-        print('model_fn',model_fn)
-        
+        print('model_fn', model_fn)
+
         if not FLAGS.which_representation == '':
 
             if FLAGS.which_representation == 'volume':
@@ -443,7 +493,6 @@ def main(argv):
                              save_freq=FLAGS.save_freq,
                              model_args=model_args)
 
-
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
@@ -451,7 +500,7 @@ def main(argv):
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
         logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         logdir = os.path.join(logdir, time)
-        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch',write_images=True)
+        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch', write_images=True)
         confusion_matrix(trained_model=model,
                          weights_dir=FLAGS.weights_dir,
                          fig_dir=FLAGS.fig_dir,

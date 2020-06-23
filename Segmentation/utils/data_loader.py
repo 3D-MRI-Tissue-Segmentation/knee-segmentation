@@ -9,6 +9,7 @@ import tensorflow as tf
 
 from Segmentation.utils.augmentation import crop_randomly_image_pair_2d, adjust_contrast_randomly_image_pair_2d
 from Segmentation.utils.augmentation import adjust_brightness_randomly_image_pair_2d
+from Segmentation.utils.augmentation import apply_centre_crop_3d, apply_valid_random_crop_3d
 
 def get_multiclass(label):
 
@@ -193,7 +194,12 @@ def parse_fn_2d(example_proto, training, augmentation, multi_class=True, use_bfl
 
     return (image, seg)
 
-def parse_fn_3d(example_proto, training, multi_class=True):
+def parse_fn_3d(example_proto, training, augmentation=None, multi_class=True, use_bfloat16=False, use_RGB=False):
+
+    if use_bfloat16:
+        dtype = tf.bfloat16
+    else:
+        dtype = tf.float32
 
     features = {
         'height': tf.io.FixedLenFeature([], tf.int64),
@@ -208,11 +214,27 @@ def parse_fn_3d(example_proto, training, multi_class=True):
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
     image = tf.reshape(image_raw, [image_features['height'], image_features['width'], image_features['depth']])
+    image = tf.cast(image, dtype)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
     seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
                                image_features['depth'], image_features['num_channels']])
-    seg = tf.cast(seg, tf.float32)
+    seg = tf.cast(seg, dtype)
+
+    if training:
+        apply_valid_random_crop_3d(image_tensor=image,
+                                   label_tensor=seg,
+                                   crop_size=144,
+                                   depth_crop_size=80,
+                                   resize=True,
+                                   random_shift=True,
+                                   output_slice=True)
+    else:
+        apply_centre_crop_3d(image_tensor=image,
+                             label_tensor=seg,
+                             crop_size=144,
+                             depth_crop_size=80,
+                             output_slice=True)
 
     if not multi_class:
         seg = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])
@@ -226,7 +248,7 @@ def read_tfrecord(tfrecords_dir,
                   batch_size,
                   buffer_size,
                   augmentation,
-                  parse_fn=parse_fn_2d,
+                  parse_fn,
                   multi_class=True,
                   is_training=False,
                   use_bfloat16=False,
@@ -241,7 +263,6 @@ def read_tfrecord(tfrecords_dir,
     shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
                                 cycle_length=cycle_l,
-
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)

@@ -1,7 +1,7 @@
 import tensorflow as tf
+import tensorflow.keras.layers as tfkl
 
-
-class Conv3D_Block(tf.keras.layers.Layer):
+class Conv3D_Block(tf.keras.Sequential):
 
     def __init__(self,
                  num_channels,
@@ -13,42 +13,39 @@ class Conv3D_Block(tf.keras.layers.Layer):
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
-                 name="convolution_block"):
+                 **kwargs):
 
-        super(Conv3D_Block, self).__init__(name=name)
+        super(Conv3D_Block, self).__init__(**kwargs)
 
         self.num_conv_layers = num_conv_layers
         self.use_batchnorm = use_batchnorm
         self.use_dropout = use_dropout
         self.use_spatial_dropout = use_spatial_dropout
-
-        self.conv = []
-        self.batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
-        self.activation = tf.keras.layers.Activation(nonlinearity)
-
-        if use_spatial_dropout:
-            self.dropout = tf.keras.layers.SpatialDropout3D(rate=dropout_rate)
-        else:
-            self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
-
-        for _ in range(num_conv_layers):
-            self.conv.append(tf.keras.layers.Conv3D(num_channels, kernel_size,
-                                                    padding='same', data_format=data_format))
-
-    def call(self, inputs, training):
-        x = inputs
-        for i in range(self.num_conv_layers):
-            x = self.conv[i](x)
+                
+        for _ in range(self.num_conv_layers):
+            self.add(tfkl.Conv3D(num_channels,
+                                 kernel_size,
+                                 padding='same',
+                                 data_format=data_format))
             if self.use_batchnorm:
-                x = self.batchnorm(x)
-            x = self.activation(x)
-            if training:
-                if self.use_dropout:
-                    x = self.dropout(x)
-        return x
+                self.add(tfkl.BatchNormalization(axis=-1,
+                                                 momentum=0.95,
+                                                 epsilon=0.001))
+            self.add(tfkl.Activation(nonlinearity))
+        
+        if self.use_dropout:
+            if self.use_spatial_dropout:
+                self.add(tfkl.SpatialDropout3D(rate=dropout_rate))
+            else:
+                self.add(tfkl.Dropout(rate=dropout_rate))
 
+    def call(self, inputs, training=False):
+        
+        outputs = super(Conv3D_Block, self).call(inputs, training=training)
 
-class Up_Conv3D(tf.keras.layers.Layer):
+        return outputs
+
+class Up_Conv3D(tf.keras.Model):
 
     def __init__(self,
                  num_channels,
@@ -59,9 +56,9 @@ class Up_Conv3D(tf.keras.layers.Layer):
                  strides=(2, 2, 2),
                  upsample_size=(2, 2, 2),
                  data_format='channels_last',
-                 name="upsampling_convolution_block"):
+                 **kwargs):
 
-        super(Up_Conv3D, self).__init__(name=name)
+        super(Up_Conv3D, self).__init__(**kwargs)
 
         self.use_batchnorm = use_batchnorm
         self.upsample = tf.keras.layers.UpSampling3D(size=upsample_size)
@@ -73,7 +70,7 @@ class Up_Conv3D(tf.keras.layers.Layer):
         self.conv_transpose = tf.keras.layers.Conv3DTranspose(num_channels, kernel_size, padding='same',
                                                               strides=strides, data_format=data_format)
 
-    def call(self, inputs, training):
+    def call(self, inputs, training=False):
 
         x = inputs
         if self.use_transpose:
@@ -82,6 +79,7 @@ class Up_Conv3D(tf.keras.layers.Layer):
             x = self.upsample(x)
             x = self.conv(x)
         if self.use_batchnorm:
-            x = self.batch_norm(x)
+            if training:
+                x = self.batch_norm(x)
         outputs = self.activation(x)
         return outputs
