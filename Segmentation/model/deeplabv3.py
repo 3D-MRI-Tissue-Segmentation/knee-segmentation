@@ -150,9 +150,9 @@ class Deeplabv3_plus(tf.keras.Model):
             decoder_out = tfkl.Activation('softmax')(decoder_out)
         
         # Upsample to same size as the input
-        # print(f"Input Shape: {tf.shape(x)}, Out Shape: {tf.shape(decoder_out)}")
-        # input_size = tf.shape(x)[1:3]
-        # out = tf.image.resize(out, input_size)
+        print(f"Input Shape: {tf.shape(x)}, Out Shape: {tf.shape(decoder_out)}")
+        input_size = tf.shape(x)[1:3]
+        out = tf.image.resize(out, input_size)
 
         return out
 

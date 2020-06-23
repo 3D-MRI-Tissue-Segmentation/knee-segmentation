@@ -190,10 +190,10 @@ def main(argv):
 
         num_classes = 7 if FLAGS.multi_class else 1 
 
-        for step, (image, label) in enumerate(train_ds):
-            print(step)
-            print(image.shape)
-            print(label.shape)
+        # for step, (image, label) in enumerate(train_ds):
+        #     print(step)
+        #     print(image.shape)
+        #     print(label.shape)
 
     if FLAGS.multi_class:
         loss_fn = tversky_loss
