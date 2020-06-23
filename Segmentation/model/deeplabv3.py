@@ -627,14 +627,14 @@ class Up_Conv2D(tf.keras.Sequential):
 
         super(Up_Conv2D, self).__init__(**kwargs)
 
-        if self.use_transpose:
+        if use_transpose:
             self.add(tfkl.Conv2DTranspose(num_channels_UpConv,
                                           kernel_size,
                                           padding='same',
                                           strides=strides,
                                           data_format=data_format))
         else:
-            self.add(tfkl.UpSampling2D(size=self.strides))
+            self.add(tfkl.UpSampling2D(size=strides))
 
         self.add(aspp_block(kernel_size=kernel_size,
                             rate=1,
