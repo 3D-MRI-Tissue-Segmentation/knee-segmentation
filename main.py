@@ -80,7 +80,6 @@ flags.DEFINE_integer('num_filters_final_encoder', 512, 'Number of filters of the
 flags.DEFINE_list('num_filters_from_backbone', [128, 96], 'Number of filters for the 1x1 convolutions to reshape input from the backbone')
 flags.DEFINE_list('num_channels_UpConv', [512, 256, 128], 'Number of filters for the upsampling convolutions in the decoder')
 flags.DEFINE_integer('kernel_size_UpConv', 3, 'Kernel size for the upsampling convolutions')
-flags.DEFINE_bool('use_transpose', False, 'Whetehr to use transpose convolutions or upsampling in the decoder')
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
