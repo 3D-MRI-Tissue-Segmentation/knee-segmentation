@@ -647,7 +647,7 @@ class Up_Conv2D(tf.keras.Sequential):
 
     def call(self, x, training=False):
 
-        out = super(aspp_block, self).call(x, training=training)
+        out = super(Up_Conv2D, self).call(x, training=training)
         return out
 
 
