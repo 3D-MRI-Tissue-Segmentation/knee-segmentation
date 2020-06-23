@@ -38,3 +38,8 @@ logs/vnet-multi-aug-nonoise-focal/test/multi/20200618/161836: total_loss 0.99803
 ========================================== 
 ========================================== 
 ========================================== 
+========================================== 
+logs/vnet-slice-aug/test/binary/20200618/222700: total_loss nan  - val_mIoU: nan - mIoU: 0.000000 - val_dice: nan - dice: 0.000000 
+logs/vnet-slice-noaug/test/binary/20200619/024650: total_loss nan  - val_mIoU: nan - mIoU: 0.000000 - val_dice: nan - dice: 0.000000 
+logs/vnet-aug/test/binary/20200619/070221: total_loss 0.2852131128311157  - val_mIoU: 0.557056 - mIoU: 0.000000 - val_dice: 0.285213 - dice: 0.000000 
+logs/vnet-noaug/test/binary/20200619/105333: total_loss 0.5348444581031799  - val_mIoU: 0.303826 - mIoU: 0.000000 - val_dice: 0.534844 - dice: 0.000000 
