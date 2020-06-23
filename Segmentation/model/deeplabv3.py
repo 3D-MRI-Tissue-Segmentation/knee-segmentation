@@ -154,7 +154,7 @@ class Deeplabv3_plus(tf.keras.Model):
         input_size = tf.shape(x)[1:3]
         decoder_out = tf.image.resize(decoder_out, input_size)
 
-        return out
+        return decoder_out
 
 
 class Deeplabv3(tf.keras.Sequential):
