@@ -152,7 +152,7 @@ class Deeplabv3_plus(tf.keras.Model):
         # Upsample to same size as the input
         print(f"Input Shape: {tf.shape(x)}, Out Shape: {tf.shape(decoder_out)}")
         input_size = tf.shape(x)[1:3]
-        out = tf.image.resize(out, input_size)
+        decoder_out = tf.image.resize(decoder_out, input_size)
 
         return out
 
