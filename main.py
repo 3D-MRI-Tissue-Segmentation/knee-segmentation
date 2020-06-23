@@ -73,10 +73,12 @@ flags.DEFINE_integer('kernel_size_atrous', 3, 'kernel size for the atrous convol
 flags.DEFINE_list('kernel_size_DCNN', [1, 3], 'kernel sizes for the blocks of the DCNN')
 flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'kernel size for the ASPP term')
 flags.DEFINE_list('MultiGrid', [1, 2, 4], 'relative convolution rates for the atrous convolutions')
-flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], 'rates for the ASPP term convolutions')
+# flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], 'rates for the ASPP term convolutions')
+flags.DEFINE_list('rate_ASPP', [1, 4, 6, 12], 'rates for the ASPP term convolutions')
 flags.DEFINE_integer('output_stride', 16, 'final output stride (taking into account max pooling)')
 
 flags.DEFINE_integer('num_filters_final_encoder', 512, 'Number of filters of the last convolution of the encoder')
+# flags.DEFINE_list('num_filters_from_backbone', [128, 96], 'Number of filters for the 1x1 convolutions to reshape input from the backbone')
 flags.DEFINE_list('num_filters_from_backbone', [128, 96], 'Number of filters for the 1x1 convolutions to reshape input from the backbone')
 flags.DEFINE_list('num_channels_UpConv', [512, 256, 128], 'Number of filters for the upsampling convolutions in the decoder')
 flags.DEFINE_integer('kernel_size_UpConv', 3, 'Kernel size for the upsampling convolutions')
