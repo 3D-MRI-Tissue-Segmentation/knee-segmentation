@@ -139,7 +139,7 @@ class Deeplabv3_plus(tf.keras.Model):
         out = self.final_encoder_conv(out, training=training)
 
         ###Decoder
-        out = self.decoder_term(in_atrous=atrous_out ,in_encoder=encoder_out, in_DCNN=before_final_stride, training=training)
+        out = self.decoder_term(in_atrous=atrous_out ,in_encoder=out, in_DCNN=before_final_stride, training=training)
 
         out = self.output_conv(out, training=training)
         if self.num_classes == 1:
