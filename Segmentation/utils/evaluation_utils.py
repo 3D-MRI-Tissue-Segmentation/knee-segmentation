@@ -752,6 +752,7 @@ def confusion_matrix(trained_model,
     trained_model.load_weights(weights_dir).expect_partial()
     trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
 
+
     f = weights_dir.split('/')[-1]
     # Excluding parenthese before f too
     if weights_dir.endswith(f):
@@ -759,6 +760,7 @@ def confusion_matrix(trained_model,
     writer_dir = os.path.join(writer_dir, 'eval')
     # os.makedirs(writer_dir)
     eval_metric_writer = tf.summary.create_file_writer(writer_dir)
+
 
     if multi_class:
         cm = np.zeros((num_classes, num_classes))
@@ -777,6 +779,7 @@ def confusion_matrix(trained_model,
     for step, (image, label) in enumerate(dataset):
         print(step)
         pred = trained_model.predict(image)
+        visualise_multi_class(label, pred)
         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
         if multi_class:

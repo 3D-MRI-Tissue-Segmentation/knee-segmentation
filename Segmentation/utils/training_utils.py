@@ -56,7 +56,7 @@ def visualise_binary(y_true, y_pred, savefig=None):
         if savefig is not None:
             plt.savefig(savefig)
 
-def visualise_multi_class(y_true, y_pred):
+def visualise_multi_class(y_true, y_pred, savefig=None):
 
     batch_size = y_true.shape[0]
 
@@ -81,6 +81,8 @@ def visualise_multi_class(y_true, y_pred):
 
         fig.tight_layout()
         plt.show()
+        if savefig is not None:
+            plt.savefig(savefig)
 
 def label2color(img):
     colour_maps = {
