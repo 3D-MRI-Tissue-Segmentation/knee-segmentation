@@ -1,6 +1,6 @@
 import tensorflow as tf
-import tensorflow.keras.layers as tfkl
-from Segmentation.model.vnet_build_blocks import Conv3D_Block, Up_Conv3D
+import inspect
+from Segmentation.model.vnet_build_blocks import Conv3d_ResBlock, Up_ResBlock
 
 class VNet(tf.keras.Model):
 
@@ -9,86 +9,82 @@ class VNet(tf.keras.Model):
                  num_classes,
                  num_conv_layers=2,
                  kernel_size=(3, 3, 3),
-                 nonlinearity='relu',
+                 activation='prelu',
                  use_batchnorm=True,
+                 noise=0.0,
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
+                 predict_slice=False,
+                 slice_format="mean",
                  data_format='channels_last',
+                 name="vnet",
                  **kwargs):
 
-        super(VNet, self).__init__(**kwargs)
+        self.params = str(inspect.currentframe().f_locals)
+        super(VNet, self).__init__(name=name)
+        self.noise = noise
+        self.predict_slice = predict_slice
+        self.slice_format = slice_format
+
+        block_args = {
+            'num_conv_layers': num_conv_layers,
+            'kernel_size': kernel_size,
+            'activation': activation,
+            'use_batchnorm': use_batchnorm,
+            'dropout_rate': dropout_rate,
+            'use_spatial_dropout': use_spatial_dropout,
+            'data_format': data_format,
+        }
         
-        self.num_classes = num_classes
+        self.conv_1 = Conv3d_ResBlock(num_channels=num_channels, **block_args, **kwargs)
+        self.conv_2 = Conv3d_ResBlock(num_channels=num_channels * 2, **block_args, **kwargs)
+        self.conv_3 = Conv3d_ResBlock(num_channels=num_channels * 4, **block_args, **kwargs)
+        self.conv_4 = Conv3d_ResBlock(num_channels=num_channels * 8, **block_args, **kwargs)
 
-        self.conv_1 = Conv3D_Block(num_channels,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.conv_2 = Conv3D_Block(num_channels*2,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.conv_3 = Conv3D_Block(num_channels*4,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.conv_4 = Conv3D_Block(num_channels*8,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,use_dropout=True,dropout_rate=dropout_rate,use_spatial_dropout=use_spatial_dropout,data_format=data_format)
-        self.conv_5 = Conv3D_Block(num_channels*16,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,use_dropout=True,dropout_rate=dropout_rate,use_spatial_dropout=use_spatial_dropout,data_format=data_format)
-
-        self.up_5 = Up_Conv3D(num_channels*8,(2,2,2),nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.up_6 = Up_Conv3D(num_channels*4,(2,2,2),nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.up_7 = Up_Conv3D(num_channels*2,(2,2,2),nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.up_8 = Up_Conv3D(num_channels,(2,2,2),nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-
-        self.up_conv4 = Conv3D_Block(num_channels*8,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.up_conv3 = Conv3D_Block(num_channels*4,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.up_conv2 = Conv3D_Block(num_channels*2,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
-        self.up_conv1 = Conv3D_Block(num_channels,num_conv_layers,kernel_size,nonlinearity,use_batchnorm=use_batchnorm,data_format=data_format)
+        self.upconv_4 = Up_ResBlock(num_channels=num_channels * 8, **block_args, **kwargs)
+        self.upconv_3 = Up_ResBlock(num_channels=num_channels * 4, **block_args, **kwargs)
+        self.upconv_2 = Up_ResBlock(num_channels=num_channels * 2, **block_args, **kwargs)
+        self.upconv_1 = Up_ResBlock(num_channels=num_channels, **block_args, **kwargs)
 
         # convolution num_channels at the output
-        # self.conv_output = tf.keras.layers.Conv3D(2, kernel_size, activation=nonlinearity, padding='same', data_format=data_format)
-        self.conv_1x1 = tf.keras.layers.Conv3D(num_classes, kernel_size, padding='same', data_format=data_format)
+        self.conv_output = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=kernel_size, activation=None, padding='same', data_format=data_format)
+        if activation is 'prelu':
+            self.activation = tf.keras.layers.PReLU()#alpha_initializer=tf.keras.initializers.Constant(value=0.25))
+        else:
+            self.activation = tf.keras.layers.Activation(activation)
 
-    def call(self, inputs, training=False):
+        self.conv_1x1 = tf.keras.layers.Conv3D(filters=num_classes, kernel_size=(1, 1, 1), padding='same', data_format=data_format)
+        
+        self.output_act = tf.keras.layers.Activation('sigmoid' if num_classes == 1 else 'softmax')
+
+
+    def call(self, inputs, training):
+
+        if self.noise and training:
+            inputs = tf.keras.layers.GaussianNoise(self.noise)(inputs)
 
         # encoder blocks
-        # 1->64
-        x1 = self.conv_1(inputs, training=training)
-
-        # 64->128
-        x2 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x1)
-        x2 = self.conv_2(x2, training=training)
-
-        # 128->256
-        x3 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x2)
-        x3 = self.conv_3(x3, training=training)
-
-        # 256->512
-        x4 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x3)
-        x4 = self.conv_4(x4, training=training)
-
-        # 512->1024
-        x5 = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x4)
-        x5 = self.conv_5(x5, training=training)
+        x1, x1_before = self.conv_1(inputs, training)
+        x2, x2_before = self.conv_2(x1, training)
+        x3, x3_before = self.conv_3(x2, training)
+        x4, x4_before = self.conv_4(x3, training)
 
         # decoder blocks
-        # 1024->512
-        u5 = self.up_5(x5, training=training)
-        u5 = tf.keras.layers.concatenate([x4, u5], axis=-1)
-        u5 = self.up_conv4(u5, training=training)
+        u4 = self.upconv_4([x4, x4_before], training)
+        u3 = self.upconv_3([u4, x3_before], training)
+        u2 = self.upconv_2([u3, x2_before], training)
+        u1 = self.upconv_1([u2, x1_before], training)
 
-        # 512->256
-        u6 = self.up_6(u5, training=training)
-        u6 = tf.keras.layers.concatenate([x3, u6], axis=-1)
-        u6 = self.up_conv3(u6, training=training)
+        output = self.conv_output(u1)
+        output = self.activation(output)
 
-        # 256->128
-        u7 = self.up_7(u6, training=training)
-        u7 = tf.keras.layers.concatenate([x2, u7], axis=-1)
-        u7 = self.up_conv2(u7, training=training)
-
-        # 128->64
-        u8 = self.up_8(u7, training=training)
-        u8 = tf.keras.layers.concatenate([x1, u8], axis=-1)
-        u8 = self.up_conv1(u8, training=training)
-
-        # u9 = self.conv_output(u8)
-        output = self.conv_1x1(u8)
-
-        if self.num_classes == 1:
-            output = tfkl.Activation('sigmoid')(output)
-        else:
-            output = tfkl.Activation('softmax')(output)
-
+        output = self.conv_1x1(output)
+        if self.predict_slice:
+            if self.slice_format == "mean":
+                output = tf.reduce_mean(output, -4)
+                output = tf.expand_dims(output, 1)
+            if self.slice_format == "sum":
+                output = tf.reduce_sum(output, -4)
+                output = tf.expand_dims(output, 1)
+        output = self.output_act(output)
         return output

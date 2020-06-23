@@ -74,7 +74,7 @@ def get_git_file_short_hash(file_path):
         commit_id = "Not Found"
     return commit_id
 
-def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs=10,
+def train(model, num_channels=16, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs=10,
           save_model=True, validate=True, train_name="", custom_train_loop=True, train_debug=False,
           reduce_lr=False, start_lr=5e-4, dataset_load_method=None,
           shuffle_order=True, normalise_input=True, remove_outliers=True,
@@ -90,36 +90,41 @@ def train(model, n_classes=1, batch_size=1, sample_shape=(128, 128, 128), epochs
     commit_id = ""
     if model == "tiny":
         from Segmentation.model.vnet_tiny import VNet_Tiny
-        vnet = VNet_Tiny(1, n_classes, **model_kwargs)
+        vnet = VNet_Tiny(num_channels, n_classes, **model_kwargs)
         model_path = "Segmentation/model/vnet_tiny.py"
         commit_id = get_git_file_short_hash(model_path)
     elif model == "small":
         from Segmentation.model.vnet_small import VNet_Small
-        vnet = VNet_Small(1, n_classes, **model_kwargs)
+        vnet = VNet_Small(num_channels, n_classes, **model_kwargs)
         model_path = "Segmentation/model/vnet_small.py"
         commit_id = get_git_file_short_hash(model_path)
     elif model == "small_relative":
         from Segmentation.model.vnet_small_relative import VNet_Small_Relative
-        vnet = VNet_Small_Relative(1, n_classes, **model_kwargs)
+        vnet = VNet_Small_Relative(num_channels, n_classes, **model_kwargs)
         get_position = True
         model_path = "Segmentation/model/vnet_small_relative.py"
         commit_id = get_git_file_short_hash(model_path)
     elif model == "slice":
         from Segmentation.model.vnet_slice import VNet_Slice
-        vnet = VNet_Slice(1, n_classes, **model_kwargs)
+        vnet = VNet_Slice(num_channels, n_classes, **model_kwargs)
         get_slice = True
         model_path = "Segmentation/model/vnet_slice.py"
         commit_id = get_git_file_short_hash(model_path)
     elif model == "large":
         from Segmentation.model.vnet_large import VNet_Large
-        vnet = VNet_Large(1, n_classes, **model_kwargs)
+        vnet = VNet_Large(num_channels, n_classes, **model_kwargs)
         model_path = "Segmentation/model/vnet_large.py"
         commit_id = get_git_file_short_hash(model_path)
     elif model == "large_relative":
         from Segmentation.model.vnet_large_relative import VNet_Large_Relative
-        vnet = VNet_Large_Relative(1, n_classes, **model_kwargs)
+        vnet = VNet_Large_Relative(num_channels, n_classes, **model_kwargs)
         get_position = True
         model_path = "Segmentation/model/vnet_large_relative.py"
+        commit_id = get_git_file_short_hash(model_path)
+    elif model == "vnet":
+        from Segmentation.model.vnet import VNet
+        vnet = VNet(num_channels, n_classes, **model_kwargs)
+        model_path = "Segmentation/model/vnet.py"
         commit_id = get_git_file_short_hash(model_path)
     else:
         raise NotImplementedError()
@@ -530,104 +535,23 @@ if __name__ == "__main__":
     debug = False
     if not debug:
 
-        check_run = False
+        epoch = 250
 
-        if check_run:
-            e = 1
-            repeats = 1
-        
-        batch_sizes = [1, 2, 3, 4]
-        schedule_epochs_drops = [3, 4, 5, 6, 8]
-        schedule_drops = [0.5, 0.8, 0.85, 0.9, 0.95, 0.99]
-        lrs = [1e-1, 5e-1, 1e-2, 5e-2, 1e-3, 5e-3, 1e-4]
-        es = [20, 25, 30, 35, 40]
-        noises = [0.0, 0.001, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 1.0]
-        input_shapes = [160, 240, 288, 320]
+        learn_rate = 5e-4
+        schedule_epochs_drop = 4
+        schedule_drop = 0.9
 
-        for i in range(1000):
-            
-            batch_size = random.choice(batch_sizes)
-            schedule_epochs_drop = random.choice(schedule_epochs_drops)
-            schedule_drop = random.choice(schedule_drops)
-            learn_rate = random.choice(lrs)
-            e = random.choice(es)
-            noise = random.choice(noises)
-            input_width = random.choice(input_shapes)
-            if (input_width == 320) or (input_width == 288):
-                if batch_size > 2:
-                    batch_size = random.choice([1,2])
-            normalise_input = True
-            remove_outliers = bool(random.getrandbits(1))
-            skip_empty = bool(random.getrandbits(1))
+        noise = 5e-3
+        normalise_input = True
+        remove_outliers = True
+        skip_empty = True
 
-            print("---------------------")
-            print(batch_size, schedule_epochs_drop, schedule_drop, learn_rate, e, noise, input_width, normalise_input, remove_outliers, skip_empty)
+        input_width = 64
+        sample_shape = (input_width, input_width, 64)
 
-            sample_shape = (input_width, input_width, 160)
-            time_taken, min_roll_loss, min_roll_val_loss = train("large", batch_size=batch_size, sample_shape=sample_shape, epochs=e, examples_per_load=1, train_debug=check_run,
-                  train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet", custom_train_loop=True,
-                  use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
-                  schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
-                  use_stride_2=True, use_res_connect=True,
-                  normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
-                  notes=f"Training Large VNet {sample_shape} - HP Search")
-
-            print("---------------------")
-            print(time_taken, min_roll_loss, min_roll_val_loss)
-            print(batch_size, schedule_epochs_drop, schedule_drop, learn_rate, e, noise, input_width, normalise_input, remove_outliers, skip_empty)
-            print("=====================")
-
-            hp_cols = {
-                'batch_size': [batch_size],
-                'schedule_epoch_drops': [schedule_epochs_drop],
-                'schedule_drops': [schedule_drop],
-                'lr': [learn_rate],
-                'epochs': [e],
-                'noise': [noise],
-                'input_width': [input_width],
-                'normalise': [normalise_input],
-                'remove_outliers': [remove_outliers],
-                'skip_empty': [skip_empty],
-                'time_taken': [time_taken],
-                'min_roll_loss': [min_roll_loss],
-                'min_roll_val_loss': [min_roll_val_loss],
-            }
-            df = pd.DataFrame(data=hp_cols)
-            df.to_csv("vnet_train_hp.csv", index=False, header=False, mode='a')
-    else:
-        e = 3
-        train("tiny", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug 3D UNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True)
-        train("tiny", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug VNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True,
-              use_stride_2=True, use_res_connect=True)
-
-        train("small", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug 3D UNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True)
-        train("small", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug VNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True,
-              use_stride_2=True, use_res_connect=True)
-
-        train("large", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug 3D UNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True)
-        train("large", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug VNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True,
-              use_stride_2=True, use_res_connect=True)
-
-        train("small_relative", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug 3D UNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True)
-        train("small_relative", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug VNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True,
-              use_stride_2=True, use_res_connect=True)
-
-        train("large_relative", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug 3D UNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True)
-        train("large_relative", batch_size=1, sample_shape=(160, 160, 160), epochs=e, examples_per_load=1,
-              train_name="debug VNet (160,160,160), Adam, dice", custom_train_loop=True, train_debug=True,
-              use_stride_2=True, use_res_connect=True)
-
-        train("slice", batch_size=1, sample_shape=(160, 160, 5), epochs=e, examples_per_load=1,
-              train_name="debug 3D UNet (160,160,5), Adam, dice", custom_train_loop=True, train_debug=True)
-        train("slice", batch_size=1, sample_shape=(160, 160, 5), epochs=e, examples_per_load=1,
-              train_name="debug VNet (160,160,5), Adam, dice", custom_train_loop=True, train_debug=True,
-              use_stride_2=True, use_res_connect=True)
+        time_taken, min_roll_loss, min_roll_val_loss = train("vnet", num_channels=64, batch_size=1, sample_shape=sample_shape, epochs=epoch, examples_per_load=1, train_debug=False,
+                train_name=f"{sample_shape}, Adam Schedule {learn_rate}, dice, VNet - 64ch", custom_train_loop=True,
+                use_optimizer="adam_schedule", start_lr=learn_rate, noise=noise,
+                schedule_epochs_drop=schedule_epochs_drop, schedule_drop=schedule_drop,
+                normalise_input=normalise_input, remove_outliers=remove_outliers, skip_empty=skip_empty,
+                notes=f"Training VNet {sample_shape}")
