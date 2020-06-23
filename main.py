@@ -15,7 +15,7 @@ from Segmentation.model.segnet import SegNet
 from Segmentation.model.deeplabv3 import Deeplabv3, Deeplabv3_plus
 from Segmentation.model.vnet import VNet
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
-from Segmentation.utils.data_loader import read_tfrecord, read_tfrecord_3d
+from Segmentation.utils.data_loader import read_tfrecord, parse_fn_3d
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
@@ -173,35 +173,28 @@ def main(argv):
                                      use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
         else:
 
-            train_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
-                                        batch_size=batch_size,
-                                        buffer_size=FLAGS.buffer_size,
-                                        is_training=True,
-                                        crop_size=144,
-                                        depth_crop_size=80,
-                                        aug=[],
-                                        predict_slice=True,
-                                        multi_class=FLAGS.multi_class,
-                                        use_bfloat16=FLAGS.use_bfloat16)
+            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_3d,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=True,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False)
 
-            valid_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
-                                        batch_size=batch_size,
-                                        buffer_size=FLAGS.buffer_size,
-                                        is_training=False,
-                                        crop_size=144,
-                                        depth_crop_size=80,
-                                        aug=[],
-                                        predict_slice=True,
-                                        multi_class=FLAGS.multi_class,
-                                        use_bfloat16=FLAGS.use_bfloat16)
+            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
+                                     batch_size=batch_size,
+                                     buffer_size=FLAGS.buffer_size,
+                                     augmentation=FLAGS.aug_strategy,
+                                     parse_fn=parse_fn_3d,
+                                     multi_class=FLAGS.multi_class,
+                                     is_training=False,
+                                     use_bfloat16=FLAGS.use_bfloat16,
+                                     use_RGB=False)
 
-        num_classes = 7 if FLAGS.multi_class else 1 
-
-        for step, (image, label) in enumerate(valid_ds):
-            print(step)
-            print(image.shape)
-            print(label.shape)
-
+        num_classes = 7 if FLAGS.multi_class else 1
+         
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -234,7 +227,7 @@ def main(argv):
 
         model_fn = UNet
     elif FLAGS.model_architecture == 'vnet':
-        model_args = [32,
+        model_args = [16,
                       num_classes,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
@@ -383,7 +376,7 @@ def main(argv):
                 else:
                     model.build((None, 288, 288, 3))
             else:
-                model.build((None, None, None, None, None))
+                model.build((None, 160, 384, 384, 1))
             
             model.summary()
 
