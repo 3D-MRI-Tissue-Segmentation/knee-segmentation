@@ -38,7 +38,7 @@ class Deeplabv3_plus(tf.keras.Model):
                               (First element) and the middle convolution
                               of the resnet_block (Second element)  """
 
-        super(Deeplabv3, self).__init__(**kwargs)
+        super(Deeplabv3_plus, self).__init__(**kwargs)
 
         self.num_classes = num_classes
 
@@ -85,7 +85,7 @@ class Deeplabv3_plus(tf.keras.Model):
                                        'linear',
                                        use_bias,
                                        data_format,
-                                       output_stride)
+                                       atrous_output_stride)
 
         self.aspp_term = atrous_spatial_pyramid_pooling(num_channels_ASPP,
                                                         kernel_size_ASPP,
@@ -150,11 +150,11 @@ class Deeplabv3_plus(tf.keras.Model):
             decoder_out = tfkl.Activation('softmax')(decoder_out)
         
         # Upsample to same size as the input
-        print(f"Input Shape: {tf.shape(x)}, Out Shape: {tf.shape(decoder_out)}")
-        input_size = tf.shape(x)[1:3]
-        out = tf.image.resize(out, input_size)
+        # print(f"Input Shape: {x.shape}, Out Shape: {decoder_out.shape}")
+        # input_size = tf.shape(x)[1:3]
+        # decoder_out = tf.image.resize(decoder_out, input_size)
 
-        return out
+        return decoder_out
 
 
 class Deeplabv3(tf.keras.Sequential):
@@ -211,7 +211,7 @@ class Deeplabv3(tf.keras.Sequential):
                              'linear',
                              use_bias,
                              data_format,
-                             output_stride))
+                             atrous_output_stride))
 
         self.add(atrous_spatial_pyramid_pooling(num_channels_ASPP,
                                                 kernel_size_ASPP,
@@ -602,7 +602,7 @@ class Decoder(tf.keras.Model):
 
     def call (self, in_DCNN, in_encoder, training=False):
 
-        in_DCNN = self.conv1x1(decoder_out, training=training)
+        in_DCNN = self.conv1x1(in_DCNN, training=training)
         out = tf.concat([in_DCNN, in_encoder], axis=3)
         out = self.conv2(out, training=training)
         out = self.conv3(out, training=training)
@@ -627,14 +627,14 @@ class Up_Conv2D(tf.keras.Sequential):
 
         super(Up_Conv2D, self).__init__(**kwargs)
 
-        if self.use_transpose:
+        if use_transpose:
             self.add(tfkl.Conv2DTranspose(num_channels_UpConv,
                                           kernel_size,
                                           padding='same',
                                           strides=strides,
                                           data_format=data_format))
         else:
-            self.add(tfkl.UpSampling2D(size=self.strides))
+            self.add(tfkl.UpSampling2D(size=strides))
 
         self.add(aspp_block(kernel_size=kernel_size,
                             rate=1,
@@ -647,7 +647,7 @@ class Up_Conv2D(tf.keras.Sequential):
 
     def call(self, x, training=False):
 
-        out = super(aspp_block, self).call(x, training=training)
+        out = super(Up_Conv2D, self).call(x, training=training)
         return out
 
 
