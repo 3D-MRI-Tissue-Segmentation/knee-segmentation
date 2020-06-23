@@ -9,6 +9,7 @@ import tensorflow as tf
 
 from Segmentation.utils.augmentation import crop_randomly_image_pair_2d, adjust_contrast_randomly_image_pair_2d
 from Segmentation.utils.augmentation import adjust_brightness_randomly_image_pair_2d
+from Segmentation.utils.augmentation import apply_centre_crop_3d, apply_valid_random_crop_3d
 
 def get_multiclass(label):
 
@@ -218,6 +219,21 @@ def parse_fn_3d(example_proto, training, augmentation=None, multi_class=True, us
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
     seg = tf.reshape(seg_raw, [384, 384, 160, 7])
     seg = tf.cast(seg, dtype)
+
+    if training:
+        apply_valid_random_crop_3d(image_tensor=image,
+                                   label_tensor=seg,
+                                   crop_size=144,
+                                   depth_crop_size=80,
+                                   resize=True,
+                                   random_shift=True,
+                                   output_slice=True)
+    else:
+        apply_centre_crop_3d(image_tensor=image,
+                             label_tensor=seg,
+                             crop_size=144,
+                             depth_crop_size=80,
+                             output_slice=True)
 
     if not multi_class:
         seg = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])

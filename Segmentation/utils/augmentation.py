@@ -67,6 +67,78 @@ def adjust_contrast_randomly_image_pair_2d(image_tensor, label_tensor):
 
     return random_crop_img, random_crop_label
 
+def get_random_batch_centre(image_tensor, crop_size, depth_crop_size, pad=20):
+    batch_size = tf.shape(image_tensor)[0]
+    centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[1], 2), tf.int32), 
+              tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32),
+              tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32),
+              )
+    drc = tf.random.normal([batch_size], mean=tf.cast(centre[0], tf.float32), stddev=tf.cast(centre[0] / 4, tf.float32))
+    hrc = tf.random.normal([batch_size], mean=tf.cast(centre[1], tf.float32), stddev=tf.cast(centre[1] / 4, tf.float32))
+    wrc = tf.random.normal([batch_size], mean=tf.cast(centre[2], tf.float32), stddev=tf.cast(centre[2] / 4, tf.float32))
+    drc = tf.clip_by_value(drc, tf.cast(depth_crop_size + pad, tf.float32), tf.cast(tf.shape(image_tensor)[1] - depth_crop_size - pad, tf.float32))
+    hrc = tf.clip_by_value(hrc, tf.cast(crop_size + pad, tf.float32), tf.cast(tf.shape(image_tensor)[2] - crop_size - pad, tf.float32))
+    wrc = tf.clip_by_value(wrc, tf.cast(crop_size + pad, tf.float32), tf.cast(tf.shape(image_tensor)[3] - crop_size - pad, tf.float32))
+    drc = tf.cast(tf.math.round(drc), tf.int32)
+    hrc = tf.cast(tf.math.round(hrc), tf.int32)
+    wrc = tf.cast(tf.math.round(wrc), tf.int32)
+    centre = (drc, hrc, wrc)
+    return centre
+
+def apply_valid_random_crop_3d(image_tensor,
+                               label_tensor,
+                               crop_size,
+                               depth_crop_size,
+                               resize,
+                               random_shift,
+                               output_slice,
+                               factor=0.04):
+
+    def crop_per_batch(x, y, centre, crop_size, depth_crop_size, resize, output_slice):
+        if resize:
+            original_height = tf.cast(tf.shape(x)[1], tf.float32)
+            original_width = tf.cast(tf.shape(x)[2], tf.float32)
+            new_height = tf.cast(original_height + tf.random.uniform([], minval=-original_height * factor, maxval=original_height * factor), tf.int32)
+            new_width = tf.cast(original_width + tf.random.uniform([], minval=-original_width * factor, maxval=original_width * factor), tf.int32)
+            x = tf.image.resize(x, [new_height, new_width])
+            y = tf.image.resize(y, [new_height, new_width])
+            y = tf.math.round(y)
+        dc, hc, wc = centre
+        if output_slice:
+            x = tf.slice(x, [dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [1 + (depth_crop_size * 2), crop_size * 2, crop_size * 2, -1])
+            y = tf.slice(y, [dc, hc - crop_size, wc - crop_size, 0], [1, crop_size * 2, crop_size * 2, -1])
+        else:
+            x = tf.slice(x, [dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
+            y = tf.slice(y, [dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
+        return x, y, centre
+
+    if random_shift:
+        centre = get_random_batch_centre(image_tensor, crop_size, depth_crop_size)
+        image_tensor, label_tensor, centre = tf.map_fn(lambda x: crop_per_batch(x[0], x[1], x[2], crop_size, depth_crop_size, resize, output_slice), (image_tensor, label_tensor, centre))
+    else:
+        image_tensor, label_tensor = apply_centre_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size, output_slice)
+    return image_tensor, label_tensor
+
+def apply_centre_crop_3d(image_tensor, label_tensor, crop_size, depth_crop_size, output_slice):
+    centre = (tf.cast(tf.math.divide(tf.shape(image_tensor)[1], 2), tf.int32),
+              tf.cast(tf.math.divide(tf.shape(image_tensor)[2], 2), tf.int32),
+              tf.cast(tf.math.divide(tf.shape(image_tensor)[3], 2), tf.int32),
+              )
+    image_tensor = crop_3d(image_tensor, crop_size, depth_crop_size, centre, output_slice, False)
+    label_tensor = crop_3d(label_tensor, crop_size, depth_crop_size, centre, output_slice, True)
+    return image_tensor, label_tensor
+
+def crop_3d(img, crop_size, depth_crop_size, centre, output_slice, target=None):
+    dc, hc, wc = centre
+    if output_slice:
+        if target:
+            img = tf.slice(img, [0, dc, hc - crop_size, wc - crop_size, 0], [-1, 1, crop_size * 2, crop_size * 2, -1])
+        else:
+            img = tf.slice(img, [0, dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [-1, 1 + (depth_crop_size * 2), crop_size * 2, crop_size * 2, -1])
+    else:
+        img = tf.slice(img, [0, dc - depth_crop_size, hc - crop_size, wc - crop_size, 0], [-1, depth_crop_size * 2, crop_size * 2, crop_size * 2, -1])
+    return img
+
 """
 def rotate_randomly_image_pair_2d(image_tensor, label_tensor, min_angle, max_angle):
 
