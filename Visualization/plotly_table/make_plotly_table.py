@@ -12,6 +12,8 @@ if __name__ == "__main__":
     opt = Options().parse()
     df = pd.read_csv(opt.input_data_path)
 
+    
+
     fig = go.Figure(data=[go.Table(
         header=dict(values=list(df.columns),
                     fill_color='paleturquoise',

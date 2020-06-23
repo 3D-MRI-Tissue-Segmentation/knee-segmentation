@@ -85,6 +85,7 @@ def load_data(opt):
     else:
         if not (left and right):
             assert data_paths, 'The directory %s possibly does contain files with valid extensions %s' % (opt.dataroot, EXTENSIONS)        
+
             data = []
             if not (type(data_paths) == list):
                 data = np.load(data_paths)
@@ -95,23 +96,25 @@ def load_data(opt):
                         data.append(np.load(path))
 
             print('Loaded data_paths', data_paths)
-
             return data
 
 
         else:
+
             assert data_paths_left, 'The directory %s may not contain files with valid extensions %s' % (data_paths_left, EXTENSIONS)        
             assert data_paths_right, 'The directory %s may not contain files with valid extensions %s' % (data_paths_right, EXTENSIONS)        
             data_left = []
             data_right = []
 
             if not (type(data_paths_left) == list) or opt.file_name_left:
+
                 data_left = np.load(data_paths_left)
             else:
                 for i, path in enumerate(data_paths_left):
                     should_get_loaded = np.mod(i,opt.slider_interval) == 0
                     if should_get_loaded or i==0:
                         data_left.append(np.load(path))
+
             if not (type(data_paths_right) == list) or opt.file_name_right:
                 data_right = np.load(data_paths_right)
             else:

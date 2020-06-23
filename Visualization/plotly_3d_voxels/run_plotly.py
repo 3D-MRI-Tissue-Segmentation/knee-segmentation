@@ -103,6 +103,7 @@ def make_fig(data, opt, col_num, num_in):
 
 
 
+
 def update_fig(fig, num_classes_all, num_samples):
     print('num_classes_all',num_classes_all)
     tot_traces = len(fig.data)
@@ -137,6 +138,7 @@ if __name__ == "__main__":
     
 
     if (opt.dataroot_left or opt.file_name_left) and (opt.dataroot_right or opt.file_name_right):
+
         fig = make_subplots(rows=1, 
                             cols=2,
                             specs=[[{'type': 'mesh3D'}, {'type': 'mesh3D'}]])
@@ -152,6 +154,7 @@ if __name__ == "__main__":
         num_classes_all = [num_classes_all_l, num_classes_all_r]
         num_samples = [num_in, num_in]
 
+
         fig = update_fig(fig,num_classes_all,num_samples)
 
     else:
@@ -164,8 +167,10 @@ if __name__ == "__main__":
         data = load_data(opt)    
         print('np.shape(data)',np.shape(data))
         col_num = 1
+        
         fig, num_classes_all = make_fig(data, opt,col_num, 1)
         num_samples = num_samples = len(data)
+
         fig = update_fig(fig,num_classes_all,num_samples)
 
 
