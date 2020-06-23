@@ -2,7 +2,7 @@ import tensorflow as tf
 import tensorflow.keras.layers as tfkl
 
 class Deeplabv3_plus(tf.keras.Model):
-        def __init__(self,
+    def __init__(self,
                  num_classes,
                  kernel_size_initial_conv,
                  num_channels_atrous,
