@@ -85,7 +85,7 @@ class Deeplabv3_plus(tf.keras.Model):
                                        'linear',
                                        use_bias,
                                        data_format,
-                                       output_stride)
+                                       atrous_output_stride)
 
         self.aspp_term = atrous_spatial_pyramid_pooling(num_channels_ASPP,
                                                         kernel_size_ASPP,
@@ -211,7 +211,7 @@ class Deeplabv3(tf.keras.Sequential):
                              'linear',
                              use_bias,
                              data_format,
-                             output_stride))
+                             atrous_output_stride))
 
         self.add(atrous_spatial_pyramid_pooling(num_channels_ASPP,
                                                 kernel_size_ASPP,
