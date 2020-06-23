@@ -617,7 +617,7 @@ class Decoder(tf.keras.Model):
         out = tf.concat([in_atrous, in_encoder], axis=3)
         out = self.conv1(out, training=training)
 
-        out = out = tf.concat([in_DCNN, out], axis=3)
+        out = tf.concat([in_DCNN, out], axis=3)
         out = self.conv2(out, training=training)
         out = self.conv3(out, training=training)
 
