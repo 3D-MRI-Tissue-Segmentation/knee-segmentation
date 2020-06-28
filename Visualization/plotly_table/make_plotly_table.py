@@ -11,14 +11,14 @@ if __name__ == "__main__":
     
     opt = Options().parse()
     df = pd.read_csv(opt.input_data_path)
-     
+
     
 
     fig = go.Figure(data=[go.Table(
         header=dict(values=list(df.columns),
                     fill_color='paleturquoise',
                     align='left'),
-        cells=dict(values=df.iloc[:len(df.columns)],
+        cells=dict(values=(df.values).T,
                 fill_color='lavender',
                 align='left'))
     ])

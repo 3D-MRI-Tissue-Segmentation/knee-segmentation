@@ -13,7 +13,7 @@ class Transformations3D():
     def __init__(self, max_angle, max_translation, output_size):
         self.pair = []
         self.dims = []
-        self.center = [(0, 0), (0,0), (0,0)]
+        self.center = [(0, 0), (0, 0), (0, 0)]
         self.angle = max_angle
         self.translation = max_translation
         self.output_size = output_size
