@@ -12,7 +12,6 @@ import math
 import copy
 import imageio
 
-
 def get_validation_stride_coords(pad, full_shape, iterator, strides_required):
     coords = [pad]
     last_coord = full_shape - pad

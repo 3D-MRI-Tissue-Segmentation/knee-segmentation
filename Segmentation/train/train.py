@@ -40,7 +40,10 @@ class Train:
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
 
-    def train_step(self, x_train, y_train, visualise):
+    def train_step(self,
+                   x_train,
+                   y_train,
+                   visualise):
         with tf.GradientTape() as tape:
             predictions = self.model(x_train, training=True)
             loss = self.loss_func(y_train, predictions)
@@ -51,7 +54,10 @@ class Train:
             return loss, predictions
         return loss, None
 
-    def test_step(self, x_test, y_test, visualise):
+    def test_step(self,
+                  x_test,
+                  y_test,
+                  visualise):
         predictions = self.model(x_test, training=False)
         loss = self.loss_func(y_test, predictions)
         self.metrics.store_metric(y_test, predictions, training=False)
@@ -59,8 +65,13 @@ class Train:
             return loss, predictions
         return loss, None
 
-    def train_model_loop(self, train_ds, valid_ds, strategy,
-                         multi_class, debug=False, num_to_visualise=0):
+    def train_model_loop(self,
+                         train_ds,
+                         valid_ds,
+                         strategy,
+                         multi_class,
+                         debug=False,
+                         num_to_visualise=0):
         """ Trains 3D model with custom tf loop and MirrorStrategy
         """
         vol_visual_freq = 5
@@ -75,7 +86,17 @@ class Train:
             return strategy.reduce(
                 tf.distribute.ReduceOp.SUM, total_step_loss, axis=None), pred
 
-        def distributed_train_epoch(train_ds, epoch, strategy, num_to_visualise, multi_class, slice_writer, vol_writer, vol_visual_freq, predict_slice):
+        # TODO(Joe): This needs to be rewritten so that it works with 2D as well
+        def distributed_train_epoch(train_ds,
+                                    epoch,
+                                    strategy,
+                                    num_to_visualise,
+                                    multi_class,
+                                    slice_writer,
+                                    vol_writer,
+                                    vol_visual_freq,
+                                    predict_slice):
+
             total_loss, num_train_batch = 0.0, 0.0
             for x_train, y_train in train_ds:
                 visualise = (num_train_batch < num_to_visualise)
@@ -97,7 +118,15 @@ class Train:
                 num_train_batch += 1
             return total_loss / num_train_batch
 
-        def distributed_test_epoch(valid_ds, epoch, strategy, num_to_visualise, multi_class, slice_writer, vol_writer, vol_visual_freq, predict_slice):
+        def distributed_test_epoch(valid_ds,
+                                   epoch,
+                                   strategy,
+                                   num_to_visualise,
+                                   multi_class,
+                                   slice_writer,
+                                   vol_writer,
+                                   vol_visual_freq,
+                                   predict_slice):
             total_loss, num_test_batch = 0.0, 0.0
             for x_valid, y_valid in valid_ds:
                 visualise = (num_test_batch < num_to_visualise)
@@ -123,6 +152,7 @@ class Train:
             run_train_strategy = tf.function(run_train_strategy)
             run_test_strategy = tf.function(run_test_strategy)
 
+        # TODO: This whole chunk of code needs to be refactored. Perhaps write it as a function
         name = "/" + self.model.name
         db = "/debug" if debug else "/test"
         mc = "/multi" if multi_class else "/binary"
@@ -144,13 +174,37 @@ class Train:
 
             et0 = time()
 
-            train_loss = distributed_train_epoch(train_ds, e, strategy, num_to_visualise, multi_class, train_img_slice_writer, train_img_vol_writer, vol_visual_freq, self.predict_slice)
+            train_loss = distributed_train_epoch(train_ds,
+                                                 e,
+                                                 strategy,
+                                                 num_to_visualise,
+                                                 multi_class,
+                                                 train_img_slice_writer,
+                                                 train_img_vol_writer,
+                                                 vol_visual_freq,
+                                                 self.predict_slice)
 
             with train_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', train_loss, step=e)
 
-            distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, multi_class, test_img_slice_writer, test_img_vol_writer, vol_visual_freq, self.predict_slice)
-            test_loss = distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, multi_class, test_img_slice_writer, test_img_vol_writer, vol_visual_freq, self.predict_slice)
+            distributed_test_epoch(valid_ds,
+                                   e,
+                                   strategy,
+                                   num_to_visualise,
+                                   multi_class,
+                                   test_img_slice_writer,
+                                   test_img_vol_writer,
+                                   vol_visual_freq,
+                                   self.predict_slice)
+            test_loss = distributed_test_epoch(valid_ds,
+                                               e,
+                                               strategy,
+                                               num_to_visualise,
+                                               multi_class,
+                                               test_img_slice_writer,
+                                               test_img_vol_writer,
+                                               vol_visual_freq,
+                                               self.predict_slice)
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
 
@@ -170,7 +224,7 @@ class Train:
                     self.model.save_weights(os.path.join(log_dir_now + f'/best_weights.tf'))
                     best_loss = test_loss
             with test_min_summary_writer.as_default():
-                    tf.summary.scalar('epoch_loss', best_loss, step=e)
+                tf.summary.scalar('epoch_loss', best_loss, step=e)
         return log_dir_now
 
 
@@ -209,7 +263,8 @@ def build_model(num_channels, num_classes, name, **kwargs):
     return model
 
 
-def main(epochs, name,
+def main(epochs,
+         name,
          log_dir_now=None,
          batch_size=2,
          val_batch_size=2,
@@ -255,7 +310,7 @@ def main(epochs, name,
     if multi_class:
         metrics['losses']['mIoU-6ch'] = [iou_loss_eval_3d, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None]
         metrics['losses']['dice-6ch'] = [dice_coef_eval_3d, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None]
-    
+
     train_ds, valid_ds = load_datasets(batch_size, buffer_size, tfrec_dir, multi_class,
                                        crop_size=crop_size, depth_crop_size=depth_crop_size, aug=aug,
                                        predict_slice=predict_slice)

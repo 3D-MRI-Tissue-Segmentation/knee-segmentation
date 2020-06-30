@@ -2,6 +2,8 @@ from Segmentation.plotting.voxels import plot_volume, plot_to_image
 import tensorflow as tf
 import numpy as np
 
+# TODO: Replace all tf.slice operations with more Pythonic expressions
+# TODO: colour maps should be consistent with the ones for 2D
 
 colour_maps = {
     1: [tf.constant([1, 1, 1], dtype=tf.float32), tf.constant([[[[255, 255, 0]]]], dtype=tf.float32)],  # background / black
@@ -11,7 +13,6 @@ colour_maps = {
     5: [tf.constant([5, 5, 5], dtype=tf.float32), tf.constant([[[[120, 120, 120]]]], dtype=tf.float32)],
     6: [tf.constant([6, 6, 6], dtype=tf.float32), tf.constant([[[[255, 165, 0]]]], dtype=tf.float32)],
 }
-
 
 def replace_vector(img, search, replace):
     condition = tf.equal(img, search)
@@ -40,7 +41,7 @@ def get_mid_slice(x, y, pred, multi_class):
             pred_slice = replace_vector(pred_slice, colour_maps[c][0], colour_maps[c][1])
     else:
         pred_slice = tf.math.round(pred_slice)
-    
+
     img_pad = tf.ones((pred_slice.shape[0], pred_slice.shape[1], pred_slice.shape[2], 3, pred_slice.shape[4]))
     img = tf.concat((x_slice, img_pad, y_slice, img_pad, pred_slice), axis=-2)
 
@@ -79,7 +80,7 @@ def get_mid_vol(y, pred, multi_class, rad=12, check_empty=False):
     fig = plot_volume(pred_subvol, show=False)
     del pred_subvol
     pred_img = plot_to_image(fig)
-    
+
     img = tf.concat((y_img, pred_img), axis=-2)
     return img
 
