@@ -1,5 +1,6 @@
 import numpy as np
 from random import randint
+from time import time
 
 class Toy_Volume:
     def __init__(self, n_classes, width, height, depth, colour_channels=3):
@@ -39,7 +40,7 @@ class Toy_Volume:
     def get_random_colour(colour_channels):
         """ Returns a random colour """
         if colour_channels == 1:
-            return [randint(0, 255)]
+            return [randint(0, 255) / 255]
         return [randint(0, 255) / 255, randint(0, 255) / 255, randint(0, 255) / 255]
 
     def get_empty_array(self, channels=None):
@@ -186,6 +187,9 @@ def plot_volume(volume, show=True):
     ax.voxels(voxel, facecolors=volume, linewidth=0.5)
     if show:
         plt.show()
+    else:
+        plt.savefig(f"testymctestface")
+        plt.close('all')
 
 def rgb_to_hex(rgb):
     assert type(rgb) is list
@@ -199,8 +203,8 @@ if __name__ == "__main__":
     sys.path.insert(0, getcwd())
 
     n_reps, n_classes = 15, 3
-    width, height, depth = 40, 40, 40
-    colour_channels = 3
+    width, height, depth = 60, 60, 60
+    colour_channels = 1
 
     td = Toy_Volume(n_classes, width, height, depth, colour_channels)
 
@@ -221,8 +225,20 @@ if __name__ == "__main__":
                                         rand_x_len, rand_y_len, rand_z_len,
                                         colour_idx)
 
+    print(td.volume.shape)
+    start_time = time()
+    vol = np.squeeze(td.volume, -1)
+    rgb_vol = np.stack((vol,)*3, axis=-1)
+    print(rgb_vol.shape)
+    print(rgb_vol[0, 0, 0])
+    plot_volume(rgb_vol, show=False)
+    print("rgb")
     plot_volume(td.volume, show=False)
+    print("gr")
+    # plot_volume(td.volume, show=False)
+    # print(td.volume[0, 0, 0])
+    print(time() - start_time)
 
-    vol_slice, one_hot_slice = get_slice_from_volume(td.volume, td.one_hot_array, (20, 20, 20))
+    # vol_slice, one_hot_slice = get_slice_from_volume(td.volume, td.one_hot_array, (20, 20, 20))
 
-    plot_volume(vol_slice)
+    # plot_volume(vol_slice)

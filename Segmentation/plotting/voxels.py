@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.animation as animation
+from matplotlib.animation import PillowWriter
 import io
 import tensorflow as tf
 

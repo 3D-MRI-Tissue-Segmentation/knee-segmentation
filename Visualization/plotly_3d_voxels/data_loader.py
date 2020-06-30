@@ -95,7 +95,6 @@ def load_data(opt):
                         data.append(np.load(path))
 
             print('Loaded data_paths', data_paths)
-
             return data
 
 

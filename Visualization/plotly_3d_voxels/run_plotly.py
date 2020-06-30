@@ -151,10 +151,6 @@ if __name__ == "__main__":
 
         num_classes_all = [num_classes_all_l, num_classes_all_r]
         num_samples = [num_in, num_in]
-
-        fig = update_fig(fig,num_classes_all,num_samples)
-
-    else:
         fig = make_subplots(rows=1, 
                             cols=1,
                             specs=[[{'type': 'mesh3D'}]])
@@ -164,8 +160,10 @@ if __name__ == "__main__":
         data = load_data(opt)    
         print('np.shape(data)',np.shape(data))
         col_num = 1
+        
         fig, num_classes_all = make_fig(data, opt,col_num, 1)
         num_samples = num_samples = len(data)
+
         fig = update_fig(fig,num_classes_all,num_samples)
 
 

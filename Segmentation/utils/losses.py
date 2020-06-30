@@ -79,6 +79,33 @@ def cce_dice_loss(y_true, y_pred):
     loss = categorical_crossentropy(y_true, y_pred) + dice_coef_loss(y_true, y_pred)
     return loss
 
+def iou_loss(y_true, y_pred, smooth=1):
+    y_true = K.flatten(y_true)
+    y_pred = K.flatten(y_pred)
+    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+    union = K.sum(y_true, -1) + K.sum(y_pred, -1) - intersection
+    iou = (intersection + smooth) / (union + smooth)
+    return iou
+
+def iou_loss_eval_3d(y_true, y_pred):
+    y_true = tf.slice(y_true, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    y_pred = tf.slice(y_pred, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    iou = iou_loss(y_true, y_pred)
+    return iou
+
+def dice_coef_eval_3d(y_true, y_pred):
+    y_true = tf.slice(y_true, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    y_pred = tf.slice(y_pred, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    dice = dsc(y_true, y_pred)
+    return dice
+
+def dice_loss_weighted_3d(y_true, y_pred):
+    dice_whole = 1 - dsc(y_true, y_pred)
+    y_true = tf.slice(y_true, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    y_pred = tf.slice(y_pred, [0, 0, 0, 0, 1], [-1, -1, -1, -1, 6])
+    dice = 1 - dsc(y_true, y_pred)
+    return dice + dice_whole
+
 def precision(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
     smooth = 1
