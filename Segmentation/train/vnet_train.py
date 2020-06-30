@@ -15,9 +15,19 @@ from Segmentation.model.vnet import VNet
 
 
 class Train:
-    def __init__(self, epochs, batch_size, enable_function,
-                 model, optimizer, loss_func, lr_manager, predict_slice, metrics,
-                 tfrec_dir='./Data/tfrecords/', log_dir="logs"):
+    def __init__(self,
+                 epochs,
+                 batch_size,
+                 enable_function,
+                 model,
+                 optimizer,
+                 loss_func,
+                 lr_manager,
+                 predict_slice,
+                 metrics,
+                 tfrec_dir='./Data/tfrecords/',
+                 log_dir="logs"):
+
         self.epochs = epochs
         self.batch_size = batch_size
         self.enable_function = enable_function
@@ -29,7 +39,6 @@ class Train:
         self.metrics = Metric(metrics)
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
-
 
     def train_step(self, x_train, y_train, visualise):
         with tf.GradientTape() as tape:

@@ -16,7 +16,7 @@ from Segmentation.model.deeplabv3 import Deeplabv3, Deeplabv3_plus
 from Segmentation.model.vnet import VNet
 from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord_2d as read_tfrecord
-from Segmentation.utils.data_loader import parse_fn_3d
+from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
@@ -31,12 +31,12 @@ flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
 flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay learning rate.')
 flags.DEFINE_list('lr_decay_epochs', [10, 20, 40, 60], 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
-flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
+flags.DEFINE_bool('use_2d', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random-crop, noise, crop_and_noise')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3')
+flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3, deeplabv3_plus')
 flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
@@ -45,14 +45,14 @@ flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
-flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
+flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout. Only used if use_dropout is True')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
-flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rms-prop')
+flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rmsprop, sgd')
 
 # UNet parameters
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
 flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
-flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152')
+flags.DEFINE_string('backbone_architecture', 'default', 'default, vgg16, vgg19, resnet50, resnet101, resnet152.')
 flags.DEFINE_bool('use_transpose', False, 'Whether to use transposed convolution or upsampling + convolution')
 flags.DEFINE_bool('use_attention', False, 'Whether to use attention mechanism')
 
@@ -62,10 +62,10 @@ flags.DEFINE_integer('growth_rate', 16, 'number of feature maps increase after e
 flags.DEFINE_integer('pool_size', 2, 'pooling filter size to be used')
 flags.DEFINE_integer('strides', 2, 'strides size to be used')
 flags.DEFINE_string('padding', 'same', 'padding mode to be used')
-flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters needed for the firstconvolutional layer')
+flags.DEFINE_integer('init_num_channels', 48, 'Initial number of filters for the first convolutional layer')
 
 # Deeplab parameters
-flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use the activation')
+flags.DEFINE_bool('use_nonlinearity', True, 'Whether to use an activation')
 flags.DEFINE_integer('kernel_size_initial_conv', 3, 'kernel size for the first convolution')
 flags.DEFINE_integer('num_filters_atrous', 256, 'number of filters for the atrous convolution block')
 flags.DEFINE_list('num_filters_DCNN', [256, 512, 1024], 'number of filters for the first three blocks of the DCNN')
@@ -74,12 +74,10 @@ flags.DEFINE_integer('kernel_size_atrous', 3, 'kernel size for the atrous convol
 flags.DEFINE_list('kernel_size_DCNN', [1, 3], 'kernel sizes for the blocks of the DCNN')
 flags.DEFINE_list('kernel_size_ASPP', [1, 3, 3, 3], 'kernel size for the ASPP term')
 flags.DEFINE_list('MultiGrid', [1, 2, 4], 'relative convolution rates for the atrous convolutions')
-# flags.DEFINE_list('rate_ASPP', [1, 6, 12, 18], 'rates for the ASPP term convolutions')
 flags.DEFINE_list('rate_ASPP', [1, 4, 6, 12], 'rates for the ASPP term convolutions')
 flags.DEFINE_integer('output_stride', 16, 'final output stride (taking into account max pooling)')
 
 flags.DEFINE_integer('num_filters_final_encoder', 512, 'Number of filters of the last convolution of the encoder')
-# flags.DEFINE_list('num_filters_from_backbone', [128, 96], 'Number of filters for the 1x1 convolutions to reshape input from the backbone')
 flags.DEFINE_list('num_filters_from_backbone', [128, 96], 'Number of filters for the 1x1 convolutions to reshape input from the backbone')
 flags.DEFINE_list('num_channels_UpConv', [512, 256, 128], 'Number of filters for the upsampling convolutions in the decoder')
 flags.DEFINE_integer('kernel_size_UpConv', 3, 'Kernel size for the upsampling convolutions')
@@ -94,15 +92,15 @@ flags.DEFINE_integer('roi_npy', 80, 'Save the middle x*x*x voxels')
 
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
 flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
-flags.DEFINE_string('visual_file', '', 'If not "", creates a visual of the model for the time stamp provided.')
-flags.DEFINE_string('gif_directory', '', 'Directory of where to put the gif')
+flags.DEFINE_string('visual_file', None, 'If not None, creates a visual of the model for the time stamp provided.')
+flags.DEFINE_string('gif_directory', None, 'Directory of where to put the gif')
 flags.DEFINE_integer('gif_epochs', 1000, 'Epochs to include in the creation of the gifs')
 flags.DEFINE_string('gif_cmap', 'gray', 'Color map of the gif')
 flags.DEFINE_integer('gif_slice', 80, 'Slice that is taken into consideration for the gif')
 flags.DEFINE_integer('gif_volume', 1, 'Which volume from the validation dataset to consider')
 flags.DEFINE_bool('clean_gif', False, 'False includes text representing epoch number')
-flags.DEFINE_string('tpu_dir', '', 'If loading visual file from a tpu other than the tpu you are training with.')
-flags.DEFINE_string('which_representation', '', 'Whether to do epoch gif ("epoch") or volume gif ("volume") or "slice"')
+flags.DEFINE_string('tpu_dir', None, 'If loading visual file from a tpu other than the tpu you are training with.')
+flags.DEFINE_string('which_representation', None, 'Whether to do epoch gif ("epoch") or volume gif ("volume") or "slice"')
 
 # Accelerator flags
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
@@ -118,7 +116,7 @@ def main(argv):
         assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
 
     del argv  # unused arg
-    # tf.random.set_seed(FLAGS.seed)
+    tf.random.set_seed(FLAGS.seed)  # set seed
 
     # set whether to train on GPU or TPU
     if FLAGS.use_gpu:
@@ -127,7 +125,7 @@ def main(argv):
         if FLAGS.num_cores == 1:
             strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
         else:
-            strategy = tf.distribute.MirroredStrategy()  # works
+            strategy = tf.distribute.MirroredStrategy()
         gpus = tf.config.experimental.list_physical_devices('GPU')
         if gpus:
             for gpu in gpus:
@@ -135,7 +133,7 @@ def main(argv):
                     tf.config.experimental.set_visible_devices(gpu, 'GPU')
                     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
 
-                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+                    logging.info(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
                 except RuntimeError as e:
                     # Visible devices must be set before GPUs have been initialized
                     print(e)
@@ -151,8 +149,8 @@ def main(argv):
     if FLAGS.dataset == 'oai_challenge':
 
         batch_size = FLAGS.batch_size * FLAGS.num_cores
-        
-        if FLAGS.model_architecture != 'vnet':
+
+        if FLAGS.use_2D:
             steps_per_epoch = 19200 // batch_size
             validation_steps = 4480 // batch_size
         else:
@@ -161,47 +159,27 @@ def main(argv):
 
         logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
 
-        if FLAGS.model_architecture != 'vnet':
-            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=True,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
-            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=False,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
-        else:
+        train_dir = 'train/' if FLAGS.use_2d else 'train_3d/'
+        valid_dir = 'valid/' if FLAGS.use_2d else 'valid_3d/'
 
-            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     parse_fn=parse_fn_3d,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=True,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False)
+        ds_args = {
+            'batch_size': batch_size,
+            'buffer_size': FLAGS.buffer_size,
+            'augmentation': FLAGS.aug_strategy,
+            'parse_fn': parse_fn_2d if FLAGS.use_2d else parse_fn_3d,
+            'multi_class': FLAGS.multi_class,
+            'is_training': True,
+            'use_bfloat16': FLAGS.use_bfloat16,
+            'use_RGB': False if FLAGS.backbone_architecture == 'default' else True
+        }
 
-            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     parse_fn=parse_fn_3d,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=False,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False)
+        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, train_dir),
+                                 **ds_args)
+        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, valid_dir),
+                                 **ds_args)
 
         num_classes = 7 if FLAGS.multi_class else 1
-         
+
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -220,6 +198,7 @@ def main(argv):
     if FLAGS.model_architecture == 'unet':
         model_args = [FLAGS.num_filters,
                       num_classes,
+                      FLAGS.use_2d,
                       FLAGS.backbone_architecture,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
@@ -234,8 +213,9 @@ def main(argv):
 
         model_fn = UNet
     elif FLAGS.model_architecture == 'vnet':
-        model_args = [16,
+        model_args = [FLAGS.num_filters,
                       num_classes,
+                      FLAGS.use_2d,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
                       FLAGS.activation,
@@ -248,6 +228,7 @@ def main(argv):
     elif FLAGS.model_architecture == 'r2unet':
         model_args = [FLAGS.num_filters,
                       num_classes,
+                      FLAGS.use_2d,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
                       FLAGS.activation,
@@ -329,7 +310,7 @@ def main(argv):
                       FLAGS.num_filters_DCNN,
                       FLAGS.num_filters_ASPP,
                       FLAGS.kernel_size_atrous,
-                      FLAGS.kernel_size_DCNN, 
+                      FLAGS.kernel_size_DCNN,
                       FLAGS.kernel_size_ASPP,
                       FLAGS.num_filters_final_encoder,
                       FLAGS.num_filters_from_backbone,
@@ -385,11 +366,11 @@ def main(argv):
                     model.build((None, 288, 288, 3))
             else:
                 model.build((None, 160, 384, 384, 1))
-            
+
             model.summary()
 
         if FLAGS.multi_class:
-            if FLAGS.model_architecture != 'vnet':
+            if FLAGS.use_2d:
                 model.compile(optimizer=optimiser,
                               loss=loss_fn,
                               metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
@@ -427,11 +408,11 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
-    elif not FLAGS.visual_file == "":
+    elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
         print('model_fn', model_fn)
 
-        if not FLAGS.which_representation == '':
+        if FLAGS.which_representation is not None:
 
             if FLAGS.which_representation == 'volume':
                 volume_gif(model=model_fn,
