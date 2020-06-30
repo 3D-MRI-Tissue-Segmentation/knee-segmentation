@@ -91,13 +91,13 @@ def plot_and_eval_3D(model,
         should_save_np = np.mod((i+1), save_freq) == 0
         
         ######################
-        print('should_save_np',should_save_np)
-        print('checkpoint enum i',i)
-        print('save_freq set to ',save_freq)
+        # print('should_save_np',should_save_np)
+        # print('checkpoint enum i',i)
+        # print('save_freq set to ',save_freq)
         ######################
 
         if not should_save_np:      # skip this checkpoint weight
-            print("skipping ", chkpt)
+            print("Skipping weight", chkpt)
             continue
 
 
@@ -120,8 +120,8 @@ def plot_and_eval_3D(model,
         for idx, ds in enumerate(dataset):
 
             ######################
-            print(f"the index is {idx}")
             print('Current chkpt name',name)
+            print(f"the index is {idx}")
             ######################
 
 
@@ -138,11 +138,11 @@ def plot_and_eval_3D(model,
             pred = trained_model.predict(x)
 
             ######################
-            print("Current batch size set to {}. Target depth is {}".format(batch_size, target))
-            print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
-            print('Ground truth data type: {}, shape: {}'.format(type(y), y.shape))
-            print('Prediction data type: {}, shape: {}'.format(type(pred), pred.shape))
-            print("=================")
+            # print("Current batch size set to {}. Target depth is {}".format(batch_size, target))
+            # print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
+            # print('Ground truth data type: {}, shape: {}'.format(type(y), y.shape))
+            # print('Prediction data type: {}, shape: {}'.format(type(pred), pred.shape))
+            # print("=================")
             ######################
 
             if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
@@ -165,12 +165,12 @@ def plot_and_eval_3D(model,
                 del y
 
                 ######################
-                print("===============")
-                print("pred done")
-                print(pred_vol.shape)
-                print(y_vol.shape)
-                print("===============")
-                print('is_multi_class', is_multi_class)
+                # print("===============")
+                # print("pred done")
+                # print(pred_vol.shape)
+                # print(y_vol.shape)
+                # print("===============")
+                # print('is_multi_class', is_multi_class)
                 ######################
 
                 if is_multi_class:  # or np.shape(pred_vol)[-1] not
@@ -178,8 +178,8 @@ def plot_and_eval_3D(model,
                     y_vol = np.argmax(y_vol, axis=-1)
 
                     ######################
-                    print('np.shape(pred_vol)', np.shape(pred_vol))
-                    print('np.shape(y_vol)',np.shape(y_vol))
+                    # print('np.shape(pred_vol)', np.shape(pred_vol))
+                    # print('np.shape(y_vol)',np.shape(y_vol))
                     ######################
 
                 # Save volume as numpy file for plotlyyy
@@ -188,9 +188,9 @@ def plot_and_eval_3D(model,
                 name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + str(which_volume).zfill(3)))
                 
                 ######################
-                print("npy save pred as ", name_pred_npy)
-                print("npy save y as ", name_y_npy)
-                print("Currently on vol ", idx_vol)
+                # print("npy save pred as ", name_pred_npy)
+                # print("npy save y as ", name_y_npy)
+                # print("Currently on vol ", idx_vol)
                 ######################
 
 
@@ -790,8 +790,8 @@ def confusion_matrix(trained_model,
             dice = dice_coef(label, pred)
 
         with eval_metric_writer.as_default():
-            tf.summary.scalar('iou validation', iou, step=step)
-            tf.summary.scalar('dice validation', dice, step=step)
+            tf.summary.scalar('iou eval validation', iou, step=step)
+            tf.summary.scalar('dice eval validation', dice, step=step)
         
 
             
