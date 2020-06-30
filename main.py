@@ -408,8 +408,13 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
+<<<<<<< HEAD
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
+=======
+    elif not FLAGS.visual_file == "":
+        tpu_dir = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
+>>>>>>> 059d6734cc1c13371e921565409c2d330cfce53c
         print('model_fn', model_fn)
 
         if FLAGS.which_representation is not None:
@@ -420,7 +425,7 @@ def main(argv):
                            tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                            aug_strategy=FLAGS.aug_strategy,
                            visual_file=FLAGS.visual_file,
-                           tpu_name=FLAGS.tpu_dir,
+                           tpu_name=tpu_dir,
                            bucket_name=FLAGS.bucket,
                            weights_dir=FLAGS.weights_dir,
                            is_multi_class=FLAGS.multi_class,
@@ -437,7 +442,7 @@ def main(argv):
                           tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                           aug_strategy=FLAGS.aug_strategy,
                           visual_file=FLAGS.visual_file,
-                          tpu_name=FLAGS.tpu_dir,
+                          tpu_name=tpu_dir,
                           bucket_name=FLAGS.bucket,
                           weights_dir=FLAGS.weights_dir,
                           is_multi_class=FLAGS.multi_class,
@@ -455,7 +460,7 @@ def main(argv):
                            tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                            aug_strategy=FLAGS.aug_strategy,
                            visual_file=FLAGS.visual_file,
-                           tpu_name=FLAGS.tpu_dir,
+                           tpu_name=tpu_dir,
                            bucket_name=FLAGS.bucket,
                            weights_dir=FLAGS.weights_dir,
                            multi_as_binary=False,

@@ -53,7 +53,6 @@ class Options():
             assert self.opt.file_name_right and (self.opt.dataroot_left or self.opt.file_name_left), 'If specifying filename for plot on left, also specify directory or filename for plot on left'    
             
 
-
         # Output dir
         # TODO: set whatever you wanna output
         self.opt.output_dir = os.path.join(self.opt.dataroot, self.opt.output_dir)

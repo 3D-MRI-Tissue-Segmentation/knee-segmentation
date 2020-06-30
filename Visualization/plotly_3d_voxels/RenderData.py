@@ -68,7 +68,6 @@ def get_steps(num_samples, num_traces, num_classes_all):
     steps.append(step)
     print('steps',steps)
 
-
     return steps
 
 
