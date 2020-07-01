@@ -24,7 +24,7 @@ def get_depth(conc):
     return depth
 
 
-def get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
+def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
     """ Load the checkpoints in the specified log directory """
 
     ######################
@@ -83,7 +83,7 @@ def plot_and_eval_3D(model,
 
     """
 
-    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     # Only use part of dataset
     idx_vol= 0 # how many numpies have been save
@@ -251,7 +251,7 @@ def epoch_gif(model,
                             use_RGB=False)
 
     # load the checkpoints in the specified log directory
-    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     #figure for gif
     fig, ax = plt.subplots()
@@ -338,7 +338,7 @@ def volume_gif(model,
                             use_RGB=False)
 
     # load the checkpoints in the specified log directory
-    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     #figure for gif
     fig, ax = plt.subplots()
@@ -422,7 +422,7 @@ def volume_comparison_gif(model,
                             use_RGB=False)
 
     # load the checkpoints in the specified log directory
-    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     #figure for gif
     fig, axes = plt.subplots(1, 3)
@@ -565,7 +565,7 @@ def take_slice(model,
                             use_RGB=False)
 
     # load the checkpoints in the specified log directory
-    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     #figure for gif
     fig, axes = plt.subplots(1, 3)
@@ -713,3 +713,48 @@ def confusion_matrix(trained_model,
     fig_file = model_architecture + '_matrix.png'
     fig_dir = os.path.join(fig_dir, fig_file)
     plot_confusion_matrix(cm, fig_dir, classes=classes)
+
+
+
+def eval_loop(trained_model,
+                     weights_dir,
+                     fig_dir,
+                     dataset,
+                     validation_steps,
+                     multi_class,
+                     model_architecture,
+                     callbacks,
+                     num_classes=7
+                     ):
+    """ Evaluate model and visualize as needed """
+
+    trained_model.load_weights(weights_dir).expect_partial()
+    trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
+
+
+    f = weights_dir.split('/')[-1]
+    # Excluding parenthese before f too
+    if weights_dir.endswith(f):
+        writer_dir = weights_dir[:-(len(f)+1)]
+    writer_dir = os.path.join(writer_dir, 'eval')
+    # os.makedirs(writer_dir)
+    eval_metric_writer = tf.summary.create_file_writer(writer_dir)
+
+
+    for step, (image, label) in enumerate(dataset):
+        print(step)
+        pred = trained_model.predict(image)
+        visualise_multi_class(label, pred)
+        cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+
+        if multi_class:
+            iou = iou_loss_eval(label, pred)
+            dice = dice_coef_eval(label, pred)
+        else:
+            iou = iou_loss(label, pred)
+            dice = dice_coef(label, pred)
+
+        with eval_metric_writer.as_default():
+            tf.summary.scalar('iou eval validation', iou, step=step)
+            tf.summary.scalar('dice eval validation', dice, step=step)
+
