@@ -817,14 +817,70 @@ def eval_loop(trained_model,
         trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)    
 
 
-        for step, (image, label) in enumerate(dataset):
+        for step, (x, label) in enumerate(dataset):
             print('step',step)
-            pred = trained_model.predict(image)
+            pred = trained_model.predict(x)
             
 
             # Update visuals
             cm = update_cm(cm, num_classes)
             visualise_multi_class(label, pred)
+
+            if idx+1 == which_volume:
+                x, y = ds
+                x_slice = np.expand_dims(x[which_slice-1], axis=0)
+                y_slice = y[which_slice-1]
+
+                print('predicting slice {}'.format(which_slice))
+                pred_slice = trained_model.predict(x_slice)
+                print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
+                if is_multi_class:
+                    pred_slice = np.argmax(pred_slice, axis=-1)
+                    y_slice = np.argmax(y_slice, axis=-1)
+                    if multi_as_binary:
+                        pred_slice[pred_slice>0] = 1
+                        y_slice[y_slice>0] = 1
+                else:
+                    pred_slice = np.squeeze(pred_slice, axis=-1)
+                    y_slice = np.squeeze(y_slice, axis=-1)
+                print('slice predicted\n')
+
+                print('input image data type: {}, shape: {}'.format(type(x), x.shape))
+                print('label image data type: {}, shape: {}'.format(type(y), y.shape))
+                print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
+
+                print("Creating input image")
+                x_s = np.squeeze(x[which_slice-1], axis=-1)
+                fig_x = plt.figure()
+                ax_x = fig_x.add_subplot(1, 1, 1)
+                ax_x.imshow(x_s, cmap='gray')
+                
+                print("Creating label image")
+                fig_y = plt.figure()
+                ax_y = fig_y.add_subplot(1, 1, 1)
+                ax_y.imshow(y_slice, cmap='gray')
+                
+                print("Creating prediction image")
+                fig_pred = plt.figure()
+                ax_pred = fig_pred.add_subplot(1, 1, 1)
+                ax_pred.imshow(pred_slice[0], cmap='gray')
+
+                #Removing outside frame
+                if clean:
+                    ax_x.axis('off')
+                    ax_y.axis('off')
+                    ax_pred.axis('off')
+                    
+
+                print("Saving images")
+                save_dir_x = save_dir + '_x.png'
+                save_dir_y = save_dir + '_y.png'
+                save_dir_pred = save_dir + '_pred.png'
+                fig_x.savefig(save_dir_x)
+                fig_y.savefig(save_dir_y)
+                fig_pred.savefig(save_dir_pred)
+
+                    
 
 
             # if multi_class:
