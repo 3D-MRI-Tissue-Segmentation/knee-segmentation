@@ -327,73 +327,73 @@ def volume_gif(model,
                gif_cmap='gray',
                clean=False):
 
-    #load the database
-    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
-                            batch_size=160,
-                            buffer_size=500,
-                            augmentation=aug_strategy,
-                            multi_class=is_multi_class,
-                            is_training=False,
-                            use_bfloat16=False,
-                            use_RGB=False)
+    # #load the database
+    # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+    #                         batch_size=160,
+    #                         buffer_size=500,
+    #                         augmentation=aug_strategy,
+    #                         multi_class=is_multi_class,
+    #                         is_training=False,
+    #                         use_bfloat16=False,
+    #                         use_RGB=False)
 
-    # load the checkpoints in the specified log directory
-    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    # # load the checkpoints in the specified log directory
+    # session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
-    #figure for gif
-    fig, ax = plt.subplots()
-    images_gif = []
+    # #figure for gif
+    # fig, ax = plt.subplots()
+    # images_gif = []
 
-    for chkpt in session_weights:
-        name = chkpt.split('/')[-1]
-        name = name.split('.inde')[0]
+    # for chkpt in session_weights:
+    #     name = chkpt.split('/')[-1]
+    #     name = name.split('.inde')[0]
 
-        if int(name.split('.')[1]) == which_epoch:
+    #     if int(name.split('.')[1]) == which_epoch:
 
-            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
-            print(f"\t\t  {name}")
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+    #         print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    #         print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+    #         print(f"\t\t  {name}")
+    #         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
-            trained_model = model(*model_args)
-            trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                              weights_dir,
-                                                              tpu_name,
-                                                              visual_file,
-                                                              name)).expect_partial()
+    #         trained_model = model(*model_args)
+    #         trained_model.load_weights('gs://' + os.path.join(bucket_name,
+    #                                                           weights_dir,
+    #                                                           tpu_name,
+    #                                                           visual_file,
+    #                                                           name)).expect_partial()
 
-            for idx, ds in enumerate(valid_ds):
+    #         for idx, ds in enumerate(valid_ds):
 
-                if idx+1 == which_volume:
-                    x, _ = ds
-                    x = np.array(x)
-                    print('Input image data type: {}, shape: {}\n'.format(type(x), x.shape))
+    #             if idx+1 == which_volume:
+    #                 x, _ = ds
+    #                 x = np.array(x)
+    #                 print('Input image data type: {}, shape: {}\n'.format(type(x), x.shape))
 
-                    print('predicting volume {}'.format(which_volume))
-                    pred_vol = trained_model.predict(x)
-                    if is_multi_class:
-                        pred_vol = np.argmax(pred_vol, axis=-1)
-                    else:
-                        pred_vol = np.squeeze(pred_vol, axis=-1)
-                    print('volume predicted\n')
+    #                 print('predicting volume {}'.format(which_volume))
+    #                 pred_vol = trained_model.predict(x)
+    #                 if is_multi_class:
+    #                     pred_vol = np.argmax(pred_vol, axis=-1)
+    #                 else:
+    #                     pred_vol = np.squeeze(pred_vol, axis=-1)
+    #                 print('volume predicted\n')
 
-                    for i in range(x.shape[0]):
-                        print(f"Analysing slice {i+1}")
-                        im = ax.imshow(pred_vol[i,:,:], cmap='gray', animated=True, aspect='auto')
-                        if not clean:
-                            text = ax.text(0.5,1.05,f'Slice {i+1}', 
-                                        size=plt.rcParams["axes.titlesize"],
-                                        ha="center", transform=ax.transAxes)
-                            images_gif.append([im, text])
-                        else:
-                            ax.axis('off')
-                            images_gif.append([im])
+    #                 for i in range(x.shape[0]):
+    #                     print(f"Analysing slice {i+1}")
+    #                     im = ax.imshow(pred_vol[i,:,:], cmap='gray', animated=True, aspect='auto')
+    #                     if not clean:
+    #                         text = ax.text(0.5,1.05,f'Slice {i+1}', 
+    #                                     size=plt.rcParams["axes.titlesize"],
+    #                                     ha="center", transform=ax.transAxes)
+    #                         images_gif.append([im, text])
+    #                     else:
+    #                         ax.axis('off')
+    #                         images_gif.append([im])
 
-                    break
+    #                 break
             
-            break
+    #         break
 
-    pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
+    # pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
 
 def volume_comparison_gif(model,
@@ -411,78 +411,78 @@ def volume_comparison_gif(model,
                           gif_cmap='gray',
                           clean=False):
 
-    #load the database
-    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
-                            batch_size=160,
-                            buffer_size=500,
-                            augmentation=None,
-                            multi_class=is_multi_class,
-                            is_training=False,
-                            use_bfloat16=False,
-                            use_RGB=False)
+    # #load the database
+    # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+    #                         batch_size=160,
+    #                         buffer_size=500,
+    #                         augmentation=None,
+    #                         multi_class=is_multi_class,
+    #                         is_training=False,
+    #                         use_bfloat16=False,
+    #                         use_RGB=False)
 
-    # load the checkpoints in the specified log directory
-    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    # # load the checkpoints in the specified log directory
+    # session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
-    #figure for gif
-    fig, axes = plt.subplots(1, 3)
-    images_gif = []
+    # #figure for gif
+    # fig, axes = plt.subplots(1, 3)
+    # images_gif = []
 
-    for chkpt in session_weights:
-        name = chkpt.split('/')[-1]
-        name = name.split('.inde')[0]
+    # for chkpt in session_weights:
+    #     name = chkpt.split('/')[-1]
+    #     name = name.split('.inde')[0]
 
-        if int(name.split('.')[1]) == which_epoch:
+    #     if int(name.split('.')[1]) == which_epoch:
 
-            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
-            print(f"\t\t  {name}")
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+    #         print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    #         print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+    #         print(f"\t\t  {name}")
+    #         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
-            trained_model = model(*model_args)
-            trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                              weights_dir,
-                                                              tpu_name,
-                                                              visual_file,
-                                                              name)).expect_partial()
+    #         trained_model = model(*model_args)
+    #         trained_model.load_weights('gs://' + os.path.join(bucket_name,
+    #                                                           weights_dir,
+    #                                                           tpu_name,
+    #                                                           visual_file,
+    #                                                           name)).expect_partial()
 
-            for idx, ds in enumerate(valid_ds):
+    #         for idx, ds in enumerate(valid_ds):
 
-                if idx+1 == which_volume:
-                    x, y = ds
-                    x = np.array(x)
-                    x = np.squeeze(x, axis=-1)
+    #             if idx+1 == which_volume:
+    #                 x, y = ds
+    #                 x = np.array(x)
+    #                 x = np.squeeze(x, axis=-1)
 
-                    print('predicting volume {}'.format(which_volume))
-                    pred_vol = trained_model.predict(x)
-                    if is_multi_class:
-                        pred_vol = np.argmax(pred_vol, axis=-1)
-                        y = np.argmax(y, axis=-1)
-                    print('volume predicted\n')
+    #                 print('predicting volume {}'.format(which_volume))
+    #                 pred_vol = trained_model.predict(x)
+    #                 if is_multi_class:
+    #                     pred_vol = np.argmax(pred_vol, axis=-1)
+    #                     y = np.argmax(y, axis=-1)
+    #                 print('volume predicted\n')
 
-                    print('input image data type: {}, shape: {}'.format(type(x), x.shape))
-                    print('label image data type: {}, shape: {}'.format(type(y), y.shape))
-                    print('prediction image data type: {}, shape: {}\n'.format(type(pred), pred.shape))
+    #                 print('input image data type: {}, shape: {}'.format(type(x), x.shape))
+    #                 print('label image data type: {}, shape: {}'.format(type(y), y.shape))
+    #                 print('prediction image data type: {}, shape: {}\n'.format(type(pred), pred.shape))
 
-                    for i in range(x.shape[0]):
-                        print(f"Analysing slice {i+1}")
-                        x_im = axes[0].imshow(x[i,:,:], cmap='gray', animated=True, aspect='auto')
-                        y_im = axes[1].imshow(y[i,:,:], cmap='gray', animated=True, aspect='auto')
-                        pred_im = axes[2].imshow(pred_vol[i,:,:], cmap='gray', animated=True, aspect='auto')
-                        if not clean:
-                            text = ax.text(0.5,1.05,f'Slice {i+1}', 
-                                        size=plt.rcParams["axes.titlesize"],
-                                        ha="center", transform=ax.transAxes)
-                            images_gif.append([im, text])
-                        else:
-                            ax.axis('off')
-                            images_gif.append([im])
+    #                 for i in range(x.shape[0]):
+    #                     print(f"Analysing slice {i+1}")
+    #                     x_im = axes[0].imshow(x[i,:,:], cmap='gray', animated=True, aspect='auto')
+    #                     y_im = axes[1].imshow(y[i,:,:], cmap='gray', animated=True, aspect='auto')
+    #                     pred_im = axes[2].imshow(pred_vol[i,:,:], cmap='gray', animated=True, aspect='auto')
+    #                     if not clean:
+    #                         text = ax.text(0.5,1.05,f'Slice {i+1}', 
+    #                                     size=plt.rcParams["axes.titlesize"],
+    #                                     ha="center", transform=ax.transAxes)
+    #                         images_gif.append([im, text])
+    #                     else:
+    #                         ax.axis('off')
+    #                         images_gif.append([im])
 
-                    break
+    #                 break
             
-            break
+    #         break
 
-    pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=False)
+    # pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=False)
 
 
 def pred_evolution_gif(fig,
@@ -536,24 +536,24 @@ def pred_evolution_gif(fig,
         print("\n\n=================")
         print('done\n\n')
 
-# def take_slice(model,
-#                logdir,
-#                tfrecords_dir,
-#                aug_strategy,
-#                visual_file,
-#                tpu_name,
-#                bucket_name,
-#                weights_dir,
-#                multi_as_binary,
-#                is_multi_class,
-#                model_args,
-#                which_epoch,
-#                which_slice,
-#                which_volume=1,
-#                save_dir='',
-#                cmap='gray',
-#                clean=False):
-# 
+def take_slice(model,
+               logdir,
+               tfrecords_dir,
+               aug_strategy,
+               visual_file,
+               tpu_name,
+               bucket_name,
+               weights_dir,
+               multi_as_binary,
+               is_multi_class,
+               model_args,
+               which_epoch,
+               which_slice,
+               which_volume=1,
+               save_dir='',
+               cmap='gray',
+               clean=False):
+
     # #load the database
     # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
     #                         batch_size=160,
@@ -827,7 +827,21 @@ def update_gif_slice(x, y, model,
     fig_pred.savefig(save_dir_pred)
 
 
-def update_volume_comp_gif(x,y, images_gif):
+def update_volume_comp_gif(x,y, images_gif, model,
+                          logdir,
+                          tfrecords_dir,
+                          visual_file,
+                          tpu_name,
+                          bucket_name,
+                          weights_dir,
+                          is_multi_class,
+                          model_args,
+                          which_epoch,
+                          which_volume=1,
+                          gif_dir='',
+                          gif_cmap='gray',
+                          clean=False):
+
     x = np.array(x)
     x = np.squeeze(x, axis=-1)
 
@@ -855,6 +869,52 @@ def update_volume_comp_gif(x,y, images_gif):
         else:
             ax.axis('off')
             images_gif.append([im])
+
+
+def update_epoch_gif(x, model,
+              logdir,
+              tfrecords_dir,
+              aug_strategy,
+              visual_file,
+              tpu_name,
+              bucket_name,
+              weights_dir,
+              is_multi_class,
+              model_args,
+              which_slice,
+              which_volume=1,
+              epoch_limit=1000,
+              gif_dir='',
+              gif_cmap='gray',
+              clean=False):
+
+    images_gif = []
+
+    x_slice = np.expand_dims(x[which_slice-1], axis=0)
+    print('Input image data type: {}, shape: {}\n'.format(type(x_slice), x_slice.shape))
+
+    print('predicting slice {}'.format(which_slice))
+    predicted_slice = trained_model.predict(x_slice)
+    if is_multi_class:
+        predicted_slice = np.argmax(predicted_slice, axis=-1)
+    else:
+        predicted_slice = np.squeeze(predicted_slice, axis=-1)
+
+    print('slice predicted\n')
+
+    print("adding prediction to the queue")
+    im = ax.imshow(predicted_slice[0], cmap=gif_cmap, animated=True)
+    if not clean:
+        text = ax.text(0.5,1.05,f"Epoch {int(name.split('.')[1])}", 
+                    size=plt.rcParams["axes.titlesize"],
+                    ha="center", transform=ax.transAxes)
+        images_gif.append([im, text])
+    else:
+        ax.axis('off')
+        images_gif.append([im])
+    print("prediction added\n")
+
+    return images_gif
 
 
 
@@ -894,7 +954,7 @@ def eval_loop(trained_model,
 
     # Init visuals
     cm, classes = initialize_cm(multi_class, num_classes)
-
+    fig, axes, images_gif = initialize_gif()
 
 
 
@@ -926,6 +986,7 @@ def eval_loop(trained_model,
             # Update visuals
             cm = update_cm(cm, num_classes)
             visualise_multi_class(label, pred)
+            
 
             if idx+1 == which_volume:
                 update_gif_slice(x, y, model,
@@ -940,7 +1001,31 @@ def eval_loop(trained_model,
                multi_class,
                model_args,
                which_epoch,
-               which_slice,)
+               which_slice)
+
+               update_volume_comp_gif(x,y, images_gif, model,
+                          logdir,
+                          tfrecords_dir,
+                          visual_file,
+                          tpu_name,
+                          bucket_name,
+                          weights_dir,
+                          is_multi_class,
+                          model_args,
+                          which_epoch)
+
+                images_gif = update_epoch_gif(x, model,
+                            logdir,
+                            tfrecords_dir,
+                            aug_strategy,
+                            visual_file,
+                            tpu_name,
+                            bucket_name,
+                            weights_dir,
+                            is_multi_class,
+                            model_args,
+                            which_slice)
+               
 
                     
 
@@ -960,4 +1045,5 @@ def eval_loop(trained_model,
 
         # Save visuals
         save_cm(cm, model_architecture, fig_dir, classes)
+    pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=False)
 
