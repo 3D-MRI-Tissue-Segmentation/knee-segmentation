@@ -732,7 +732,7 @@ def initialize_cm(multi_class, num_classes=7):
     return cm, classes
 
 
-def update_cm(cm, num_classes=7)
+def update_cm(cm, num_classes=7):
     cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
     return cm
 
