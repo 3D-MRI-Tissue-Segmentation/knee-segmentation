@@ -218,7 +218,7 @@ def main(argv):
     if FLAGS.model_architecture == 'unet':
         model_args = [FLAGS.num_filters,
                       num_classes,
-                      FLAGS.2D
+                      FLAGS.2D,
                       FLAGS.backbone_architecture,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
