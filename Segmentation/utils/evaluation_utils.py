@@ -62,7 +62,7 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
 
     return session_weights
 
-def plot_and_eval_3D(model,
+# def plot_and_eval_3D(model,
                      logdir,
                      visual_file,
                      tpu_name,
@@ -73,157 +73,157 @@ def plot_and_eval_3D(model,
                      dataset,
                      model_args):
 
-    """ plotly: Generates a numpy volume for every #save_freq number of weights
-        and saves it in local results/pred/*visual_file* and results/y/*visual_file*
+    # """ plotly: Generates a numpy volume for every #save_freq number of weights
+    #     and saves it in local results/pred/*visual_file* and results/y/*visual_file*
 
-        Once numpy's are generated, run the following in console to get an embeddable html file:
-            python3 Visualization/plotly_3d_voxels/run_plotly.py -dir_l FOLDER_TO_Y_SAMPLES
-             -dir_r FOLDER_TO_PREDICTIONS
+    #     Once numpy's are generated, run the following in console to get an embeddable html file:
+    #         python3 Visualization/plotly_3d_voxels/run_plotly.py -dir_l FOLDER_TO_Y_SAMPLES
+    #          -dir_r FOLDER_TO_PREDICTIONS
 
 
-    """
+    # """
 
-    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    # session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
-    # Only use part of dataset
-    idx_vol= 0 # how many numpies have been save
-    target = 160
+    # # Only use part of dataset
+    # idx_vol= 0 # how many numpies have been save
+    # target = 160
     
-    for i, chkpt in enumerate(session_weights):
+    # for i, chkpt in enumerate(session_weights):
         
-        should_save_np = np.mod((i+1), save_freq) == 0
+    #     should_save_np = np.mod((i+1), save_freq) == 0
         
-        ######################
-        # print('should_save_np',should_save_np)
-        # print('checkpoint enum i',i)
-        # print('save_freq set to ',save_freq)
-        ######################
+    #     ######################
+    #     # print('should_save_np',should_save_np)
+    #     # print('checkpoint enum i',i)
+    #     # print('save_freq set to ',save_freq)
+    #     ######################
 
-        if not should_save_np:      # skip this checkpoint weight
-            print("Skipping weight", chkpt)
-            continue
-
-
-        name = chkpt.split('/')[-1]
-        name = name.split('.inde')[0]
-        trained_model = model(*model_args)
-        trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                        'checkpoints',
-                                                        tpu_name,
-                                                        visual_file,
-                                                        name)).expect_partial()
+    #     if not should_save_np:      # skip this checkpoint weight
+    #         print("Skipping weight", chkpt)
+    #         continue
 
 
-
-        # sample_x = []    # x for current 160,288,288 vol
-        sample_pred = []  # prediction for current 160,288,288 vol
-        sample_y = []    # y for current 160,288,288 vol
-
-        which_volume = 2
-        for idx, ds in enumerate(dataset):
-
-            ######################
-            print('Current chkpt name',name)
-            print(f"the index is {idx}")
-            ######################
+    #     name = chkpt.split('/')[-1]
+    #     name = name.split('.inde')[0]
+    #     trained_model = model(*model_args)
+    #     trained_model.load_weights('gs://' + os.path.join(bucket_name,
+    #                                                     'checkpoints',
+    #                                                     tpu_name,
+    #                                                     visual_file,
+    #                                                     name)).expect_partial()
 
 
-            x, y = ds
-            batch_size = x.shape[0]
 
-            if batch_size == 160:
-                if not (int(idx) == int(which_volume)):
-                    continue
+    #     # sample_x = []    # x for current 160,288,288 vol
+    #     sample_pred = []  # prediction for current 160,288,288 vol
+    #     sample_y = []    # y for current 160,288,288 vol
 
-            x = np.array(x)
-            y = np.array(y)
+    #     which_volume = 2
+    #     for idx, ds in enumerate(dataset):
+
+    #         ######################
+    #         print('Current chkpt name',name)
+    #         print(f"the index is {idx}")
+    #         ######################
+
+
+    #         x, y = ds
+    #         batch_size = x.shape[0]
+
+    #         if batch_size == 160:
+    #             if not (int(idx) == int(which_volume)):
+    #                 continue
+
+    #         x = np.array(x)
+    #         y = np.array(y)
         
-            pred = trained_model.predict(x)
+    #         pred = trained_model.predict(x)
 
-            ######################
-            # print("Current batch size set to {}. Target depth is {}".format(batch_size, target))
-            # print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
-            # print('Ground truth data type: {}, shape: {}'.format(type(y), y.shape))
-            # print('Prediction data type: {}, shape: {}'.format(type(pred), pred.shape))
-            # print("=================")
-            ######################
+    #         ######################
+    #         # print("Current batch size set to {}. Target depth is {}".format(batch_size, target))
+    #         # print('Input image data type: {}, shape: {}'.format(type(x), x.shape))
+    #         # print('Ground truth data type: {}, shape: {}'.format(type(y), y.shape))
+    #         # print('Prediction data type: {}, shape: {}'.format(type(pred), pred.shape))
+    #         # print("=================")
+    #         ######################
 
-            if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
-                sample_pred.append(pred)
-                del pred
-                sample_y.append(y)
-                del y
-            else:
-                remaining = target - get_depth(sample_pred)
-                sample_pred.append(pred[:remaining])
-                sample_y.append(y[:remaining])
-                pred_vol = np.concatenate(sample_pred)
-                del sample_pred
-                y_vol = np.concatenate(sample_y)
-                del sample_y
-                sample_pred = [pred[remaining:]]
-                sample_y = [y[remaining:]]
+    #         if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
+    #             sample_pred.append(pred)
+    #             del pred
+    #             sample_y.append(y)
+    #             del y
+    #         else:
+    #             remaining = target - get_depth(sample_pred)
+    #             sample_pred.append(pred[:remaining])
+    #             sample_y.append(y[:remaining])
+    #             pred_vol = np.concatenate(sample_pred)
+    #             del sample_pred
+    #             y_vol = np.concatenate(sample_y)
+    #             del sample_y
+    #             sample_pred = [pred[remaining:]]
+    #             sample_y = [y[remaining:]]
 
-                del pred
-                del y
+    #             del pred
+    #             del y
 
-                ######################
-                # print("===============")
-                # print("pred done")
-                # print(pred_vol.shape)
-                # print(y_vol.shape)
-                # print("===============")
-                # print('is_multi_class', is_multi_class)
-                ######################
+    #             ######################
+    #             # print("===============")
+    #             # print("pred done")
+    #             # print(pred_vol.shape)
+    #             # print(y_vol.shape)
+    #             # print("===============")
+    #             # print('is_multi_class', is_multi_class)
+    #             ######################
 
-                if is_multi_class:  # or np.shape(pred_vol)[-1] not
-                    pred_vol = np.argmax(pred_vol, axis=-1)
-                    y_vol = np.argmax(y_vol, axis=-1)
+    #             if is_multi_class:  # or np.shape(pred_vol)[-1] not
+    #                 pred_vol = np.argmax(pred_vol, axis=-1)
+    #                 y_vol = np.argmax(y_vol, axis=-1)
 
-                    ######################
-                    # print('np.shape(pred_vol)', np.shape(pred_vol))
-                    # print('np.shape(y_vol)',np.shape(y_vol))
-                    ######################
+    #                 ######################
+    #                 # print('np.shape(pred_vol)', np.shape(pred_vol))
+    #                 # print('np.shape(y_vol)',np.shape(y_vol))
+    #                 ######################
 
-                # Save volume as numpy file for plotlyyy
-                fig_dir = "results"
-                name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name))
-                name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + str(which_volume).zfill(3)))
+    #             # Save volume as numpy file for plotlyyy
+    #             fig_dir = "results"
+    #             name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name))
+    #             name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + str(which_volume).zfill(3)))
                 
-                ######################
-                # print("npy save pred as ", name_pred_npy)
-                # print("npy save y as ", name_y_npy)
-                # print("Currently on vol ", idx_vol)
-                ######################
+    #             ######################
+    #             # print("npy save pred as ", name_pred_npy)
+    #             # print("npy save y as ", name_y_npy)
+    #             # print("Currently on vol ", idx_vol)
+    #             ######################
 
 
-                # Get middle xx slices cuz 288x288x160 too big
-                roi = int(80 / 2)
-                d1,d2,d3 = np.shape(pred_vol)[0:3]
-                d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
-                pred_vol = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
-                d1,d2,d3 = np.shape(y_vol)[0:3]
-                d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
-                y_vol = y_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+    #             # Get middle xx slices cuz 288x288x160 too big
+    #             roi = int(80 / 2)
+    #             d1,d2,d3 = np.shape(pred_vol)[0:3]
+    #             d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+    #             pred_vol = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+    #             d1,d2,d3 = np.shape(y_vol)[0:3]
+    #             d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+    #             y_vol = y_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
 
-                ######################
-                print('y_vol.shape', np.shape(y_vol))
-                ######################
+    #             ######################
+    #             print('y_vol.shape', np.shape(y_vol))
+    #             ######################
 
-                np.save(name_pred_npy,pred_vol)
-                np.save(name_y_npy,y_vol)
-                idx_vol += 1
-                ######################
-                print("Total voxels saved, pred:", np.sum(pred_vol), "y:", np.sum(y_vol))
-                ######################
-                del pred_vol
-                del y_vol
+    #             np.save(name_pred_npy,pred_vol)
+    #             np.save(name_y_npy,y_vol)
+    #             idx_vol += 1
+    #             ######################
+    #             print("Total voxels saved, pred:", np.sum(pred_vol), "y:", np.sum(y_vol))
+    #             ######################
+    #             del pred_vol
+    #             del y_vol
 
-                break
+    #             break
 
 
 
-def epoch_gif(model,
+# def epoch_gif(model,
               logdir,
               tfrecords_dir,
               aug_strategy,
@@ -311,7 +311,7 @@ def epoch_gif(model,
     # pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
 
-def volume_gif(model,
+# def volume_gif(model,
                logdir,
                tfrecords_dir,
                aug_strategy,
@@ -396,7 +396,7 @@ def volume_gif(model,
     # pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
 
-def volume_comparison_gif(model,
+# def volume_comparison_gif(model,
                           logdir,
                           tfrecords_dir,
                           visual_file,
@@ -536,7 +536,7 @@ def pred_evolution_gif(fig,
         print("\n\n=================")
         print('done\n\n')
 
-def take_slice(model,
+# def take_slice(model,
                logdir,
                tfrecords_dir,
                aug_strategy,
@@ -649,7 +649,7 @@ def take_slice(model,
             
     #         break
 
-def confusion_matrix(trained_model,
+# def confusion_matrix(trained_model,
                      weights_dir,
                      fig_dir,
                      dataset,
@@ -924,14 +924,17 @@ def update_epoch_gif(x, model,
 
 
 ########## Plotly npys ##########
-def update_volume_npy(x,y, pred):
+def update_volume_npy(y, pred, target, model,
+                     logdir,
+                     visual_file,
+                     tpu_name,
+                     bucket_name,
+                     weights_dir,
+                     is_multi_class,
+                     save_freq,
+                     dataset,
+                     model_args):
     batch_size = y.shape[0]
-
-    if batch_size == 160:
-        if not (int(idx) == int(which_volume)):
-            continue
-
-    x = np.array(x)
     y = np.array(y)
 
 
@@ -999,12 +1002,13 @@ def update_volume_npy(x,y, pred):
 
         np.save(name_pred_npy,pred_vol)
         np.save(name_y_npy,y_vol)
-        idx_vol += 1
         ######################
         print("Total voxels saved, pred:", np.sum(pred_vol), "y:", np.sum(y_vol))
         ######################
         del pred_vol
         del y_vol
+
+    return sample_pred, sample_y
 
 ##########
 
@@ -1045,7 +1049,6 @@ def eval_loop(trained_model,
     # Init visuals
     cm, classes = initialize_cm(multi_class, num_classes)
     fig, axes, images_gif = initialize_gif()
-    idx_vol= 0 # how many numpies have been saved
     target = 160 # how many slices in 1 vol
     sample_pred = []  # prediction for current 160,288,288 vol
     sample_y = []    # y for current 160,288,288 vol
@@ -1072,6 +1075,9 @@ def eval_loop(trained_model,
         trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)    
 
 
+        sample_pred = []  # prediction for current 160,288,288 vol
+        sample_y = []    # y for current 160,288,288 vol
+
         for step, (x, label) in enumerate(dataset):
             print('step',step)
             pred = trained_model.predict(x)
@@ -1080,9 +1086,8 @@ def eval_loop(trained_model,
             # Update visuals
             cm = update_cm(cm, num_classes)
             visualise_multi_class(label, pred)
-            
 
-            if idx+1 == which_volume:
+            if step+1 == which_volume:
                 update_gif_slice(x, y, model,
                         logdir,
                         tfrecords_dir,
@@ -1119,8 +1124,8 @@ def eval_loop(trained_model,
                             is_multi_class,
                             model_args,
                             which_slice)
-               
-
+            
+            sample_pred, sample_y = update_volume_npy(x,y,pred)
                     
 
 
