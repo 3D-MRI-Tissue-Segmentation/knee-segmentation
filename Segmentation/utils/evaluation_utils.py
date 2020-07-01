@@ -12,7 +12,7 @@ import datetime
 
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
-from Segmentation.utils.data_loader import read_tfrecord
+# from Segmentation.utils.data_loader import read_tfrecord_2d
 from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix, iou_loss_eval, dice_coef_eval
 from Segmentation.utils.losses import dice_coef, iou_loss
@@ -68,7 +68,7 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
                     #  tpu_name,
                     #  bucket_name,
                     #  weights_dir,
-                    #  is_multi_class,
+                    #  multi_class,
                     #  save_freq,
                     #  dataset,
                     #  model_args):
@@ -173,10 +173,10 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
     #             # print(pred_vol.shape)
     #             # print(y_vol.shape)
     #             # print("===============")
-    #             # print('is_multi_class', is_multi_class)
+    #             # print('multi_class', multi_class)
     #             ######################
 
-    #             if is_multi_class:  # or np.shape(pred_vol)[-1] not
+    #             if multi_class:  # or np.shape(pred_vol)[-1] not
     #                 pred_vol = np.argmax(pred_vol, axis=-1)
     #                 y_vol = np.argmax(y_vol, axis=-1)
 
@@ -229,7 +229,7 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
             #   tpu_name,
             #   bucket_name,
             #   weights_dir,
-            #   is_multi_class,
+            #   multi_class,
             #   model_args,
             #   which_slice,
             #   which_volume=1,
@@ -239,11 +239,11 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
             #   clean=False):
 
     # #load the database
-    # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+    # valid_ds = read_tfrecord_2d(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
     #                         batch_size=160,
     #                         buffer_size=500,
     #                         augmentation=aug_strategy,
-    #                         multi_class=is_multi_class,
+    #                         multi_class=multi_class,
     #                         is_training=False,
     #                         use_bfloat16=False,
     #                         use_RGB=False)
@@ -282,7 +282,7 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
 
     #                 print('predicting slice {}'.format(which_slice))
     #                 predicted_slice = trained_model.predict(x_slice)
-    #                 if is_multi_class:
+    #                 if multi_class:
     #                     predicted_slice = np.argmax(predicted_slice, axis=-1)
     #                 else:
     #                     predicted_slice = np.squeeze(predicted_slice, axis=-1)
@@ -316,7 +316,7 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
             #    tpu_name,
             #    bucket_name,
             #    weights_dir,
-            #    is_multi_class,
+            #    multi_class,
             #    model_args,
             #    which_epoch,
             #    which_volume=1,
@@ -325,11 +325,11 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
             #    clean=False):
 
     # #load the database
-    # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+    # valid_ds = read_tfrecord_2d(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
     #                         batch_size=160,
     #                         buffer_size=500,
     #                         augmentation=aug_strategy,
-    #                         multi_class=is_multi_class,
+    #                         multi_class=multi_class,
     #                         is_training=False,
     #                         use_bfloat16=False,
     #                         use_RGB=False)
@@ -368,7 +368,7 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
 
     #                 print('predicting volume {}'.format(which_volume))
     #                 pred_vol = trained_model.predict(x)
-    #                 if is_multi_class:
+    #                 if multi_class:
     #                     pred_vol = np.argmax(pred_vol, axis=-1)
     #                 else:
     #                     pred_vol = np.squeeze(pred_vol, axis=-1)
@@ -399,7 +399,7 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
                         #   tpu_name,
                         #   bucket_name,
                         #   weights_dir,
-                        #   is_multi_class,
+                        #   multi_class,
                         #   model_args,
                         #   which_epoch,
                         #   which_volume=1,
@@ -408,11 +408,11 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
                         #   clean=False):
 
     # #load the database
-    # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+    # valid_ds = read_tfrecord_2d(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
     #                         batch_size=160,
     #                         buffer_size=500,
     #                         augmentation=None,
-    #                         multi_class=is_multi_class,
+    #                         multi_class=multi_class,
     #                         is_training=False,
     #                         use_bfloat16=False,
     #                         use_RGB=False)
@@ -451,7 +451,7 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
 
     #                 print('predicting volume {}'.format(which_volume))
     #                 pred_vol = trained_model.predict(x)
-    #                 if is_multi_class:
+    #                 if multi_class:
     #                     pred_vol = np.argmax(pred_vol, axis=-1)
     #                     y = np.argmax(y, axis=-1)
     #                 print('volume predicted\n')
@@ -541,7 +541,7 @@ def pred_evolution_gif(fig,
             #    bucket_name,
             #    weights_dir,
             #    multi_as_binary,
-            #    is_multi_class,
+            #    multi_class,
             #    model_args,
             #    which_epoch,
             #    which_slice,
@@ -551,11 +551,11 @@ def pred_evolution_gif(fig,
             #    clean=False):
 
     # #load the database
-    # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+    # valid_ds = read_tfrecord_2d(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
     #                         batch_size=160,
     #                         buffer_size=500,
     #                         augmentation=aug_strategy,
-    #                         multi_class=is_multi_class,
+    #                         multi_class=multi_class,
     #                         is_training=False,
     #                         use_bfloat16=False,
     #                         use_RGB=False)
@@ -595,7 +595,7 @@ def pred_evolution_gif(fig,
     #                 print('predicting slice {}'.format(which_slice))
     #                 pred_slice = trained_model.predict(x_slice)
     #                 print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
-    #                 if is_multi_class:
+    #                 if multi_class:
     #                     pred_slice = np.argmax(pred_slice, axis=-1)
     #                     y_slice = np.argmax(y_slice, axis=-1)
     #                     if multi_as_binary:
@@ -760,7 +760,7 @@ def update_gif_slice(x, y, model,
                bucket_name,
                weights_dir,
                multi_as_binary,
-               is_multi_class,
+               multi_class,
                model_args,
                which_epoch,
                which_slice,
@@ -832,7 +832,7 @@ def update_volume_comp_gif(x,y, images_gif, model,
                           tpu_name,
                           bucket_name,
                           weights_dir,
-                          is_multi_class,
+                          multi_class,
                           model_args,
                           which_epoch,
                           which_volume=1,
@@ -845,7 +845,7 @@ def update_volume_comp_gif(x,y, images_gif, model,
 
     print('predicting volume {}'.format(which_volume))
     pred_vol = trained_model.predict(x)
-    if is_multi_class:
+    if multi_class:
         pred_vol = np.argmax(pred_vol, axis=-1)
         y = np.argmax(y, axis=-1)
     print('volume predicted\n')
@@ -879,7 +879,7 @@ def update_epoch_gif(x, model,
               tpu_name,
               bucket_name,
               weights_dir,
-              is_multi_class,
+              multi_class,
               model_args,
               which_slice,
               which_volume=1,
@@ -895,7 +895,7 @@ def update_epoch_gif(x, model,
 
     print('predicting slice {}'.format(which_slice))
     predicted_slice = trained_model.predict(x_slice)
-    if is_multi_class:
+    if multi_class:
         predicted_slice = np.argmax(predicted_slice, axis=-1)
     else:
         predicted_slice = np.squeeze(predicted_slice, axis=-1)
@@ -920,13 +920,15 @@ def update_epoch_gif(x, model,
 
 
 ########## Plotly npys ##########
-def update_volume_npy(y, pred, target, model,
+def update_volume_npy(y, pred, target, sample_pred, sample_y, model,
                      logdir,
                      visual_file,
                      tpu_name,
                      bucket_name,
+                     name, 
                      weights_dir,
-                     is_multi_class,
+                     which_volume,
+                     multi_class,
                      save_freq,
                      dataset,
                      model_args):
@@ -959,10 +961,10 @@ def update_volume_npy(y, pred, target, model,
         # print(pred_vol.shape)
         # print(y_vol.shape)
         # print("===============")
-        # print('is_multi_class', is_multi_class)
+        # print('multi_class', multi_class)
         ######################
 
-        if is_multi_class:  # or np.shape(pred_vol)[-1] not
+        if multi_class:  # or np.shape(pred_vol)[-1] not
             pred_vol = np.argmax(pred_vol, axis=-1)
             y_vol = np.argmax(y_vol, axis=-1)
 
@@ -1013,15 +1015,25 @@ def update_volume_npy(y, pred, target, model,
 
 
 def eval_loop(trained_model,
+                     logdir,
+                     visual_file,
+                     tpu_name,
+                     bucket_name,
                      weights_dir,
+                     tfrecords_dir,
                      fig_dir,
+                     save_freq,
+                     which_volume,
                      dataset,
                      validation_steps,
                      multi_class,
+                     model,
                      model_architecture,
+                     model_args,
                      callbacks,
                      num_classes=7
                      ):
+
     """ Evaluate model and visualize as needed """
 
     # load the checkpoints in the specified log directory
@@ -1054,6 +1066,9 @@ def eval_loop(trained_model,
 
     for chkpt in session_weights:
         ### Skip to last chkpt if you only want evaluation
+
+        name = chkpt.split('/')[-1]
+        name = name.split('.inde')[0]
 
         #########################
         print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
@@ -1105,7 +1120,7 @@ def eval_loop(trained_model,
                           tpu_name,
                           bucket_name,
                           weights_dir,
-                          is_multi_class,
+                          multi_class,
                           model_args,
                           which_epoch)
 
@@ -1117,11 +1132,22 @@ def eval_loop(trained_model,
                             tpu_name,
                             bucket_name,
                             weights_dir,
-                            is_multi_class,
+                            multi_class,
                             model_args,
                             which_slice)
             
-            sample_pred, sample_y = update_volume_npy(x,y,pred)
+                sample_pred, sample_y = update_volume_npy(y, pred, target, sample_pred, sample_y, model,
+                        logdir,
+                        visual_file,
+                        tpu_name,
+                        bucket_name,
+                        name, 
+                        weights_dir,
+                        which_volume,
+                        multi_class,
+                        save_freq,
+                        dataset,
+                        model_args)
                     
 
 
