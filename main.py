@@ -150,15 +150,9 @@ def main(argv):
     # set dataset configuration
     if FLAGS.dataset == 'oai_challenge':
 
-        batch_size = FLAGS.batch_size * FLAGS.num_cores
-        
-        if FLAGS.model_architecture != 'vnet':
-            steps_per_epoch = 19200 // batch_size
-            validation_steps = 4480 // batch_size
-        else:
-            steps_per_epoch = 120 // batch_size
-            validation_steps = 28 // batch_size
-
+        batch_size = FLAGS.batch_size * FLAGS.num_cores 
+        steps_per_epoch = 19200 // batch_size
+        validation_steps = 4480 // batch_size
         logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
 
         if FLAGS.model_architecture != 'vnet':
@@ -179,7 +173,6 @@ def main(argv):
                                      use_bfloat16=FLAGS.use_bfloat16,
                                      use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
         else:
-
             train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
                                      batch_size=batch_size,
                                      buffer_size=FLAGS.buffer_size,
@@ -194,14 +187,18 @@ def main(argv):
                                      batch_size=batch_size,
                                      buffer_size=FLAGS.buffer_size,
                                      augmentation=FLAGS.aug_strategy,
-                                     parse_fn=parse_fn_3d,
                                      multi_class=FLAGS.multi_class,
                                      is_training=False,
                                      use_bfloat16=FLAGS.use_bfloat16,
                                      use_RGB=False)
 
-        num_classes = 7 if FLAGS.multi_class else 1
-         
+        num_classes = 7 if FLAGS.multi_class else 1 
+
+        # for step, (image, label) in enumerate(train_ds):
+        #     print(step)
+        #     print(image.shape)
+        #     print(label.shape)
+
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -234,7 +231,7 @@ def main(argv):
 
         model_fn = UNet
     elif FLAGS.model_architecture == 'vnet':
-        model_args = [16,
+        model_args = [64,
                       num_classes,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
@@ -427,13 +424,9 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
-    # Evaluation
     elif not FLAGS.visual_file == "":
-        tpu_dir = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
+        tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
         print('model_fn', model_fn)
-
-        ### Evaluation loop
-        
 
         if not FLAGS.which_representation == '':
 
@@ -443,7 +436,7 @@ def main(argv):
                            tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                            aug_strategy=FLAGS.aug_strategy,
                            visual_file=FLAGS.visual_file,
-                           tpu_name=tpu_dir,
+                           tpu_name=FLAGS.tpu_dir,
                            bucket_name=FLAGS.bucket,
                            weights_dir=FLAGS.weights_dir,
                            is_multi_class=FLAGS.multi_class,
@@ -460,7 +453,7 @@ def main(argv):
                           tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                           aug_strategy=FLAGS.aug_strategy,
                           visual_file=FLAGS.visual_file,
-                          tpu_name=tpu_dir,
+                          tpu_name=FLAGS.tpu_dir,
                           bucket_name=FLAGS.bucket,
                           weights_dir=FLAGS.weights_dir,
                           is_multi_class=FLAGS.multi_class,
@@ -478,7 +471,7 @@ def main(argv):
                            tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                            aug_strategy=FLAGS.aug_strategy,
                            visual_file=FLAGS.visual_file,
-                           tpu_name=tpu_dir,
+                           tpu_name=FLAGS.tpu_dir,
                            bucket_name=FLAGS.bucket,
                            weights_dir=FLAGS.weights_dir,
                            multi_as_binary=False,

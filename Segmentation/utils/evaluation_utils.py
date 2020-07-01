@@ -649,30 +649,74 @@ def take_slice(model,
             
             break
 
-def confusion_matrix(trained_model,
-                     weights_dir,
-                     fig_dir,
-                     dataset,
-                     validation_steps,
-                     multi_class,
-                     model_architecture,
-                     callbacks,
-                     num_classes=7
-                     ):
+# def confusion_matrix(trained_model,
+#                      weights_dir,
+#                      fig_dir,
+#                      dataset,
+#                      validation_steps,
+#                      multi_class,
+#                      model_architecture,
+#                      callbacks,
+#                      num_classes=7
+#                      ):
 
-    trained_model.load_weights(weights_dir).expect_partial()
-    trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
-
-
-    f = weights_dir.split('/')[-1]
-    # Excluding parenthese before f too
-    if weights_dir.endswith(f):
-        writer_dir = weights_dir[:-(len(f)+1)]
-    writer_dir = os.path.join(writer_dir, 'eval')
-    # os.makedirs(writer_dir)
-    eval_metric_writer = tf.summary.create_file_writer(writer_dir)
+#     trained_model.load_weights(weights_dir).expect_partial()
+#     trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
 
 
+#     f = weights_dir.split('/')[-1]
+#     # Excluding parenthese before f too
+#     if weights_dir.endswith(f):
+#         writer_dir = weights_dir[:-(len(f)+1)]
+#     writer_dir = os.path.join(writer_dir, 'eval')
+#     # os.makedirs(writer_dir)
+#     eval_metric_writer = tf.summary.create_file_writer(writer_dir)
+
+
+#     if multi_class:
+#         cm = np.zeros((num_classes, num_classes))
+#         classes = ["Background",
+#                    "Femoral",
+#                    "Medial Tibial",
+#                    "Lateral Tibial",
+#                    "Patellar",
+#                    "Lateral Meniscus",
+#                    "Medial Meniscus"]
+#     else:
+#         cm = np.zeros((2, 2))
+#         classes = ["Background",
+#                    "Cartilage"]
+
+#     for step, (image, label) in enumerate(dataset):
+#         print(step)
+#         pred = trained_model.predict(image)
+#         visualise_multi_class(label, pred)
+#         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+
+#         if multi_class:
+#             iou = iou_loss_eval(label, pred)
+#             dice = dice_coef_eval(label, pred)
+#         else:
+#             iou = iou_loss(label, pred)
+#             dice = dice_coef(label, pred)
+
+#         with eval_metric_writer.as_default():
+#             tf.summary.scalar('iou eval validation', iou, step=step)
+#             tf.summary.scalar('dice eval validation', dice, step=step)
+        
+
+            
+
+#         if step > validation_steps - 1:
+#             break
+
+#     fig_file = model_architecture + '_matrix.png'
+#     fig_dir = os.path.join(fig_dir, fig_file)
+#     plot_confusion_matrix(cm, fig_dir, classes=classes)
+
+
+#### Confusion Matrix ####
+def initialize_cm(multi_class, num_classes=7):
     if multi_class:
         cm = np.zeros((num_classes, num_classes))
         classes = ["Background",
@@ -687,32 +731,33 @@ def confusion_matrix(trained_model,
         classes = ["Background",
                    "Cartilage"]
 
-    for step, (image, label) in enumerate(dataset):
-        print(step)
-        pred = trained_model.predict(image)
-        visualise_multi_class(label, pred)
-        cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+    return cm, classes
 
-        if multi_class:
-            iou = iou_loss_eval(label, pred)
-            dice = dice_coef_eval(label, pred)
-        else:
-            iou = iou_loss(label, pred)
-            dice = dice_coef(label, pred)
 
-        with eval_metric_writer.as_default():
-            tf.summary.scalar('iou eval validation', iou, step=step)
-            tf.summary.scalar('dice eval validation', dice, step=step)
-        
+def update_cm(cm, num_classes=7)
+    cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+    return cm
 
-            
-
-        if step > validation_steps - 1:
-            break
-
+def save_cm(cm, model_architecture, fig_dir, classes):
     fig_file = model_architecture + '_matrix.png'
     fig_dir = os.path.join(fig_dir, fig_file)
     plot_confusion_matrix(cm, fig_dir, classes=classes)
+######
+
+
+#### Gif ####
+def initialize_gif():   
+    #figure for gif
+    fig, axes = plt.subplots(1, 3)
+    images_gif = []
+    return fig, axes, images_gif
+
+
+
+
+
+
+
 
 
 
@@ -728,33 +773,73 @@ def eval_loop(trained_model,
                      ):
     """ Evaluate model and visualize as needed """
 
-    trained_model.load_weights(weights_dir).expect_partial()
-    trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
+    # load the checkpoints in the specified log directory
+    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+
+    # trained_model.load_weights(weights_dir).expect_partial()
+    # trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
+
+    
 
 
+    # Callbacks
     f = weights_dir.split('/')[-1]
     # Excluding parenthese before f too
     if weights_dir.endswith(f):
         writer_dir = weights_dir[:-(len(f)+1)]
     writer_dir = os.path.join(writer_dir, 'eval')
-    # os.makedirs(writer_dir)
     eval_metric_writer = tf.summary.create_file_writer(writer_dir)
 
 
-    for step, (image, label) in enumerate(dataset):
-        print(step)
-        pred = trained_model.predict(image)
-        visualise_multi_class(label, pred)
-        cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+    # Init visuals
+    cm, classes = initialize_cm(multi_class, num_classes)
 
-        if multi_class:
-            iou = iou_loss_eval(label, pred)
-            dice = dice_coef_eval(label, pred)
-        else:
-            iou = iou_loss(label, pred)
-            dice = dice_coef(label, pred)
 
-        with eval_metric_writer.as_default():
-            tf.summary.scalar('iou eval validation', iou, step=step)
-            tf.summary.scalar('dice eval validation', dice, step=step)
+
+
+
+    for chkpt in session_weights:
+        ### Skip to last chkpt if you only want evaluation
+
+        #########################
+        print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+        print(f"\t\t  {name}")
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+        #########################
+
+        trained_model = model(*model_args)
+        trained_model.load_weights('gs://' + os.path.join(bucket_name,
+                                                            weights_dir,
+                                                            tpu_name,
+                                                            visual_file,
+                                                            name)).expect_partial()
+        trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)    
+
+
+        for step, (image, label) in enumerate(dataset):
+            print('step',step)
+            pred = trained_model.predict(image)
+            
+
+            # Update visuals
+            cm = update_cm(cm, num_classes)
+            visualise_multi_class(label, pred)
+
+
+            # if multi_class:
+            #     iou = iou_loss_eval(label, pred)
+            #     dice = dice_coef_eval(label, pred)
+            # else:
+            #     iou = iou_loss(label, pred)
+            #     dice = dice_coef(label, pred)
+            iou = iou_loss_eval(label, pred) if multi_class else iou_loss(label, pred)
+            dice = dice_coef_eval(label, pred) if multi_class else dice_coef(label, pred)
+
+            with eval_metric_writer.as_default():
+                tf.summary.scalar('iou eval validation', iou, step=step)
+                tf.summary.scalar('dice eval validation', dice, step=step)
+
+        # Save visuals
+        save_cm(cm, model_architecture, fig_dir, classes)
 
