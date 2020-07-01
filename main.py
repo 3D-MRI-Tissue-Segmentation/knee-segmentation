@@ -506,7 +506,18 @@ def main(argv):
         logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         logdir = os.path.join(logdir, time)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch', write_images=True)
-        confusion_matrix(trained_model=model,
+        # confusion_matrix(trained_model=model,
+        #                  weights_dir=FLAGS.weights_dir,
+        #                  fig_dir=FLAGS.fig_dir,
+        #                  dataset=valid_ds,
+        #                  validation_steps=validation_steps,
+        #                  multi_class=FLAGS.multi_class,
+        #                  model_architecture=FLAGS.model_architecture,
+        #                  callbacks=[tb],
+        #                  num_classes=num_classes
+        #                  )
+
+        eval_loop(trained_model=model,
                          weights_dir=FLAGS.weights_dir,
                          fig_dir=FLAGS.fig_dir,
                          dataset=valid_ds,

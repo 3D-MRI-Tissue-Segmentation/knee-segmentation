@@ -63,15 +63,15 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
     return session_weights
 
 # def plot_and_eval_3D(model,
-                     logdir,
-                     visual_file,
-                     tpu_name,
-                     bucket_name,
-                     weights_dir,
-                     is_multi_class,
-                     save_freq,
-                     dataset,
-                     model_args):
+                    #  logdir,
+                    #  visual_file,
+                    #  tpu_name,
+                    #  bucket_name,
+                    #  weights_dir,
+                    #  is_multi_class,
+                    #  save_freq,
+                    #  dataset,
+                    #  model_args):
 
     # """ plotly: Generates a numpy volume for every #save_freq number of weights
     #     and saves it in local results/pred/*visual_file* and results/y/*visual_file*
@@ -224,21 +224,21 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
 
 
 # def epoch_gif(model,
-              logdir,
-              tfrecords_dir,
-              aug_strategy,
-              visual_file,
-              tpu_name,
-              bucket_name,
-              weights_dir,
-              is_multi_class,
-              model_args,
-              which_slice,
-              which_volume=1,
-              epoch_limit=1000,
-              gif_dir='',
-              gif_cmap='gray',
-              clean=False):
+            #   logdir,
+            #   tfrecords_dir,
+            #   aug_strategy,
+            #   visual_file,
+            #   tpu_name,
+            #   bucket_name,
+            #   weights_dir,
+            #   is_multi_class,
+            #   model_args,
+            #   which_slice,
+            #   which_volume=1,
+            #   epoch_limit=1000,
+            #   gif_dir='',
+            #   gif_cmap='gray',
+            #   clean=False):
 
     # #load the database
     # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
@@ -312,20 +312,20 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
 
 
 # def volume_gif(model,
-               logdir,
-               tfrecords_dir,
-               aug_strategy,
-               visual_file,
-               tpu_name,
-               bucket_name,
-               weights_dir,
-               is_multi_class,
-               model_args,
-               which_epoch,
-               which_volume=1,
-               gif_dir='',
-               gif_cmap='gray',
-               clean=False):
+            #    logdir,
+            #    tfrecords_dir,
+            #    aug_strategy,
+            #    visual_file,
+            #    tpu_name,
+            #    bucket_name,
+            #    weights_dir,
+            #    is_multi_class,
+            #    model_args,
+            #    which_epoch,
+            #    which_volume=1,
+            #    gif_dir='',
+            #    gif_cmap='gray',
+            #    clean=False):
 
     # #load the database
     # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
@@ -397,19 +397,19 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
 
 
 # def volume_comparison_gif(model,
-                          logdir,
-                          tfrecords_dir,
-                          visual_file,
-                          tpu_name,
-                          bucket_name,
-                          weights_dir,
-                          is_multi_class,
-                          model_args,
-                          which_epoch,
-                          which_volume=1,
-                          gif_dir='',
-                          gif_cmap='gray',
-                          clean=False):
+                        #   logdir,
+                        #   tfrecords_dir,
+                        #   visual_file,
+                        #   tpu_name,
+                        #   bucket_name,
+                        #   weights_dir,
+                        #   is_multi_class,
+                        #   model_args,
+                        #   which_epoch,
+                        #   which_volume=1,
+                        #   gif_dir='',
+                        #   gif_cmap='gray',
+                        #   clean=False):
 
     # #load the database
     # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
@@ -537,22 +537,22 @@ def pred_evolution_gif(fig,
         print('done\n\n')
 
 # def take_slice(model,
-               logdir,
-               tfrecords_dir,
-               aug_strategy,
-               visual_file,
-               tpu_name,
-               bucket_name,
-               weights_dir,
-               multi_as_binary,
-               is_multi_class,
-               model_args,
-               which_epoch,
-               which_slice,
-               which_volume=1,
-               save_dir='',
-               cmap='gray',
-               clean=False):
+            #    logdir,
+            #    tfrecords_dir,
+            #    aug_strategy,
+            #    visual_file,
+            #    tpu_name,
+            #    bucket_name,
+            #    weights_dir,
+            #    multi_as_binary,
+            #    is_multi_class,
+            #    model_args,
+            #    which_epoch,
+            #    which_slice,
+            #    which_volume=1,
+            #    save_dir='',
+            #    cmap='gray',
+            #    clean=False):
 
     # #load the database
     # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
