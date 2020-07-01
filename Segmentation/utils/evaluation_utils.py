@@ -536,118 +536,118 @@ def pred_evolution_gif(fig,
         print("\n\n=================")
         print('done\n\n')
 
-def take_slice(model,
-               logdir,
-               tfrecords_dir,
-               aug_strategy,
-               visual_file,
-               tpu_name,
-               bucket_name,
-               weights_dir,
-               multi_as_binary,
-               is_multi_class,
-               model_args,
-               which_epoch,
-               which_slice,
-               which_volume=1,
-               save_dir='',
-               cmap='gray',
-               clean=False):
+# def take_slice(model,
+#                logdir,
+#                tfrecords_dir,
+#                aug_strategy,
+#                visual_file,
+#                tpu_name,
+#                bucket_name,
+#                weights_dir,
+#                multi_as_binary,
+#                is_multi_class,
+#                model_args,
+#                which_epoch,
+#                which_slice,
+#                which_volume=1,
+#                save_dir='',
+#                cmap='gray',
+#                clean=False):
+# 
+    # #load the database
+    # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+    #                         batch_size=160,
+    #                         buffer_size=500,
+    #                         augmentation=aug_strategy,
+    #                         multi_class=is_multi_class,
+    #                         is_training=False,
+    #                         use_bfloat16=False,
+    #                         use_RGB=False)
 
-    #load the database
-    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
-                            batch_size=160,
-                            buffer_size=500,
-                            augmentation=aug_strategy,
-                            multi_class=is_multi_class,
-                            is_training=False,
-                            use_bfloat16=False,
-                            use_RGB=False)
+    # # load the checkpoints in the specified log directory
+    # session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
-    # load the checkpoints in the specified log directory
-    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    # #figure for gif
+    # fig, axes = plt.subplots(1, 3)
+    # images_gif = []
 
-    #figure for gif
-    fig, axes = plt.subplots(1, 3)
-    images_gif = []
+    # for chkpt in session_weights:
+    #     name = chkpt.split('/')[-1]
+    #     name = name.split('.inde')[0]
 
-    for chkpt in session_weights:
-        name = chkpt.split('/')[-1]
-        name = name.split('.inde')[0]
+    #     if int(name.split('.')[1]) == which_epoch:
 
-        if int(name.split('.')[1]) == which_epoch:
+    #         print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    #         print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+    #         print(f"\t\t  {name}")
+    #         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
-            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
-            print(f"\t\t  {name}")
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+    #         trained_model = model(*model_args)
+    #         trained_model.load_weights('gs://' + os.path.join(bucket_name,
+    #                                                           weights_dir,
+    #                                                           tpu_name,
+    #                                                           visual_file,
+    #                                                           name)).expect_partial()
 
-            trained_model = model(*model_args)
-            trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                              weights_dir,
-                                                              tpu_name,
-                                                              visual_file,
-                                                              name)).expect_partial()
+    #         for idx, ds in enumerate(valid_ds):
 
-            for idx, ds in enumerate(valid_ds):
+    #             if idx+1 == which_volume:
+    #                 x, y = ds
+    #                 x_slice = np.expand_dims(x[which_slice-1], axis=0)
+    #                 y_slice = y[which_slice-1]
 
-                if idx+1 == which_volume:
-                    x, y = ds
-                    x_slice = np.expand_dims(x[which_slice-1], axis=0)
-                    y_slice = y[which_slice-1]
+    #                 print('predicting slice {}'.format(which_slice))
+    #                 pred_slice = trained_model.predict(x_slice)
+    #                 print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
+    #                 if is_multi_class:
+    #                     pred_slice = np.argmax(pred_slice, axis=-1)
+    #                     y_slice = np.argmax(y_slice, axis=-1)
+    #                     if multi_as_binary:
+    #                         pred_slice[pred_slice>0] = 1
+    #                         y_slice[y_slice>0] = 1
+    #                 else:
+    #                     pred_slice = np.squeeze(pred_slice, axis=-1)
+    #                     y_slice = np.squeeze(y_slice, axis=-1)
+    #                 print('slice predicted\n')
 
-                    print('predicting slice {}'.format(which_slice))
-                    pred_slice = trained_model.predict(x_slice)
-                    print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
-                    if is_multi_class:
-                        pred_slice = np.argmax(pred_slice, axis=-1)
-                        y_slice = np.argmax(y_slice, axis=-1)
-                        if multi_as_binary:
-                            pred_slice[pred_slice>0] = 1
-                            y_slice[y_slice>0] = 1
-                    else:
-                        pred_slice = np.squeeze(pred_slice, axis=-1)
-                        y_slice = np.squeeze(y_slice, axis=-1)
-                    print('slice predicted\n')
+    #                 print('input image data type: {}, shape: {}'.format(type(x), x.shape))
+    #                 print('label image data type: {}, shape: {}'.format(type(y), y.shape))
+    #                 print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
 
-                    print('input image data type: {}, shape: {}'.format(type(x), x.shape))
-                    print('label image data type: {}, shape: {}'.format(type(y), y.shape))
-                    print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
-
-                    print("Creating input image")
-                    x_s = np.squeeze(x[which_slice-1], axis=-1)
-                    fig_x = plt.figure()
-                    ax_x = fig_x.add_subplot(1, 1, 1)
-                    ax_x.imshow(x_s, cmap='gray')
+    #                 print("Creating input image")
+    #                 x_s = np.squeeze(x[which_slice-1], axis=-1)
+    #                 fig_x = plt.figure()
+    #                 ax_x = fig_x.add_subplot(1, 1, 1)
+    #                 ax_x.imshow(x_s, cmap='gray')
                     
-                    print("Creating label image")
-                    fig_y = plt.figure()
-                    ax_y = fig_y.add_subplot(1, 1, 1)
-                    ax_y.imshow(y_slice, cmap='gray')
+    #                 print("Creating label image")
+    #                 fig_y = plt.figure()
+    #                 ax_y = fig_y.add_subplot(1, 1, 1)
+    #                 ax_y.imshow(y_slice, cmap='gray')
                     
-                    print("Creating prediction image")
-                    fig_pred = plt.figure()
-                    ax_pred = fig_pred.add_subplot(1, 1, 1)
-                    ax_pred.imshow(pred_slice[0], cmap='gray')
+    #                 print("Creating prediction image")
+    #                 fig_pred = plt.figure()
+    #                 ax_pred = fig_pred.add_subplot(1, 1, 1)
+    #                 ax_pred.imshow(pred_slice[0], cmap='gray')
 
-                    #Removing outside frame
-                    if clean:
-                        ax_x.axis('off')
-                        ax_y.axis('off')
-                        ax_pred.axis('off')
+    #                 #Removing outside frame
+    #                 if clean:
+    #                     ax_x.axis('off')
+    #                     ax_y.axis('off')
+    #                     ax_pred.axis('off')
                         
 
-                    print("Saving images")
-                    save_dir_x = save_dir + '_x.png'
-                    save_dir_y = save_dir + '_y.png'
-                    save_dir_pred = save_dir + '_pred.png'
-                    fig_x.savefig(save_dir_x)
-                    fig_y.savefig(save_dir_y)
-                    fig_pred.savefig(save_dir_pred)
+    #                 print("Saving images")
+    #                 save_dir_x = save_dir + '_x.png'
+    #                 save_dir_y = save_dir + '_y.png'
+    #                 save_dir_pred = save_dir + '_pred.png'
+    #                 fig_x.savefig(save_dir_x)
+    #                 fig_y.savefig(save_dir_y)
+    #                 fig_pred.savefig(save_dir_pred)
 
-                    break
+    #                 break
             
-            break
+    #         break
 
 # def confusion_matrix(trained_model,
 #                      weights_dir,
@@ -745,6 +745,7 @@ def save_cm(cm, model_architecture, fig_dir, classes):
 ######
 
 
+
 #### Gif ####
 def initialize_gif():   
     #figure for gif
@@ -752,8 +753,108 @@ def initialize_gif():
     images_gif = []
     return fig, axes, images_gif
 
+def update_gif_slice(x, y, model,
+               logdir,
+               tfrecords_dir,
+               aug_strategy,
+               visual_file,
+               tpu_name,
+               bucket_name,
+               weights_dir,
+               multi_as_binary,
+               is_multi_class,
+               model_args,
+               which_epoch,
+               which_slice,
+               which_volume=1,
+               save_dir='',
+               cmap='gray',
+               clean=False):
 
 
+    x_slice = np.expand_dims(x[which_slice-1], axis=0)
+    y_slice = y[which_slice-1]
+
+    print('predicting slice {}'.format(which_slice))
+    pred_slice = trained_model.predict(x_slice)
+    print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
+    if multi_class:
+        pred_slice = np.argmax(pred_slice, axis=-1)
+        y_slice = np.argmax(y_slice, axis=-1)
+        if multi_as_binary:
+            pred_slice[pred_slice>0] = 1
+            y_slice[y_slice>0] = 1
+    else:
+        pred_slice = np.squeeze(pred_slice, axis=-1)
+        y_slice = np.squeeze(y_slice, axis=-1)
+
+    ###############
+    print('slice predicted\n')
+    print('input image data type: {}, shape: {}'.format(type(x), x.shape))
+    print('label image data type: {}, shape: {}'.format(type(y), y.shape))
+    print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
+    ###############
+
+    print("Creating input image")
+    x_s = np.squeeze(x[which_slice-1], axis=-1)
+    fig_x = plt.figure()
+    ax_x = fig_x.add_subplot(1, 1, 1)
+    ax_x.imshow(x_s, cmap='gray')
+    
+    print("Creating label image")
+    fig_y = plt.figure()
+    ax_y = fig_y.add_subplot(1, 1, 1)
+    ax_y.imshow(y_slice, cmap='gray')
+    
+    print("Creating prediction image")
+    fig_pred = plt.figure()
+    ax_pred = fig_pred.add_subplot(1, 1, 1)
+    ax_pred.imshow(pred_slice[0], cmap='gray')
+
+    #Removing outside frame
+    if clean:
+        ax_x.axis('off')
+        ax_y.axis('off')
+        ax_pred.axis('off')
+        
+
+    print("Saving images")
+    save_dir_x = save_dir + '_x.png'
+    save_dir_y = save_dir + '_y.png'
+    save_dir_pred = save_dir + '_pred.png'
+    fig_x.savefig(save_dir_x)
+    fig_y.savefig(save_dir_y)
+    fig_pred.savefig(save_dir_pred)
+
+
+def update_volume_comp_gif(x,y, images_gif):
+    x = np.array(x)
+    x = np.squeeze(x, axis=-1)
+
+    print('predicting volume {}'.format(which_volume))
+    pred_vol = trained_model.predict(x)
+    if is_multi_class:
+        pred_vol = np.argmax(pred_vol, axis=-1)
+        y = np.argmax(y, axis=-1)
+    print('volume predicted\n')
+
+    print('input image data type: {}, shape: {}'.format(type(x), x.shape))
+    print('label image data type: {}, shape: {}'.format(type(y), y.shape))
+    print('prediction image data type: {}, shape: {}\n'.format(type(pred), pred.shape))
+
+    for i in range(x.shape[0]):
+        print(f"Analysing slice {i+1}")
+        x_im = axes[0].imshow(x[i,:,:], cmap='gray', animated=True, aspect='auto')
+        y_im = axes[1].imshow(y[i,:,:], cmap='gray', animated=True, aspect='auto')
+        pred_im = axes[2].imshow(pred_vol[i,:,:], cmap='gray', animated=True, aspect='auto')
+        if not clean:
+            text = ax.text(0.5,1.05,f'Slice {i+1}', 
+                        size=plt.rcParams["axes.titlesize"],
+                        ha="center", transform=ax.transAxes)
+            images_gif.append([im, text])
+        else:
+            ax.axis('off')
+            images_gif.append([im])
 
 
 
@@ -827,58 +928,19 @@ def eval_loop(trained_model,
             visualise_multi_class(label, pred)
 
             if idx+1 == which_volume:
-                x, y = ds
-                x_slice = np.expand_dims(x[which_slice-1], axis=0)
-                y_slice = y[which_slice-1]
-
-                print('predicting slice {}'.format(which_slice))
-                pred_slice = trained_model.predict(x_slice)
-                print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
-                if is_multi_class:
-                    pred_slice = np.argmax(pred_slice, axis=-1)
-                    y_slice = np.argmax(y_slice, axis=-1)
-                    if multi_as_binary:
-                        pred_slice[pred_slice>0] = 1
-                        y_slice[y_slice>0] = 1
-                else:
-                    pred_slice = np.squeeze(pred_slice, axis=-1)
-                    y_slice = np.squeeze(y_slice, axis=-1)
-                print('slice predicted\n')
-
-                print('input image data type: {}, shape: {}'.format(type(x), x.shape))
-                print('label image data type: {}, shape: {}'.format(type(y), y.shape))
-                print('prediction image data type: {}, shape: {}\n'.format(type(pred_slice), pred_slice.shape))
-
-                print("Creating input image")
-                x_s = np.squeeze(x[which_slice-1], axis=-1)
-                fig_x = plt.figure()
-                ax_x = fig_x.add_subplot(1, 1, 1)
-                ax_x.imshow(x_s, cmap='gray')
-                
-                print("Creating label image")
-                fig_y = plt.figure()
-                ax_y = fig_y.add_subplot(1, 1, 1)
-                ax_y.imshow(y_slice, cmap='gray')
-                
-                print("Creating prediction image")
-                fig_pred = plt.figure()
-                ax_pred = fig_pred.add_subplot(1, 1, 1)
-                ax_pred.imshow(pred_slice[0], cmap='gray')
-
-                #Removing outside frame
-                if clean:
-                    ax_x.axis('off')
-                    ax_y.axis('off')
-                    ax_pred.axis('off')
-                    
-
-                print("Saving images")
-                save_dir_x = save_dir + '_x.png'
-                save_dir_y = save_dir + '_y.png'
-                save_dir_pred = save_dir + '_pred.png'
-                fig_x.savefig(save_dir_x)
-                fig_y.savefig(save_dir_y)
-                fig_pred.savefig(save_dir_pred)
+                update_gif_slice(x, y, model,
+               logdir,
+               tfrecords_dir,
+               aug_strategy,
+               visual_file,
+               tpu_name,
+               bucket_name,
+               weights_dir,
+               multi_as_binary,
+               multi_class,
+               model_args,
+               which_epoch,
+               which_slice,)
 
                     
 
