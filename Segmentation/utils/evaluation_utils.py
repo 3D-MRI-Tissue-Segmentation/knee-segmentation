@@ -23,6 +23,45 @@ def get_depth(conc):
         depth += batch.shape[0]
     return depth
 
+
+def get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
+    """ Load the checkpoints in the specified log directory """
+
+    ######################
+    """ Add the visualisation code here """
+    print("+========================================================")
+    print('bucket_name',bucket_name)
+    print("\n\nThe directories are:")
+    print('weights_dir == "checkpoint"',weights_dir == "checkpoint")
+    print('weights_dir',weights_dir)
+    ######################
+
+    session_name = weights_dir.split('/')[3]
+    session_name = os.path.join(session_name, tpu_name, visual_file)
+    # Pietro's: session_name = os.path.join(weights_dir, tpu_name, visual_file)
+
+    # Get names within folder in gcloud
+    storage_client = storage.Client()
+    blobs = storage_client.list_blobs(bucket_name)
+    session_content = []
+    print('session_name',session_name)
+    for blob in blobs:
+        if session_name in blob.name:
+            session_content.append(blob.name)
+
+    session_weights = []
+    for item in session_content:
+        if ('_weights' in item) and ('.ckpt.index' in item):
+            session_weights.append(item)
+
+    ######################
+    for s in session_weights:
+        print(s) #print all the checkpoint directories
+    print("--")
+    ######################
+
+    return session_weights
+
 def plot_and_eval_3D(model,
                      logdir,
                      visual_file,
@@ -44,43 +83,7 @@ def plot_and_eval_3D(model,
 
     """
 
-    # load the checkpoints in the specified log directory
-    train_hist_dir = os.path.join(logdir, tpu_name)
-    train_hist_dir = os.path.join(train_hist_dir, visual_file)
-
-    ######################
-    """ Add the visualisation code here """
-    print("\n\nTraining history directory: {}".format(train_hist_dir))
-    print("+========================================================")
-    print('bucket_name',bucket_name)
-    print("\n\nThe directories are:")
-    print('weights_dir == "checkpoint"',weights_dir == "checkpoint")
-    print('weights_dir',weights_dir)
-    ######################
-
-    session_name = weights_dir.split('/')[3]
-    session_name = os.path.join(session_name, tpu_name, visual_file)
-
-    # Get names within folder in gcloud
-    storage_client = storage.Client()
-    blobs = storage_client.list_blobs(bucket_name)
-    session_content = []
-    print('session_name',session_name)
-    for i,blob in enumerate(blobs):
-        if session_name in blob.name:
-            session_content.append(blob.name)
-
-
-    session_weights = []
-    for item in session_content:
-        if ('_weights' in item) and ('.ckpt.index' in item):
-            session_weights.append(item)
-
-    ######################
-    for s in session_weights:
-        print(s) #print all the checkpoint directories
-    print("--")
-    ######################
+    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     # Only use part of dataset
     idx_vol= 0 # how many numpies have been save
@@ -248,30 +251,7 @@ def epoch_gif(model,
                             use_RGB=False)
 
     # load the checkpoints in the specified log directory
-    train_hist_dir = os.path.join(logdir, tpu_name)
-    train_hist_dir = os.path.join(train_hist_dir, visual_file)
-
-    print("\n\nTraining history directory: {}".format(train_hist_dir))
-    print("+========================================================")
-    print("\n\nThe directories are:")
-
-    storage_client = storage.Client()
-    session_name = os.path.join(weights_dir, tpu_name, visual_file)
-
-    blobs = storage_client.list_blobs(bucket_name)
-    session_content = []
-    for blob in blobs:
-        if session_name in blob.name:
-            session_content.append(blob.name)
-
-    session_weights = []
-    for item in session_content:
-        if ('_weights' in item) and ('.ckpt.index' in item):
-            session_weights.append(item)
-
-    for s in session_weights:
-        print(s) #print all the checkpoint directories
-    print("--")
+    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     #figure for gif
     fig, ax = plt.subplots()
@@ -358,30 +338,7 @@ def volume_gif(model,
                             use_RGB=False)
 
     # load the checkpoints in the specified log directory
-    train_hist_dir = os.path.join(logdir, tpu_name)
-    train_hist_dir = os.path.join(train_hist_dir, visual_file)
-
-    print("\n\nTraining history directory: {}".format(train_hist_dir))
-    print("+========================================================")
-    print("\n\nThe directories are:")
-
-    storage_client = storage.Client()
-    session_name = os.path.join(weights_dir, tpu_name, visual_file)
-
-    blobs = storage_client.list_blobs(bucket_name)
-    session_content = []
-    for blob in blobs:
-        if session_name in blob.name:
-            session_content.append(blob.name)
-
-    session_weights = []
-    for item in session_content:
-        if ('_weights' in item) and ('.ckpt.index' in item):
-            session_weights.append(item)
-
-    for s in session_weights:
-        print(s) #print all the checkpoint directories
-    print("--")
+    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     #figure for gif
     fig, ax = plt.subplots()
@@ -465,30 +422,7 @@ def volume_comparison_gif(model,
                             use_RGB=False)
 
     # load the checkpoints in the specified log directory
-    train_hist_dir = os.path.join(logdir, tpu_name)
-    train_hist_dir = os.path.join(train_hist_dir, visual_file)
-
-    print("\n\nTraining history directory: {}".format(train_hist_dir))
-    print("+========================================================")
-    print("\n\nThe directories are:")
-
-    storage_client = storage.Client()
-    session_name = os.path.join(weights_dir, tpu_name, visual_file)
-
-    blobs = storage_client.list_blobs(bucket_name)
-    session_content = []
-    for blob in blobs:
-        if session_name in blob.name:
-            session_content.append(blob.name)
-
-    session_weights = []
-    for item in session_content:
-        if ('_weights' in item) and ('.ckpt.index' in item):
-            session_weights.append(item)
-
-    for s in session_weights:
-        print(s) #print all the checkpoint directories
-    print("--")
+    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     #figure for gif
     fig, axes = plt.subplots(1, 3)
@@ -631,30 +565,7 @@ def take_slice(model,
                             use_RGB=False)
 
     # load the checkpoints in the specified log directory
-    train_hist_dir = os.path.join(logdir, tpu_name)
-    train_hist_dir = os.path.join(train_hist_dir, visual_file)
-
-    print("\n\nTraining history directory: {}".format(train_hist_dir))
-    print("+========================================================")
-    print("\n\nThe directories are:")
-
-    storage_client = storage.Client()
-    session_name = os.path.join(weights_dir, tpu_name, visual_file)
-
-    blobs = storage_client.list_blobs(bucket_name)
-    session_content = []
-    for blob in blobs:
-        if session_name in blob.name:
-            session_content.append(blob.name)
-
-    session_weights = []
-    for item in session_content:
-        if ('_weights' in item) and ('.ckpt.index' in item):
-            session_weights.append(item)
-
-    for s in session_weights:
-        print(s) #print all the checkpoint directories
-    print("--")
+    session_weights = get_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
     #figure for gif
     fig, axes = plt.subplots(1, 3)
