@@ -32,7 +32,7 @@ flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
 flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay learning rate.')
 flags.DEFINE_list('lr_decay_epochs', [10, 20, 40, 60], 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
-flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
+flags.DEFINE_bool('use_2D', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 flags.DEFINE_string('aug_strategy', None, 'Augmentation Strategies: None, random-crop, noise, crop_and_noise')
 
@@ -218,7 +218,7 @@ def main(argv):
     if FLAGS.model_architecture == 'unet':
         model_args = [FLAGS.num_filters,
                       num_classes,
-                      FLAGS.2D,
+                      FLAGS.use_2D,
                       FLAGS.backbone_architecture,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
