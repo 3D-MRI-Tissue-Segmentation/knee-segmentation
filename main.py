@@ -20,7 +20,7 @@ from Segmentation.utils.data_loader import parse_fn_3d
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
+from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice, eval_loop
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
