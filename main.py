@@ -432,6 +432,9 @@ def main(argv):
         tpu_dir = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
         print('model_fn', model_fn)
 
+        ### Evaluation loop
+        
+
         if not FLAGS.which_representation == '':
 
             if FLAGS.which_representation == 'volume':

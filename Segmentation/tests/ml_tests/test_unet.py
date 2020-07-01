@@ -20,7 +20,7 @@ class UNetTest(tf.test.TestCase):
         input_shape = (256, 256, 1)
         num_classes = 3
         output_shape = (256, 256, num_classes)
-        num_filters = 64  # number of filters at the start
+        num_filters = [64, 128, 256, 512, 1024] 
 
         features = tf.random.normal((dataset_size,) + input_shape)
         labels = tf.random.normal((dataset_size,) + output_shape)
@@ -31,7 +31,7 @@ class UNetTest(tf.test.TestCase):
 
         from Segmentation.model.unet import UNet  # local file import
         model = UNet(num_filters, num_classes)
-        from Segmentation.utils.training_utils import dice_coef_loss  # local file import
+        from Segmentation.utils.losses import dice_coef_loss  # local file import
         model.compile('adam', loss=dice_coef_loss)
         history = model.fit(dataset,
                             steps_per_epoch=dataset_size // batch_size,

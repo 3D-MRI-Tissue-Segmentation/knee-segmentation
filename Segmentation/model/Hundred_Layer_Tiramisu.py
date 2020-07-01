@@ -35,19 +35,19 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
         self.use_dropout = use_dropout
         self.use_concat = use_concat
 
-        self.conv_3x3 = tfkl.Conv2D(self.num_channels, 
-                                    kernel_size, 
+        self.conv_3x3 = tfkl.Conv2D(self.num_channels,
+                                    kernel_size,
                                     padding='same')
         self.dense_block_list = []
         self.up_transition_list = []   
 
-        self.conv_1x1 = tfkl.Conv2D(filters=num_classes, 
+        self.conv_1x1 = tfkl.Conv2D(filters=num_classes,
                                     kernel_size=(1, 1),
                                     padding='same')
 
         layers_counter = 0
         num_filters = num_channels
-        
+
         print(len(self.layers_per_block))
 
         for idx in range(0, len(self.layers_per_block)):
@@ -60,7 +60,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                                                      nonlinearity,
                                                      use_dropout=False,
                                                      use_concat=True))
-                                                     
+
             layers_counter = layers_counter + num_conv_layers
             num_filters = num_channels + layers_counter * growth_rate
 
@@ -71,7 +71,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                                                              dropout_rate=0.2,
                                                              nonlinearity='relu',
                                                              use_dropout=False))
-        
+
         for idx in range(len(self.layers_per_block) - 1, 0, -1):
             num_conv_layers = layers_per_block[idx - 1]
             num_filters = num_conv_layers * growth_rate
@@ -82,18 +82,18 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                                                          strides=(2, 2),
                                                          padding='same',
                                                          use_concat=False))
-   
+
     def call(self, inputs, training=False):
         blocks = []
         x = self.conv_3x3(inputs)
         for i, down in enumerate(self.dense_block_list):
             x = down(x, training=training)
-            if i % 2 == 0 and  i != len(self.dense_block_list)-1:
+            if i % 2 == 0 and i != len(self.dense_block_list)-1:
                 blocks.append(x)
 
         for i, up in enumerate(self.up_transition_list):
             x = up(x, blocks[- i-1], training=training)
-           
+
         x = self.conv_1x1(x)
         if self.num_classes == 1:
             output = tfkl.Activation('sigmoid')(x)
