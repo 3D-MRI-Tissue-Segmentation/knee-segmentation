@@ -221,8 +221,6 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
 
     #             break
 
-
-
 # def epoch_gif(model,
             #   logdir,
             #   tfrecords_dir,
@@ -310,7 +308,6 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
 
     # pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
-
 # def volume_gif(model,
             #    logdir,
             #    tfrecords_dir,
@@ -394,7 +391,6 @@ def get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir):
     #         break
 
     # pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
-
 
 # def volume_comparison_gif(model,
                         #   logdir,
