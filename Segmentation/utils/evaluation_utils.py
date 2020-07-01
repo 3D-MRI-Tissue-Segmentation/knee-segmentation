@@ -240,75 +240,75 @@ def epoch_gif(model,
               gif_cmap='gray',
               clean=False):
 
-    #load the database
-    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
-                            batch_size=160,
-                            buffer_size=500,
-                            augmentation=aug_strategy,
-                            multi_class=is_multi_class,
-                            is_training=False,
-                            use_bfloat16=False,
-                            use_RGB=False)
+    # #load the database
+    # valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+    #                         batch_size=160,
+    #                         buffer_size=500,
+    #                         augmentation=aug_strategy,
+    #                         multi_class=is_multi_class,
+    #                         is_training=False,
+    #                         use_bfloat16=False,
+    #                         use_RGB=False)
 
-    # load the checkpoints in the specified log directory
-    session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    # # load the checkpoints in the specified log directory
+    # session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
 
-    #figure for gif
-    fig, ax = plt.subplots()
-    images_gif = []
+    # #figure for gif
+    # fig, ax = plt.subplots()
+    # images_gif = []
 
-    for chkpt in session_weights:
-        name = chkpt.split('/')[-1]
-        name = name.split('.inde')[0]
+    # for chkpt in session_weights:
+    #     name = chkpt.split('/')[-1]
+    #     name = name.split('.inde')[0]
 
-        if int(name.split('.')[1]) <= epoch_limit:
+    #     if int(name.split('.')[1]) <= epoch_limit:
 
-            print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
-            print(f"\t\t  {name}")
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+    #         print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    #         print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+    #         print(f"\t\t  {name}")
+    #         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
-            trained_model = model(*model_args)
-            trained_model.load_weights('gs://' + os.path.join(bucket_name,
-                                                              weights_dir,
-                                                              tpu_name,
-                                                              visual_file,
-                                                              name)).expect_partial()
+    #         trained_model = model(*model_args)
+    #         trained_model.load_weights('gs://' + os.path.join(bucket_name,
+    #                                                           weights_dir,
+    #                                                           tpu_name,
+    #                                                           visual_file,
+    #                                                           name)).expect_partial()
 
-            for idx, ds in enumerate(valid_ds):
+    #         for idx, ds in enumerate(valid_ds):
 
-                if idx+1 == which_volume:
-                    x, _ = ds
-                    x_slice = np.expand_dims(x[which_slice-1], axis=0)
-                    print('Input image data type: {}, shape: {}\n'.format(type(x_slice), x_slice.shape))
+    #             if idx+1 == which_volume:
+    #                 x, _ = ds
+    #                 x_slice = np.expand_dims(x[which_slice-1], axis=0)
+    #                 print('Input image data type: {}, shape: {}\n'.format(type(x_slice), x_slice.shape))
 
-                    print('predicting slice {}'.format(which_slice))
-                    predicted_slice = trained_model.predict(x_slice)
-                    if is_multi_class:
-                        predicted_slice = np.argmax(predicted_slice, axis=-1)
-                    else:
-                        predicted_slice = np.squeeze(predicted_slice, axis=-1)
+    #                 print('predicting slice {}'.format(which_slice))
+    #                 predicted_slice = trained_model.predict(x_slice)
+    #                 if is_multi_class:
+    #                     predicted_slice = np.argmax(predicted_slice, axis=-1)
+    #                 else:
+    #                     predicted_slice = np.squeeze(predicted_slice, axis=-1)
 
-                    print('slice predicted\n')
+    #                 print('slice predicted\n')
 
-                    print("adding prediction to the queue")
-                    im = ax.imshow(predicted_slice[0], cmap=gif_cmap, animated=True)
-                    if not clean:
-                        text = ax.text(0.5,1.05,f"Epoch {int(name.split('.')[1])}", 
-                                    size=plt.rcParams["axes.titlesize"],
-                                    ha="center", transform=ax.transAxes)
-                        images_gif.append([im, text])
-                    else:
-                        ax.axis('off')
-                        images_gif.append([im])
-                    print("prediction added\n")
+    #                 print("adding prediction to the queue")
+    #                 im = ax.imshow(predicted_slice[0], cmap=gif_cmap, animated=True)
+    #                 if not clean:
+    #                     text = ax.text(0.5,1.05,f"Epoch {int(name.split('.')[1])}", 
+    #                                 size=plt.rcParams["axes.titlesize"],
+    #                                 ha="center", transform=ax.transAxes)
+    #                     images_gif.append([im, text])
+    #                 else:
+    #                     ax.axis('off')
+    #                     images_gif.append([im])
+    #                 print("prediction added\n")
 
-                    break
+    #                 break
 
-        else:
-            break
+    #     else:
+    #         break
 
-    pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
+    # pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=clean)
 
 
 def volume_gif(model,
@@ -649,73 +649,75 @@ def take_slice(model,
             
     #         break
 
-# def confusion_matrix(trained_model,
-#                      weights_dir,
-#                      fig_dir,
-#                      dataset,
-#                      validation_steps,
-#                      multi_class,
-#                      model_architecture,
-#                      callbacks,
-#                      num_classes=7
-#                      ):
+def confusion_matrix(trained_model,
+                     weights_dir,
+                     fig_dir,
+                     dataset,
+                     validation_steps,
+                     multi_class,
+                     model_architecture,
+                     callbacks,
+                     num_classes=7
+                     ):
 
-#     trained_model.load_weights(weights_dir).expect_partial()
-#     trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
-
-
-#     f = weights_dir.split('/')[-1]
-#     # Excluding parenthese before f too
-#     if weights_dir.endswith(f):
-#         writer_dir = weights_dir[:-(len(f)+1)]
-#     writer_dir = os.path.join(writer_dir, 'eval')
-#     # os.makedirs(writer_dir)
-#     eval_metric_writer = tf.summary.create_file_writer(writer_dir)
+    # trained_model.load_weights(weights_dir).expect_partial()
+    # trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
 
 
-#     if multi_class:
-#         cm = np.zeros((num_classes, num_classes))
-#         classes = ["Background",
-#                    "Femoral",
-#                    "Medial Tibial",
-#                    "Lateral Tibial",
-#                    "Patellar",
-#                    "Lateral Meniscus",
-#                    "Medial Meniscus"]
-#     else:
-#         cm = np.zeros((2, 2))
-#         classes = ["Background",
-#                    "Cartilage"]
+    # f = weights_dir.split('/')[-1]
+    # # Excluding parenthese before f too
+    # if weights_dir.endswith(f):
+    #     writer_dir = weights_dir[:-(len(f)+1)]
+    # writer_dir = os.path.join(writer_dir, 'eval')
+    # # os.makedirs(writer_dir)
+    # eval_metric_writer = tf.summary.create_file_writer(writer_dir)
 
-#     for step, (image, label) in enumerate(dataset):
-#         print(step)
-#         pred = trained_model.predict(image)
-#         visualise_multi_class(label, pred)
-#         cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
 
-#         if multi_class:
-#             iou = iou_loss_eval(label, pred)
-#             dice = dice_coef_eval(label, pred)
-#         else:
-#             iou = iou_loss(label, pred)
-#             dice = dice_coef(label, pred)
+    # if multi_class:
+    #     cm = np.zeros((num_classes, num_classes))
+    #     classes = ["Background",
+    #                "Femoral",
+    #                "Medial Tibial",
+    #                "Lateral Tibial",
+    #                "Patellar",
+    #                "Lateral Meniscus",
+    #                "Medial Meniscus"]
+    # else:
+    #     cm = np.zeros((2, 2))
+    #     classes = ["Background",
+    #                "Cartilage"]
 
-#         with eval_metric_writer.as_default():
-#             tf.summary.scalar('iou eval validation', iou, step=step)
-#             tf.summary.scalar('dice eval validation', dice, step=step)
+    # for step, (image, label) in enumerate(dataset):
+    #     print(step)
+    #     pred = trained_model.predict(image)
+    #     visualise_multi_class(label, pred)
+    #     cm = cm + get_confusion_matrix(label, pred, classes=list(range(0, num_classes)))
+
+    #     if multi_class:
+    #         iou = iou_loss_eval(label, pred)
+    #         dice = dice_coef_eval(label, pred)
+    #     else:
+    #         iou = iou_loss(label, pred)
+    #         dice = dice_coef(label, pred)
+
+    #     with eval_metric_writer.as_default():
+    #         tf.summary.scalar('iou eval validation', iou, step=step)
+    #         tf.summary.scalar('dice eval validation', dice, step=step)
         
 
             
 
-#         if step > validation_steps - 1:
-#             break
+    #     if step > validation_steps - 1:
+    #         break
 
-#     fig_file = model_architecture + '_matrix.png'
-#     fig_dir = os.path.join(fig_dir, fig_file)
-#     plot_confusion_matrix(cm, fig_dir, classes=classes)
+    # fig_file = model_architecture + '_matrix.png'
+    # fig_dir = os.path.join(fig_dir, fig_file)
+    # plot_confusion_matrix(cm, fig_dir, classes=classes)
 
 
-#### Confusion Matrix ####
+
+
+########## Confusion Matrix ##########
 def initialize_cm(multi_class, num_classes=7):
     if multi_class:
         cm = np.zeros((num_classes, num_classes))
@@ -742,11 +744,11 @@ def save_cm(cm, model_architecture, fig_dir, classes):
     fig_file = model_architecture + '_matrix.png'
     fig_dir = os.path.join(fig_dir, fig_file)
     plot_confusion_matrix(cm, fig_dir, classes=classes)
-######
+##########
 
 
 
-#### Gif ####
+########## Gif ##########
 def initialize_gif():   
     #figure for gif
     fig, axes = plt.subplots(1, 3)
@@ -870,6 +872,8 @@ def update_volume_comp_gif(x,y, images_gif, model,
             ax.axis('off')
             images_gif.append([im])
 
+    return images_gif
+
 
 def update_epoch_gif(x, model,
               logdir,
@@ -915,8 +919,94 @@ def update_epoch_gif(x, model,
     print("prediction added\n")
 
     return images_gif
+##########
 
 
+
+########## Plotly npys ##########
+def update_volume_npy(x,y, pred):
+    batch_size = y.shape[0]
+
+    if batch_size == 160:
+        if not (int(idx) == int(which_volume)):
+            continue
+
+    x = np.array(x)
+    y = np.array(y)
+
+
+    if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
+        sample_pred.append(pred)
+        del pred
+        sample_y.append(y)
+        del y
+    else:
+        remaining = target - get_depth(sample_pred)
+        sample_pred.append(pred[:remaining])
+        sample_y.append(y[:remaining])
+        pred_vol = np.concatenate(sample_pred)
+        del sample_pred
+        y_vol = np.concatenate(sample_y)
+        del sample_y
+        sample_pred = [pred[remaining:]]
+        sample_y = [y[remaining:]]
+
+        del pred
+        del y
+
+        ######################
+        # print("===============")
+        # print("pred done")
+        # print(pred_vol.shape)
+        # print(y_vol.shape)
+        # print("===============")
+        # print('is_multi_class', is_multi_class)
+        ######################
+
+        if is_multi_class:  # or np.shape(pred_vol)[-1] not
+            pred_vol = np.argmax(pred_vol, axis=-1)
+            y_vol = np.argmax(y_vol, axis=-1)
+
+            ######################
+            # print('np.shape(pred_vol)', np.shape(pred_vol))
+            # print('np.shape(y_vol)',np.shape(y_vol))
+            ######################
+
+        # Save volume as numpy file for plotlyyy
+        fig_dir = "results"
+        name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name))
+        name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + str(which_volume).zfill(3)))
+        
+        ######################
+        # print("npy save pred as ", name_pred_npy)
+        # print("npy save y as ", name_y_npy)
+        # print("Currently on vol ", idx_vol)
+        ######################
+
+
+        # Get middle xx slices cuz 288x288x160 too big
+        roi = int(80 / 2)
+        d1,d2,d3 = np.shape(pred_vol)[0:3]
+        d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+        pred_vol = pred_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+        d1,d2,d3 = np.shape(y_vol)[0:3]
+        d1, d2, d3 = int(np.floor(d1/2)), int(np.floor(d2/2)), int(np.floor(d3/2))
+        y_vol = y_vol[(d1-roi):(d1+roi),(d2-roi):(d2+roi), (d3-roi):(d3+roi)]
+
+        ######################
+        print('y_vol.shape', np.shape(y_vol))
+        ######################
+
+        np.save(name_pred_npy,pred_vol)
+        np.save(name_y_npy,y_vol)
+        idx_vol += 1
+        ######################
+        print("Total voxels saved, pred:", np.sum(pred_vol), "y:", np.sum(y_vol))
+        ######################
+        del pred_vol
+        del y_vol
+
+##########
 
 
 
@@ -955,6 +1045,10 @@ def eval_loop(trained_model,
     # Init visuals
     cm, classes = initialize_cm(multi_class, num_classes)
     fig, axes, images_gif = initialize_gif()
+    idx_vol= 0 # how many numpies have been saved
+    target = 160 # how many slices in 1 vol
+    sample_pred = []  # prediction for current 160,288,288 vol
+    sample_y = []    # y for current 160,288,288 vol
 
 
 
@@ -990,20 +1084,20 @@ def eval_loop(trained_model,
 
             if idx+1 == which_volume:
                 update_gif_slice(x, y, model,
-               logdir,
-               tfrecords_dir,
-               aug_strategy,
-               visual_file,
-               tpu_name,
-               bucket_name,
-               weights_dir,
-               multi_as_binary,
-               multi_class,
-               model_args,
-               which_epoch,
-               which_slice)
+                        logdir,
+                        tfrecords_dir,
+                        aug_strategy,
+                        visual_file,
+                        tpu_name,
+                        bucket_name,
+                        weights_dir,
+                        multi_as_binary,
+                        multi_class,
+                        model_args,
+                        which_epoch,
+                        which_slice)
 
-               update_volume_comp_gif(x,y, images_gif, model,
+                images_gif = update_volume_comp_gif(x,y, images_gif, model,
                           logdir,
                           tfrecords_dir,
                           visual_file,
