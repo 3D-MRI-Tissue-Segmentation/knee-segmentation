@@ -20,7 +20,8 @@ from Segmentation.utils.data_loader import parse_fn_3d
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
-from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice, eval_loop
+# from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
+from Segmentation.utils.evaluation_utils import eval_loop
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -428,75 +429,97 @@ def main(argv):
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
         print('model_fn', model_fn)
 
-        if not FLAGS.which_representation == '':
+        # if not FLAGS.which_representation == '':
 
-            if FLAGS.which_representation == 'volume':
-                volume_gif(model=model_fn,
-                           logdir=FLAGS.logdir,
-                           tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                           aug_strategy=FLAGS.aug_strategy,
-                           visual_file=FLAGS.visual_file,
-                           tpu_name=FLAGS.tpu_dir,
-                           bucket_name=FLAGS.bucket,
-                           weights_dir=FLAGS.weights_dir,
-                           multi_class=FLAGS.multi_class,
-                           model_args=model_args,
-                           which_epoch=FLAGS.gif_epochs,
-                           which_volume=FLAGS.gif_volume,
-                           gif_dir=FLAGS.gif_directory,
-                           gif_cmap=FLAGS.gif_cmap,
-                           clean=FLAGS.clean_gif)
+        #     if FLAGS.which_representation == 'volume':
+        #         volume_gif(model=model_fn,
+        #                    logdir=FLAGS.logdir,
+        #                    tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+        #                    aug_strategy=FLAGS.aug_strategy,
+        #                    visual_file=FLAGS.visual_file,
+        #                    tpu_name=FLAGS.tpu_dir,
+        #                    bucket_name=FLAGS.bucket,
+        #                    weights_dir=FLAGS.weights_dir,
+        #                    multi_class=FLAGS.multi_class,
+        #                    model_args=model_args,
+        #                    which_epoch=FLAGS.gif_epochs,
+        #                    which_volume=FLAGS.gif_volume,
+        #                    gif_dir=FLAGS.gif_directory,
+        #                    gif_cmap=FLAGS.gif_cmap,
+        #                    clean=FLAGS.clean_gif)
 
-            elif FLAGS.which_representation == 'epoch':
-                epoch_gif(model=model_fn,
-                          logdir=FLAGS.logdir,
-                          tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                          aug_strategy=FLAGS.aug_strategy,
-                          visual_file=FLAGS.visual_file,
-                          tpu_name=FLAGS.tpu_dir,
-                          bucket_name=FLAGS.bucket,
-                          weights_dir=FLAGS.weights_dir,
-                          multi_class=FLAGS.multi_class,
-                          model_args=model_args,
-                          which_slice=FLAGS.gif_slice,
-                          which_volume=FLAGS.gif_volume,
-                          epoch_limit=FLAGS.gif_epochs,
-                          gif_dir=FLAGS.gif_directory,
-                          gif_cmap=FLAGS.gif_cmap,
-                          clean=FLAGS.clean_gif)
+        #     elif FLAGS.which_representation == 'epoch':
+        #         epoch_gif(model=model_fn,
+        #                   logdir=FLAGS.logdir,
+        #                   tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+        #                   aug_strategy=FLAGS.aug_strategy,
+        #                   visual_file=FLAGS.visual_file,
+        #                   tpu_name=FLAGS.tpu_dir,
+        #                   bucket_name=FLAGS.bucket,
+        #                   weights_dir=FLAGS.weights_dir,
+        #                   multi_class=FLAGS.multi_class,
+        #                   model_args=model_args,
+        #                   which_slice=FLAGS.gif_slice,
+        #                   which_volume=FLAGS.gif_volume,
+        #                   epoch_limit=FLAGS.gif_epochs,
+        #                   gif_dir=FLAGS.gif_directory,
+        #                   gif_cmap=FLAGS.gif_cmap,
+        #                   clean=FLAGS.clean_gif)
 
-            elif FLAGS.which_representation == 'slice':
-                take_slice(model=model_fn,
-                           logdir=FLAGS.logdir,
-                           tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                           aug_strategy=FLAGS.aug_strategy,
-                           visual_file=FLAGS.visual_file,
-                           tpu_name=FLAGS.tpu_dir,
-                           bucket_name=FLAGS.bucket,
-                           weights_dir=FLAGS.weights_dir,
-                           multi_as_binary=False,
-                           multi_class=FLAGS.multi_class,
-                           model_args=model_args,
-                           which_epoch=FLAGS.gif_epochs,
-                           which_slice=FLAGS.gif_slice,
-                           which_volume=FLAGS.gif_volume,
-                           save_dir=FLAGS.gif_directory,
-                           cmap=FLAGS.gif_cmap,
-                           clean=FLAGS.clean_gif)
-            else:
-                print("The 'which_representation' flag does not match any of the options, try either 'volume', 'epoch' or 'slice'")
+        #     elif FLAGS.which_representation == 'slice':
+        #         take_slice(model=model_fn,
+        #                    logdir=FLAGS.logdir,
+        #                    tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+        #                    aug_strategy=FLAGS.aug_strategy,
+        #                    visual_file=FLAGS.visual_file,
+        #                    tpu_name=FLAGS.tpu_dir,
+        #                    bucket_name=FLAGS.bucket,
+        #                    weights_dir=FLAGS.weights_dir,
+        #                    multi_as_binary=False,
+        #                    multi_class=FLAGS.multi_class,
+        #                    model_args=model_args,
+        #                    which_epoch=FLAGS.gif_epochs,
+        #                    which_slice=FLAGS.gif_slice,
+        #                    which_volume=FLAGS.gif_volume,
+        #                    save_dir=FLAGS.gif_directory,
+        #                    cmap=FLAGS.gif_cmap,
+        #                    clean=FLAGS.clean_gif)
+        #     else:
+        #         print("The 'which_representation' flag does not match any of the options, try either 'volume', 'epoch' or 'slice'")
 
-        else:
-            plot_and_eval_3D(model=model_fn,
-                             logdir=FLAGS.logdir,
-                             visual_file=FLAGS.visual_file,
-                             tpu_name=tpu,
-                             bucket_name=FLAGS.bucket,
-                             weights_dir=FLAGS.weights_dir,
-                             multi_class=FLAGS.multi_class,
-                             dataset=valid_ds,
-                             save_freq=FLAGS.save_freq,
-                             model_args=model_args)
+        # else:
+        #     plot_and_eval_3D(model=model_fn,
+        #                      logdir=FLAGS.logdir,
+        #                      visual_file=FLAGS.visual_file,
+        #                      tpu_name=tpu,
+        #                      bucket_name=FLAGS.bucket,
+        #                      weights_dir=FLAGS.weights_dir,
+        #                      multi_class=FLAGS.multi_class,
+        #                      dataset=valid_ds,
+        #                      save_freq=FLAGS.save_freq,
+        #                      model_args=model_args)
+        eval_loop(trained_model=model,
+            logdir=FLAGS.logdir,
+            visual_file=FLAGS.visual_file,
+            tpu_name=tpu,
+            bucket_name=FLAGS.bucket,
+            weights_dir=FLAGS.weights_dir,
+            tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+            fig_dir=FLAGS.fig_dir,
+            save_freq=FLAGS.save_freq,
+            which_volume=FLAGS.gif_volume,
+            which_epoch=FLAGS.gif_epochs,
+            which_slice=FLAGS.gif_slice,
+            dataset=valid_ds,
+            validation_steps=validation_steps,
+            aug_strategy=FLAGS.aug_strategy,
+            multi_class=FLAGS.multi_class,
+            model=model_fn,
+            model_architecture=FLAGS.model_architecture,
+            model_args=model_args,
+            callbacks=[tb],
+            num_classes=num_classes
+            )
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file
@@ -517,16 +540,7 @@ def main(argv):
         #                  num_classes=num_classes
         #                  )
 
-        eval_loop(trained_model=model,
-                         weights_dir=FLAGS.weights_dir,
-                         fig_dir=FLAGS.fig_dir,
-                         dataset=valid_ds,
-                         validation_steps=validation_steps,
-                         multi_class=FLAGS.multi_class,
-                         model_architecture=FLAGS.model_architecture,
-                         callbacks=[tb],
-                         num_classes=num_classes
-                         )
+        
 
 if __name__ == '__main__':
     app.run(main)
