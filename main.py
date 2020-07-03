@@ -499,6 +499,10 @@ def main(argv):
         #                      dataset=valid_ds,
         #                      save_freq=FLAGS.save_freq,
         #                      model_args=model_args)
+
+
+        # We only need viz flags for Plotly npy saving, Gif, and Confusion Matrix
+        # Shared flags:  directory to load weights from, model specs, volume / slice chosen 
         eval_loop(trained_model=model,
             logdir=FLAGS.logdir,
             visual_file=FLAGS.visual_file,

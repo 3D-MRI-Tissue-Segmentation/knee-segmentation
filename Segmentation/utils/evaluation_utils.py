@@ -1003,6 +1003,9 @@ def update_volume_npy(y, pred, target, sample_pred, sample_y, model,
         ######################
         print("Total voxels saved, pred:", np.sum(pred_vol), "y:", np.sum(y_vol))
         ######################
+
+        sample_pred = []
+        sample_y = []
         del pred_vol
         del y_vol
 
@@ -1041,6 +1044,7 @@ def eval_loop(trained_model,
 
     # load the checkpoints in the specified log directory
     session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
+    last_epoch = len(session_weights)
 
     # trained_model.load_weights(weights_dir).expect_partial()
     # trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
@@ -1048,7 +1052,7 @@ def eval_loop(trained_model,
     
 
 
-    # Callbacks
+    # Callbacks (as in og conf matrix function)
     f = weights_dir.split('/')[-1]
     # Excluding parenthese before f too
     if weights_dir.endswith(f):
@@ -1072,10 +1076,11 @@ def eval_loop(trained_model,
 
         name = chkpt.split('/')[-1]
         name = name.split('.inde')[0]
+        epoch = name.split('.')[1]
 
         #########################
         print("\n\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        print(f"\t\tLoading weights from {name.split('.')[1]} epoch")
+        print(f"\t\tLoading weights from {epoch} epoch")
         print(f"\t\t  {name}")
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
         #########################
@@ -1086,9 +1091,11 @@ def eval_loop(trained_model,
                                                             tpu_name,
                                                             visual_file,
                                                             name)).expect_partial()
-        trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)    
+        if epoch==last_epoch:
+            trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)    
 
 
+        # Initializing volume saving
         sample_pred = []  # prediction for current 160,288,288 vol
         sample_y = []    # y for current 160,288,288 vol
 
@@ -1102,7 +1109,7 @@ def eval_loop(trained_model,
             visualise_multi_class(label, pred)
 
             if step+1 == which_volume:
-                update_gif_slice(x, y, model,
+                update_gif_slice(x, label, model,
                         logdir,
                         tfrecords_dir,
                         aug_strategy,
@@ -1116,7 +1123,7 @@ def eval_loop(trained_model,
                         which_epoch,
                         which_slice)
 
-                images_gif = update_volume_comp_gif(x,y, images_gif, model,
+                images_gif = update_volume_comp_gif(x,label, images_gif, model,
                           logdir,
                           tfrecords_dir,
                           visual_file,
@@ -1139,7 +1146,7 @@ def eval_loop(trained_model,
                             model_args,
                             which_slice)
             
-                sample_pred, sample_y = update_volume_npy(y, pred, target, sample_pred, sample_y, model,
+                sample_pred, sample_y = update_volume_npy(label, pred, target, sample_pred, sample_y, model,
                         logdir,
                         visual_file,
                         tpu_name,
