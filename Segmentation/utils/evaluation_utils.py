@@ -617,7 +617,7 @@ def take_slice(model,
                which_slice,
                which_volume=1,
                save_dir='',
-               cmap='gray',
+               gif_cmap='gray',
                clean=False):
 
     #load the database
@@ -707,17 +707,17 @@ def take_slice(model,
                     x_s = np.squeeze(x[which_slice-1], axis=-1)
                     fig_x = plt.figure()
                     ax_x = fig_x.add_subplot(1, 1, 1)
-                    ax_x.imshow(x_s, cmap='gray')
+                    ax_x.imshow(x_s, cmap=gif_cmap)
                     
                     print("Creating label image")
                     fig_y = plt.figure()
                     ax_y = fig_y.add_subplot(1, 1, 1)
-                    ax_y.imshow(y_slice, cmap='gray')
+                    ax_y.imshow(y_slice, cmap=gif_cmap)
                     
                     print("Creating prediction image")
                     fig_pred = plt.figure()
                     ax_pred = fig_pred.add_subplot(1, 1, 1)
-                    ax_pred.imshow(pred_slice[0], cmap='gray')
+                    ax_pred.imshow(pred_slice[0], cmap=gif_cmap)
 
                     #Removing outside frame
                     if clean:
