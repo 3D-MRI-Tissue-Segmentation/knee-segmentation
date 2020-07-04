@@ -12,7 +12,7 @@ import datetime
 
 from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
-from Segmentation.utils.data_loader import read_tfrecord
+from Segmentation.utils.data_loader import read_tfrecord_2d
 from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix, iou_loss_eval, dice_coef_eval
 from Segmentation.utils.losses import dice_coef, iou_loss
@@ -237,15 +237,15 @@ def epoch_gif(model,
               gif_cmap='gray',
               clean=False):
 
-    #load the database
-    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
-                            batch_size=160,
-                            buffer_size=500,
-                            augmentation=aug_strategy,
-                            multi_class=is_multi_class,
-                            is_training=False,
-                            use_bfloat16=False,
-                            use_RGB=False)
+    # load the database
+    valid_ds = read_tfrecord_2d(tfrecords_dir=tfrecords_dir,  # 'gs://oai-challenge-dataset/tfrecords/valid/',
+                                batch_size=160,
+                                buffer_size=500,
+                                augmentation=aug_strategy,
+                                multi_class=is_multi_class,
+                                is_training=False,
+                                use_bfloat16=False,
+                                use_RGB=False)
 
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
@@ -348,14 +348,14 @@ def volume_gif(model,
                clean=False):
 
     #load the database
-    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
-                            batch_size=160,
-                            buffer_size=500,
-                            augmentation=aug_strategy,
-                            multi_class=is_multi_class,
-                            is_training=False,
-                            use_bfloat16=False,
-                            use_RGB=False)
+    valid_ds = read_tfrecord_2d(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+                                batch_size=160,
+                                buffer_size=500,
+                                augmentation=aug_strategy,
+                                multi_class=is_multi_class,
+                                is_training=False,
+                                use_bfloat16=False,
+                                use_RGB=False)
 
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
@@ -455,14 +455,14 @@ def volume_comparison_gif(model,
                           clean=False):
 
     #load the database
-    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
-                            batch_size=160,
-                            buffer_size=500,
-                            augmentation=None,
-                            multi_class=is_multi_class,
-                            is_training=False,
-                            use_bfloat16=False,
-                            use_RGB=False)
+    valid_ds = read_tfrecord_2d(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+                                batch_size=160,
+                                buffer_size=500,
+                                augmentation=None,
+                                multi_class=is_multi_class,
+                                is_training=False,
+                                use_bfloat16=False,
+                                use_RGB=False)
 
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
@@ -621,14 +621,14 @@ def take_slice(model,
                clean=False):
 
     #load the database
-    valid_ds = read_tfrecord(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
-                            batch_size=160,
-                            buffer_size=500,
-                            augmentation=aug_strategy,
-                            multi_class=is_multi_class,
-                            is_training=False,
-                            use_bfloat16=False,
-                            use_RGB=False)
+    valid_ds = read_tfrecord_2d(tfrecords_dir=tfrecords_dir, #'gs://oai-challenge-dataset/tfrecords/valid/',
+                                batch_size=160,
+                                buffer_size=500,
+                                augmentation=aug_strategy,
+                                multi_class=is_multi_class,
+                                is_training=False,
+                                use_bfloat16=False,
+                                use_RGB=False)
 
     # load the checkpoints in the specified log directory
     train_hist_dir = os.path.join(logdir, tpu_name)
