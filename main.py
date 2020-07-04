@@ -1,18 +1,14 @@
 import tensorflow as tf
-import numpy as np
-import matplotlib.pyplot as plt
 
 import os
 from pathlib import Path
 from datetime import datetime
 from absl import app
 from absl import logging
-from glob import glob
 
-from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.utils.data_loader import read_tfrecord_2d as read_tfrecord
 from Segmentation.utils.data_loader import parse_fn_3d
-from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
+from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
@@ -58,7 +54,7 @@ def main(argv):
     # set dataset configuration
     if FLAGS.dataset == 'oai_challenge':
 
-        batch_size = FLAGS.batch_size * FLAGS.num_cores 
+        batch_size = FLAGS.batch_size * FLAGS.num_cores
         steps_per_epoch = 19200 // batch_size
         validation_steps = 4480 // batch_size
         logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
@@ -150,7 +146,6 @@ def main(argv):
                     model.build((None, 288, 288, 3))
             else:
                 model.build((None, 160, 384, 384, 1))
-            
             model.summary()
 
         if FLAGS.multi_class:
@@ -284,6 +279,7 @@ def main(argv):
                          callbacks=[tb],
                          num_classes=num_classes
                          )
+
 
 if __name__ == '__main__':
     app.run(main)

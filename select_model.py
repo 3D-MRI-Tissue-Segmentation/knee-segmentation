@@ -1,5 +1,6 @@
 from Segmentation.model.unet import UNet, R2_UNet, Nested_UNet, Nested_UNet_v2
 from Segmentation.model.segnet import SegNet
+from Segmentation.model.Hundred_Layer_Tiramisu import Hundred_Layer_Tiramisu
 from Segmentation.model.deeplabv3 import Deeplabv3, Deeplabv3_plus
 from Segmentation.model.vnet import VNet
 from absl import logging
