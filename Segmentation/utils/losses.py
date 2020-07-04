@@ -159,3 +159,13 @@ def focal_tversky(y_true, y_pred):
     pt_1 = tversky_loss(y_true, y_pred)
     gamma = 0.75
     return K.pow((pt_1), gamma)
+
+def weighted_cat_cross_entropy(y_true, y_pred, class_weights):
+    class_weights = tf.reduce_sum(y_true, axis=-1, keepdims=True) / tf.reduce_sum(y_true)
+
+    weights = tf.reduce_sum(class_weights * tf.cast(y_true, 'float64'), axis=-1)
+    unweighted_losses = categorical_crossentropy(tf.cast(y_true,'float32'), tf.cast(y_pred,'float32'))
+    weighted_losses = tf.cast(unweighted_losses,'float32') * tf.cast(weights, 'float32')
+
+    loss = tf.reduce_mean(weighted_losses)
+    return loss
