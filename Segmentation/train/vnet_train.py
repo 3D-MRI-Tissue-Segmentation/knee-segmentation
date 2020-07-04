@@ -140,7 +140,6 @@ class Train:
             with train_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', train_loss, step=e)
 
-            distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, multi_class, test_img_slice_writer, test_img_vol_writer, vol_visual_freq, self.predict_slice)
             test_loss = distributed_test_epoch(valid_ds, e, strategy, num_to_visualise, multi_class, test_img_slice_writer, test_img_vol_writer, vol_visual_freq, self.predict_slice)
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
@@ -330,36 +329,36 @@ if __name__ == "__main__":
 
     for i in range(2):
         main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-            aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
+             crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+             num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+             aug=['shift', 'flip', 'rotate', 'resize'], use_transpose=False, debug=debug, tpu=use_tpu)
 
         main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-            aug=['shift', 'flip', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
+             crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+             num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+             aug=['shift', 'flip', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
 
         main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-            aug=['shift', 'flip'], use_transpose=False, debug=debug, tpu=use_tpu)
+             crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+             num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+             aug=['shift', 'flip'], use_transpose=False, debug=debug, tpu=use_tpu)
 
         main(epochs=es, name='vnet-aug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-            aug=['shift', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
+             crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+             num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+             aug=['shift', 'rotate'], use_transpose=False, debug=debug, tpu=use_tpu)
 
         main(epochs=es, name='vnet-noaug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-            aug=['shift', 'bright'], use_transpose=False, debug=debug, tpu=use_tpu)
+             crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+             num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+             aug=['shift', 'bright'], use_transpose=False, debug=debug, tpu=use_tpu)
 
         main(epochs=es, name='vnet-noaug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-            aug=['shift', 'contrast'], use_transpose=False, debug=debug, tpu=use_tpu)
+             crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+             num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+             aug=['shift', 'contrast'], use_transpose=False, debug=debug, tpu=use_tpu)
 
         main(epochs=es, name='vnet-noaug', lr=1e-4, dropout_rate=1e-5, use_spatial_dropout=False, use_batchnorm=False, noise=1e-5,
-            crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
-            num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
-            aug=['shift', 'gamma'], use_transpose=False, debug=debug, tpu=use_tpu)
+             crop_size=64, depth_crop_size=32, num_channels=16, lr_drop_freq=10,
+             num_conv_layers=3, batch_size=4, val_batch_size=2, multi_class=False, kernel_size=(3, 3, 3),
+             aug=['shift', 'gamma'], use_transpose=False, debug=debug, tpu=use_tpu)
