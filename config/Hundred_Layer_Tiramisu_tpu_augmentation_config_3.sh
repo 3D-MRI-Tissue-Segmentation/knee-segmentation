@@ -1,2 +1,0 @@
-qwertyuiopasdfghjklzxcvbnm
-qwertyuiopasdfghjkl
