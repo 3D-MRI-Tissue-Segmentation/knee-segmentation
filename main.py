@@ -21,6 +21,7 @@ from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, i
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
+from Segmentation.utils.evaluation_utils import eval_loop
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
@@ -408,7 +409,7 @@ def main(argv):
                             callbacks=[ckpt_cb, tb])
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
-    
+
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
         print('model_fn', model_fn)
@@ -483,31 +484,30 @@ def main(argv):
         #                      save_freq=FLAGS.save_freq,
         #                      model_args=model_args)
 
-
-        # We only need viz flags for Plotly npy saving, Gif, and Confusion Matrix
-        # Shared flags:  directory to load weights from, model specs, volume / slice chosen 
+        #  We only need viz flags for Plotly npy saving, Gif, and Confusion Matrix
+        #  Shared flags:  directory to load weights from, model specs, volume / slice chosen
         eval_loop(trained_model=model,
-            logdir=FLAGS.logdir,
-            visual_file=FLAGS.visual_file,
-            tpu_name=tpu,
-            bucket_name=FLAGS.bucket,
-            weights_dir=FLAGS.weights_dir,
-            tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-            fig_dir=FLAGS.fig_dir,
-            save_freq=FLAGS.save_freq,
-            which_volume=FLAGS.gif_volume,
-            which_epoch=FLAGS.gif_epochs,
-            which_slice=FLAGS.gif_slice,
-            dataset=valid_ds,
-            validation_steps=validation_steps,
-            aug_strategy=FLAGS.aug_strategy,
-            multi_class=FLAGS.multi_class,
-            model=model_fn,
-            model_architecture=FLAGS.model_architecture,
-            model_args=model_args,
-            callbacks=[tb],
-            num_classes=num_classes
-            )
+                  logdir=FLAGS.logdir,
+                  visual_file=FLAGS.visual_file,
+                  tpu_name=tpu,
+                  bucket_name=FLAGS.bucket,
+                  weights_dir=FLAGS.weights_dir,
+                  tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                  fig_dir=FLAGS.fig_dir,
+                  save_freq=FLAGS.save_freq,
+                  which_volume=FLAGS.gif_volume,
+                  which_epoch=FLAGS.gif_epochs,
+                  which_slice=FLAGS.gif_slice,
+                  dataset=valid_ds,
+                  validation_steps=validation_steps,
+                  aug_strategy=FLAGS.aug_strategy,
+                  multi_class=FLAGS.multi_class,
+                  model=model_fn,
+                  model_architecture=FLAGS.model_architecture,
+                  model_args=model_args,
+                  callbacks=[tb],
+                  num_classes=num_classes
+                  )
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file
@@ -527,8 +527,6 @@ def main(argv):
         #                  callbacks=[tb],
         #                  num_classes=num_classes
         #                  )
-
-        
 
 if __name__ == '__main__':
     app.run(main)
