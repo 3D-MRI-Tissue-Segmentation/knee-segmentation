@@ -11,6 +11,7 @@ from Segmentation.train.reshape import get_mid_slice, get_mid_vol
 from Segmentation.train.validation import validate_best_model
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.losses import dice_loss, tversky_loss, iou_loss, iou_loss_eval_3d, dice_coef_eval_3d, dice_loss_weighted_3d, focal_tversky
+from Segmentation.utils.visualise_utils import visualise_sample
 from Segmentation.model.vnet import VNet
 
 
@@ -76,24 +77,6 @@ class Train:
                          num_to_visualise=0):
         """ Trains 3D model with custom tf loop and MirrorStrategy
         """
-        
-        def visualise_sample(x, y, pred, 
-                            num_to_visualise,
-                            slice_writer, vol_writer, 
-                            use_2d, epoch, multi_class, predict_slice, is_training):
-            img = get_mid_slice(x.values[0], y.values[0], pred.values[0], multi_class)
-            session_type = "Train" if is_training else "Validation"
-            with slice_writer.as_default():
-                tf.summary.image(f"{session_type} - Slice", img, step=epoch)
-            if epoch % visual_save_freq == 0:
-                if not predict_slice:
-                    img = get_mid_vol(y.values[0], pred.values[0], multi_class, check_empty=True)
-                    if img is None:
-                        num_to_visualise += 1
-                    else:
-                        with vol_writer.as_default():
-                            tf.summary.image(f"{session_type} - Volume", img, step=epoch)
-            return num_to_visualise
 
         def run_train_strategy(x, y, visualise):
             total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise, ))
