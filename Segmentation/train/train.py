@@ -77,6 +77,24 @@ class Train:
         """
         vol_visual_freq = 5
 
+        def visualise_sample(x, y, pred, 
+                            num_to_visualise,
+                            slice_writer, vol_writer, 
+                            use_2d, epoch, multi_class, predict_slice, is_training):
+            img = get_mid_slice(x.values[0], y.values[0], pred.values[0], multi_class)
+            session_type = "Train" if is_training else "Validation"
+            with slice_writer.as_default():
+                tf.summary.image("{} - Slice".format(session_type), img, step=epoch)
+            if epoch % vol_visual_freq == 0:
+                if not predict_slice:
+                    img = get_mid_vol(y.values[0], pred.values[0], multi_class, check_empty=True)
+                    if img is None:
+                        num_to_visualise += 1
+                    else:
+                        with vol_writer.as_default():
+                            tf.summary.image("{} - Volume".format(session_type), img, step=epoch)
+            return num_to_visualise
+
         def run_train_strategy(x, y, visualise):
             total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise, ))
             return strategy.reduce(
@@ -99,23 +117,18 @@ class Train:
                                     predict_slice):
 
             total_loss, num_train_batch = 0.0, 0.0
+            is_training = True
+            use_2d = False
             for x_train, y_train in train_ds:
                 visualise = (num_train_batch < num_to_visualise)
                 loss, pred = run_train_strategy(x_train, y_train, visualise)
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    img = get_mid_slice(x_train.values[0], y_train.values[0], pred.values[0], multi_class)
-                    with slice_writer.as_default():
-                        tf.summary.image("Train - Slice", img, step=epoch)
-                    if epoch % vol_visual_freq == 0:
-                        if not predict_slice:
-                            img = get_mid_vol(y_train.values[0], pred.values[0], multi_class, check_empty=True)
-                            if img is None:
-                                num_to_visualise += 1
-                            else:
-                                with vol_writer.as_default():
-                                    tf.summary.image("Train - Volume", img, step=epoch)
+                    num_to_visualise = visualise_sample(x_train, y_train, pred, 
+                                                        num_to_visualise,
+                                                        slice_writer, vol_writer, 
+                                                        use_2d, epoch, multi_class, predict_slice, is_training)
                 num_train_batch += 1
             return total_loss / num_train_batch
 
@@ -129,23 +142,18 @@ class Train:
                                    vol_visual_freq,
                                    predict_slice):
             total_loss, num_test_batch = 0.0, 0.0
+            is_training = False
+            use_2d = False
             for x_valid, y_valid in valid_ds:
                 visualise = (num_test_batch < num_to_visualise)
                 loss, pred = run_test_strategy(x_valid, y_valid, visualise)
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    img = get_mid_slice(x_valid.values[0], y_valid.values[0], pred.values[0], multi_class)
-                    with slice_writer.as_default():
-                        tf.summary.image("Validation - Slice", img, step=epoch)
-                    if epoch % vol_visual_freq == 0:
-                        if not predict_slice:
-                            img = get_mid_vol(y_valid.values[0], pred.values[0], multi_class, check_empty=True)
-                            if img is None:
-                                num_to_visualise += 1
-                            else:
-                                with vol_writer.as_default():
-                                    tf.summary.image("Validation - Volume", img, step=epoch)
+                    num_to_visualise = visualise_sample(x_train, y_train, pred, 
+                                                        num_to_visualise,
+                                                        slice_writer, vol_writer, 
+                                                        use_2d, epoch, multi_class, predict_slice, is_training)
                 num_test_batch += 1
             return total_loss / num_test_batch
 

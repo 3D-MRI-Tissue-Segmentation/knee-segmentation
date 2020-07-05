@@ -195,16 +195,18 @@ def main(argv):
                                           warmup_epochs=FLAGS.lr_warmup_epochs)
 
         train = Train(epochs=FLAGS.train_epochs,
-                 batch_size=FLAGS.batch_size,
-                #  enable_function,
-                 model=model,
-                 optimizer=optimiser,
-                 loss_func=loss_fn,
-                 lr_manager=lr_manager,
-                 predict_slice=FLAGS.which_slice,
-                 metrics=metrics,
-                 tfrec_dir='./Data/tfrecords/',
-                 log_dir="logs")
+                    batch_size=FLAGS.batch_size,
+                    #  enable_function,
+                    model=model,
+                    optimizer=optimiser,
+                    loss_func=loss_fn,
+                    lr_manager=lr_manager,
+                    predict_slice=FLAGS.which_slice,
+                    metrics=metrics,
+                    tfrec_dir='./Data/tfrecords/',
+                    log_dir="logs")
+
+                 
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
 
