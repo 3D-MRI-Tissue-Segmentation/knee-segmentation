@@ -17,6 +17,7 @@ from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
 from Segmentation.utils.evaluation_utils import eval_loop
+from Segmentation.utils.training_utils import LearningRateSchedule
 
 from flags import FLAGS
 from select_model import select_model
@@ -144,17 +145,24 @@ def main(argv):
 
         if FLAGS.multi_class:
             if FLAGS.use_2d:
-                model.compile(optimizer=optimiser,
-                              loss=loss_fn,
-                              metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+                metrics = [dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc']
+                # model.compile(optimizer=optimiser,
+                #               loss=loss_fn,
+                #               metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
             else:
-                model.compile(optimizer=optimiser,
-                              loss=loss_fn,
-                              metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
+                metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
+                # model.compile(optimizer=optimiser,
+                #               loss=loss_fn,
+                #               metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
         else:
-            model.compile(optimizer=optimiser,
-                          loss=loss_fn,
-                          metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
+            metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
+            # model.compile(optimizer=optimiser,
+            #               loss=loss_fn,
+            #               metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
+
+        model.compile(optimizer=optimiser,
+                        loss=loss_fn,
+                        metrics=metrics)
 
     if FLAGS.train:
         # define checkpoints
@@ -179,6 +187,24 @@ def main(argv):
                             validation_data=valid_ds,
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
+
+        lr_manager = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
+                                          initial_learning_rate=FLAGS.base_learning_rate,
+                                          drop=FLAGS.lr_drop_ratio,
+                                          epochs_drop=FLAGS.lr_decay_epochs,
+                                          warmup_epochs=FLAGS.lr_warmup_epochs)
+
+        train = Train(epochs=FLAGS.train_epochs,
+                 batch_size=FLAGS.batch_size,
+                #  enable_function,
+                 model=model,
+                 optimizer=optimiser,
+                 loss_func=loss_fn,
+                 lr_manager=lr_manager,
+                 predict_slice=FLAGS.which_slice,
+                 metrics=metrics,
+                 tfrec_dir='./Data/tfrecords/',
+                 log_dir="logs")
 
         plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
 

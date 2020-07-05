@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 
-#### VNet: vnet_train 
+## VNet: vnet_train from og dev_rl
 
 def plot_imgs(images_arr, img_plt_names, plt_supertitle, save_fig_name, color_map="gray"):
     """ Plot images via imshow with titles.

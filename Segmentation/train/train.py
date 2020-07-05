@@ -28,6 +28,7 @@ class Train:
                  tfrec_dir='./Data/tfrecords/',
                  log_dir="logs"):
 
+
         self.epochs = epochs
         self.batch_size = batch_size
         self.enable_function = enable_function

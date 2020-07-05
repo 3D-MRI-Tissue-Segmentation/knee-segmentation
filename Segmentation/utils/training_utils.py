@@ -1,9 +1,10 @@
 import tensorflow as tf
-import tensorflow.keras.backend as K
+# import tensorflow.keras.backend as K
 import matplotlib.pyplot as plt
 import math
 import numpy as np
 import os
+
 
 def plot_train_history_loss(history, multi_class=True, savefig=None):
     # summarize history for loss
@@ -39,6 +40,7 @@ def plot_train_history_loss(history, multi_class=True, savefig=None):
 
     plt.close()
 
+
 def visualise_binary(y_true, y_pred, savefig=None):
 
     batch_size = y_true.shape[0]
@@ -54,6 +56,7 @@ def visualise_binary(y_true, y_pred, savefig=None):
         plt.show()
         if savefig is not None:
             plt.savefig(savefig)
+
 
 def visualise_multi_class(y_true, y_pred, savefig=None):
 
@@ -83,6 +86,7 @@ def visualise_multi_class(y_true, y_pred, savefig=None):
         if savefig is not None:
             plt.savefig(savefig)
 
+
 colour_maps = {
     0: [0, 0, 0],       # background / black
     1: [255, 255, 0],   # yellow
@@ -93,6 +97,7 @@ colour_maps = {
     6: [255, 165, 0]    # orange 
 }
 
+
 def label2color(img):
     img_height, img_width = img.shape
     img_color = np.zeros((img_height, img_width, 3))
@@ -102,6 +107,7 @@ def label2color(img):
             img_color[row, col] = np.array(colour_maps[label])
     return img_color
 
+
 def make_lr_scheduler(init_lr):
 
     def step_decay(epoch):
@@ -110,6 +116,7 @@ def make_lr_scheduler(init_lr):
         lrate = init_lr * math.pow(drop, math.floor((1 + epoch) / epochs_drop))
         return lrate
     return tf.keras.callbacks.LearningRateScheduler(step_decay)
+
 
 class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
