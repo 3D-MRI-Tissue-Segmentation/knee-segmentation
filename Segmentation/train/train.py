@@ -71,12 +71,12 @@ class Train:
                          valid_ds,
                          strategy,
                          multi_class,
+                         visual_save_freq=5,
                          debug=False,
                          num_to_visualise=0):
         """ Trains 3D model with custom tf loop and MirrorStrategy
         """
-        vol_visual_freq = 5
-
+        
         def visualise_sample(x, y, pred, 
                             num_to_visualise,
                             slice_writer, vol_writer, 
@@ -84,15 +84,15 @@ class Train:
             img = get_mid_slice(x.values[0], y.values[0], pred.values[0], multi_class)
             session_type = "Train" if is_training else "Validation"
             with slice_writer.as_default():
-                tf.summary.image("{} - Slice".format(session_type), img, step=epoch)
-            if epoch % vol_visual_freq == 0:
+                tf.summary.image(f"{session_type} - Slice", img, step=epoch)
+            if epoch % visual_save_freq == 0:
                 if not predict_slice:
                     img = get_mid_vol(y.values[0], pred.values[0], multi_class, check_empty=True)
                     if img is None:
                         num_to_visualise += 1
                     else:
                         with vol_writer.as_default():
-                            tf.summary.image("{} - Volume".format(session_type), img, step=epoch)
+                            tf.summary.image(f"{session_type} - Volume", img, step=epoch)
             return num_to_visualise
 
         def run_train_strategy(x, y, visualise):
@@ -113,7 +113,7 @@ class Train:
                                     multi_class,
                                     slice_writer,
                                     vol_writer,
-                                    vol_visual_freq,
+                                    visual_save_freq,
                                     predict_slice):
 
             total_loss, num_train_batch = 0.0, 0.0
@@ -139,7 +139,7 @@ class Train:
                                    multi_class,
                                    slice_writer,
                                    vol_writer,
-                                   vol_visual_freq,
+                                   visual_save_freq,
                                    predict_slice):
             total_loss, num_test_batch = 0.0, 0.0
             is_training = False
@@ -190,21 +190,21 @@ class Train:
                                                  multi_class,
                                                  train_img_slice_writer,
                                                  train_img_vol_writer,
-                                                 vol_visual_freq,
+                                                 visual_save_freq,
                                                  self.predict_slice)
 
             with train_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', train_loss, step=e)
 
-            distributed_test_epoch(valid_ds,
-                                   e,
-                                   strategy,
-                                   num_to_visualise,
-                                   multi_class,
-                                   test_img_slice_writer,
-                                   test_img_vol_writer,
-                                   vol_visual_freq,
-                                   self.predict_slice)
+            # distributed_test_epoch(valid_ds,
+            #                        e,
+            #                        strategy,
+            #                        num_to_visualise,
+            #                        multi_class,
+            #                        test_img_slice_writer,
+            #                        test_img_vol_writer,
+            #                        visual_save_freq,
+            #                        self.predict_slice)
             test_loss = distributed_test_epoch(valid_ds,
                                                e,
                                                strategy,
@@ -212,7 +212,7 @@ class Train:
                                                multi_class,
                                                test_img_slice_writer,
                                                test_img_vol_writer,
-                                               vol_visual_freq,
+                                               visual_save_freq,
                                                self.predict_slice)
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)

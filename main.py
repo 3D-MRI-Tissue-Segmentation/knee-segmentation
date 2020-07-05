@@ -179,14 +179,14 @@ def main(argv):
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=False,
                                                      save_weights_only=True)
-        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
+        # tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
 
-        history = model.fit(train_ds,
-                            steps_per_epoch=steps_per_epoch,
-                            epochs=FLAGS.train_epochs,
-                            validation_data=valid_ds,
-                            validation_steps=validation_steps,
-                            callbacks=[ckpt_cb, tb])
+        # history = model.fit(train_ds,
+        #                     steps_per_epoch=steps_per_epoch,
+        #                     epochs=FLAGS.train_epochs,
+        #                     validation_data=valid_ds,
+        #                     validation_steps=validation_steps,
+        #                     callbacks=[ckpt_cb, tb])
 
         lr_manager = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
                                           initial_learning_rate=FLAGS.base_learning_rate,
@@ -194,9 +194,16 @@ def main(argv):
                                           epochs_drop=FLAGS.lr_decay_epochs,
                                           warmup_epochs=FLAGS.lr_warmup_epochs)
 
+
+        if not FLAGS.use_gpu:
+            resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=FLAGS.tpu)
+            strategy = tf.distribute.experimental.TPUStrategy(resolver)
+        else:
+            strategy = tf.distribute.MirroredStrategy()
+
         train = Train(epochs=FLAGS.train_epochs,
                     batch_size=FLAGS.batch_size,
-                    #  enable_function,
+                    enable_function=True,
                     model=model,
                     optimizer=optimiser,
                     loss_func=loss_fn,
@@ -206,9 +213,15 @@ def main(argv):
                     tfrec_dir='./Data/tfrecords/',
                     log_dir="logs")
 
-                 
+        log_dir_now = train.train_model_loop(train_ds=train_ds,
+                                            valid_ds=valid_ds,
+                                            strategy=strategy,
+                                            visual_save_freq=FLAGS.visual_save_freq,
+                                            multi_class=FLAGS.multi_class,
+                                            debug=False,
+                                            num_to_visualise=0)
 
-        plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
+        # plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
 
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
@@ -222,7 +235,6 @@ def main(argv):
                   weights_dir=FLAGS.weights_dir,
                   tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
                   fig_dir=FLAGS.fig_dir,
-                  save_freq=FLAGS.save_freq,
                   which_volume=FLAGS.gif_volume,
                   which_epoch=FLAGS.gif_epochs,
                   which_slice=FLAGS.gif_slice,

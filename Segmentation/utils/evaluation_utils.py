@@ -929,7 +929,6 @@ def update_volume_npy(y, pred, target, sample_pred, sample_y, model,
                      weights_dir,
                      which_volume,
                      multi_class,
-                     save_freq,
                      dataset,
                      model_args):
     batch_size = y.shape[0]
@@ -1025,7 +1024,6 @@ def eval_loop(trained_model,
                      weights_dir,
                      tfrecords_dir,
                      fig_dir,
-                     save_freq,
                      which_volume,
                      which_epoch,
                      which_slice,
@@ -1155,7 +1153,6 @@ def eval_loop(trained_model,
                         weights_dir,
                         which_volume,
                         multi_class,
-                        save_freq,
                         dataset,
                         model_args)
                     
