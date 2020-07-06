@@ -751,20 +751,10 @@ def initialize_gif():
     images_gif = []
     return fig, axes, images_gif
 
-def update_gif_slice(x, y, model,
-               logdir,
-               tfrecords_dir,
+def update_gif_slice(x, y, trained_model,
                aug_strategy,
-               visual_file,
-               tpu_name,
-               bucket_name,
-               weights_dir,
-               multi_as_binary,
-               multi_class,
-               model_args,
-               which_epoch,
-               which_slice,
-               which_volume=1,
+               multi_as_binary, multi_class,
+               which_epoch, which_slice, which_volume=1,
                save_dir='',
                cmap='gray',
                clean=False):
@@ -825,15 +815,8 @@ def update_gif_slice(x, y, model,
     fig_pred.savefig(save_dir_pred)
 
 
-def update_volume_comp_gif(x,y, images_gif, model,
-                          logdir,
-                          tfrecords_dir,
-                          visual_file,
-                          tpu_name,
-                          bucket_name,
-                          weights_dir,
+def update_volume_comp_gif(x,y, images_gif, trained_model,
                           multi_class,
-                          model_args,
                           which_epoch,
                           which_volume=1,
                           gif_dir='',
@@ -871,18 +854,8 @@ def update_volume_comp_gif(x,y, images_gif, model,
     return images_gif
 
 
-def update_epoch_gif(x, model,
-              logdir,
-              tfrecords_dir,
-              aug_strategy,
-              visual_file,
-              tpu_name,
-              bucket_name,
-              weights_dir,
-              multi_class,
-              model_args,
-              which_slice,
-              which_volume=1,
+def update_epoch_gif(x, trained_model, aug_strategy,
+              multi_class, which_slice, which_volume=1,
               epoch_limit=1000,
               gif_dir='',
               gif_cmap='gray',
@@ -920,19 +893,13 @@ def update_epoch_gif(x, model,
 
 
 ########## Plotly npys ##########
-def update_volume_npy(y, pred, target, sample_pred, sample_y, model,
-                     logdir,
-                     visual_file,
-                     tpu_name,
-                     bucket_name,
-                     name, 
-                     weights_dir,
-                     which_volume,
-                     multi_class,
-                     dataset,
-                     model_args):
+def update_volume_npy(y, pred, target, 
+                     sample_pred, sample_y, 
+                     visual_file, name, 
+                     which_volume, multi_class):
     batch_size = y.shape[0]
     y = np.array(y)
+    pred = np.array(pred)
 
 
     if (get_depth(sample_pred) + batch_size) < target:  # check if next batch will fit in volume (160)
@@ -975,7 +942,7 @@ def update_volume_npy(y, pred, target, sample_pred, sample_y, model,
         # Save volume as numpy file for plotlyyy
         fig_dir = "results"
         name_pred_npy = os.path.join(fig_dir, "pred", (visual_file + "_" + name))
-        name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_" + str(which_volume).zfill(3)))
+        name_y_npy = os.path.join(fig_dir, "ground_truth", (visual_file + "_vol" + str(which_volume).zfill(3)))
         
         ######################
         # print("npy save pred as ", name_pred_npy)
@@ -1016,29 +983,20 @@ def update_volume_npy(y, pred, target, sample_pred, sample_y, model,
 
 
 
-def eval_loop(trained_model,
-                     logdir,
-                     visual_file,
-                     tpu_name,
-                     bucket_name,
-                     weights_dir,
-                     tfrecords_dir,
-                     fig_dir,
-                     which_volume,
-                     which_epoch,
-                     which_slice,
-                     dataset,
-                     validation_steps,
-                     aug_strategy,
-                     multi_class,
-                     model,
-                     model_architecture,
-                     model_args,
+def eval_loop(dataset, validation_steps, aug_strategy,
+                     bucket_name, logdir, tpu_name, visual_file, weights_dir, 
+                     fig_dir, 
+                     which_volume, which_epoch, which_slice, 
+                     multi_as_binary,
+                     trained_model, model_architecture, 
                      callbacks,
                      num_classes=7
                      ):
 
     """ Evaluate model and visualize as needed """
+
+    multi_class = num_classes > 1
+    gif_dir=''
 
     # load the checkpoints in the specified log directory
     session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
@@ -1083,7 +1041,6 @@ def eval_loop(trained_model,
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
         #########################
 
-        trained_model = model(*model_args)
         trained_model.load_weights('gs://' + os.path.join(bucket_name,
                                                             weights_dir,
                                                             tpu_name,
@@ -1107,54 +1064,24 @@ def eval_loop(trained_model,
             visualise_multi_class(label, pred)
 
             if step+1 == which_volume:
-                update_gif_slice(x, label, model,
-                        logdir,
-                        tfrecords_dir,
-                        aug_strategy,
-                        visual_file,
-                        tpu_name,
-                        bucket_name,
-                        weights_dir,
-                        multi_as_binary,
-                        multi_class,
-                        model_args,
-                        which_epoch,
-                        which_slice)
+                update_gif_slice(x, label, trained_model,
+                                aug_strategy,
+                                multi_as_binary, multi_class,
+                                which_epoch, which_slice)
 
-                images_gif = update_volume_comp_gif(x,label, images_gif, model,
-                          logdir,
-                          tfrecords_dir,
-                          visual_file,
-                          tpu_name,
-                          bucket_name,
-                          weights_dir,
+                images_gif = update_volume_comp_gif(x,label, images_gif, trained_model,
                           multi_class,
-                          model_args,
-                          which_epoch)
+                          which_epoch,
+                          gif_dir=gif_dir)
 
-                images_gif = update_epoch_gif(x, model,
-                            logdir,
-                            tfrecords_dir,
-                            aug_strategy,
-                            visual_file,
-                            tpu_name,
-                            bucket_name,
-                            weights_dir,
-                            multi_class,
-                            model_args,
-                            which_slice)
+                images_gif = update_epoch_gif(x, trained_model, aug_strategy,
+                                            multi_class, which_slice, 
+                                            gif_dir=gif_dir)
             
-                sample_pred, sample_y = update_volume_npy(label, pred, target, sample_pred, sample_y, model,
-                        logdir,
-                        visual_file,
-                        tpu_name,
-                        bucket_name,
-                        name, 
-                        weights_dir,
-                        which_volume,
-                        multi_class,
-                        dataset,
-                        model_args)
+                sample_pred, sample_y = update_volume_npy(label, pred, target, 
+                                                        sample_pred, sample_y, 
+                                                        visual_file, name, 
+                                                        which_volume, multi_class)
                     
 
 
