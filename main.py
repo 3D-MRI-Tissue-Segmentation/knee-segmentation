@@ -10,8 +10,8 @@ from absl import logging
 
 from Segmentation.model.unet import UNet, AttentionUNet_v1, MultiResUnet
 from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.training_utils import dice_coef, dice_coef_loss, tversky_loss, iou_loss_core, Mean_IOU
-from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, make_lr_scheduler, visualise_binary
+from Segmentation.utils.training_utils import dice_coef, tversky_loss  # dice_coef_loss, iou_loss_core, Mean_IOU
+from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, make_lr_scheduler  # visualise_binary
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
