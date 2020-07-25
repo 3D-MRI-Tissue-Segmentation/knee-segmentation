@@ -229,18 +229,34 @@ def parse_fn_3d(example_proto, training, multi_class=True, use_bfloat16=False, u
     # Parse the input tf.Example proto using the dictionary above.
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
-    image = tf.reshape(image_raw, [image_features['height'], image_features['width'], image_features['depth'], 1])
+    
+    image = tf.reshape(image_raw, [160, 384, 384, 1])
+    image = tf.cast(image, dtype)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
-    seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
-                               image_features['depth'], image_features['num_channels']])
-    seg = tf.cast(seg, tf.float32)
+    seg = tf.reshape(seg_raw, [160, 384, 384, 7])
+    seg = tf.cast(seg, dtype)
 
     if not multi_class:
-        seg_cartilage = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])
-        seg_cartilage = tf.math.reduce_sum(seg_cartilage, axis=-1)
-        seg_cartilage = tf.expand_dims(seg_cartilage, axis=-1)
-        seg = tf.clip_by_value(seg_cartilage, 0, 1)
+        seg = tf.slice(seg, [0, 0, 0, 1], [-1, -1, -1, 6])
+        seg = tf.math.reduce_sum(seg, axis=-1)
+        seg = tf.expand_dims(seg, axis=-1)
+        seg = tf.clip_by_value(seg, 0, 1)
+    
+    if training:
+        dx = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=128), tf.int32)
+        dy = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=96), tf.int32)
+        dz = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=96), tf.int32)
+
+        image = image[dx:dx+32, dy:dy+288, dz:dz+288, :]
+        seg = seg[dx:dx+32, dy:dy+288, dz:dz+288, :]
+    else:
+        image = image[64:96, 48:336, 48:336, :]
+        seg = seg[64:96, 48:336, 48:336, :]
+    
+    image = tf.reshape(image, [32, 288, 288, 1])
+    seg = tf.reshape(seg, [32, 288, 288, 7])
+
     return (image, seg)
 
 def read_tfrecord_2d(tfrecords_dir, batch_size, buffer_size, augmentation,
@@ -252,15 +268,17 @@ def read_tfrecord_2d(tfrecords_dir, batch_size, buffer_size, augmentation,
     shards = tf.data.Dataset.from_tensor_slices(file_list)
     cycle_l = 1
     if is_training:
-        shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
+        shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64)) 
         cycle_l = 8
-    if parse_fn is parse_fn_2d:
+    
+    if parse_fn == parse_fn_2d:
         shards = shards.repeat()
     dataset = shards.interleave(tf.data.TFRecordDataset,
                                 cycle_length=cycle_l,
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if is_training:
         dataset = dataset.shuffle(buffer_size=buffer_size)
+        
 
     parser = partial(parse_fn,
                      training=is_training,
@@ -270,6 +288,8 @@ def read_tfrecord_2d(tfrecords_dir, batch_size, buffer_size, augmentation,
                      use_RGB=use_RGB)
     dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
+    if parse_fn == parse_fn_3d:
+        dataset = dataset.repeat()
 
     # optimise dataset performance
     options = tf.data.Options()
@@ -281,63 +301,23 @@ def read_tfrecord_2d(tfrecords_dir, batch_size, buffer_size, augmentation,
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
     return dataset
 
-# def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training, crop_size=None, depth_crop_size=80, aug=[], predict_slice=False, **kwargs):
-#     dataset = read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn_3d, is_training=is_training, crop_size=crop_size, **kwargs)
-#     if "resize" in aug:
-#         assert "shift" in aug, "Need to use shift if using resize"
-#     if is_training:
-#         if crop_size is not None:
-#             if (crop_size > 172) or (depth_crop_size > 70):
-#                 assert not ("shift" in aug), "Can't apply shift augmentation with crop_size > 172 or depth_crop_size > 70."
-#             resize = "resize" in aug
-#             random_shift = "shift" in aug
-#             parse_crop = partial(apply_valid_random_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size, resize=resize, random_shift=random_shift, output_slice=predict_slice)
-#             dataset = dataset.map(map_func=parse_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-#         if "bright" in aug:
-#             dataset = dataset.map(apply_random_brightness_3d)
-#         if "contrast" in aug:
-#             dataset = dataset.map(apply_random_contrast_3d)
-#         if "gamma" in aug:
-#             dataset = dataset.map(apply_random_gamma_3d)
-#         if "flip" in aug:
-#             dataset = dataset.map(apply_flip_3d)
-#         if "rotate" in aug:
-#             dataset = dataset.map(apply_rotate_3d)
-#     else:
-#         if crop_size is not None:
-#             parse_crop = partial(apply_centre_crop_3d, crop_size=crop_size, depth_crop_size=depth_crop_size, output_slice=predict_slice)
-#             dataset = dataset.map(map_func=parse_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-#     if "normalise" in aug:
-#         dataset = dataset.map(normalise)
-#     return dataset
+def read_tfrecord_3d(tfrecords_dir,
+                     batch_size,
+                     buffer_size,
+                     is_training,
+                     crop_size=None,
+                     depth_crop_size=80,
+                     aug=[],
+                     predict_slice=False,
+                     **kwargs):
 
-def read_tfrecord_3d(tfrecords_dir, batch_size, buffer_size, is_training,
-                     crop_size=None, depth_crop_size=80, aug=[],
-                     predict_slice=False, use_keras_fit=False, multi_class=False):
-    file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
-    shards = tf.data.Dataset.from_tensor_slices(file_list)
-    if is_training:
-        shards = shards.shuffle(tf.cast(tf.shape(file_list)[0], tf.int64))
-    if use_keras_fit:
-        shards = shards.repeat()
-    dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length=4, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-    if is_training:
-        dataset = dataset.shuffle(buffer_size=buffer_size)
-
-    parser = partial(parse_fn_3d, training=is_training, multi_class=multi_class)
-
-    dataset = dataset.map(map_func=parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
-
-    # optimise dataset performance
-    options = tf.data.Options()
-    options.experimental_optimization.parallel_batch = True
-    options.experimental_optimization.map_fusion = True
-    options.experimental_optimization.map_vectorization.enabled = True
-    options.experimental_optimization.map_parallelization = True
-    dataset = dataset.with_options(options)
-    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+    dataset = read_tfrecord(tfrecords_dir=tfrecords_dir,
+                            batch_size=batch_size,
+                            buffer_size=buffer_size,
+                            augmentation=None,
+                            parse_fn=parse_fn_3d,
+                            is_training=is_training,
+                            **kwargs)
 
     if crop_size is not None:
         if is_training:

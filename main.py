@@ -7,14 +7,15 @@ from absl import app
 from absl import logging
 
 from Segmentation.utils.data_loader import read_tfrecord_2d as read_tfrecord
-from Segmentation.utils.data_loader import parse_fn_3d
-from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss
+from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
+from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
-from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
+from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
+from Segmentation.utils.evaluation_utils import eval_loop
+
 from flags import FLAGS
 from select_model import select_model
-
 
 def main(argv):
 
@@ -22,7 +23,7 @@ def main(argv):
         assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
 
     del argv  # unused arg
-    # tf.random.set_seed(FLAGS.seed)
+    tf.random.set_seed(FLAGS.seed)  # set seed
 
     # set whether to train on GPU or TPU
     if FLAGS.use_gpu:
@@ -31,7 +32,7 @@ def main(argv):
         if FLAGS.num_cores == 1:
             strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
         else:
-            strategy = tf.distribute.MirroredStrategy()  # works
+            strategy = tf.distribute.MirroredStrategy()
         gpus = tf.config.experimental.list_physical_devices('GPU')
         if gpus:
             for gpu in gpus:
@@ -39,7 +40,7 @@ def main(argv):
                     tf.config.experimental.set_visible_devices(gpu, 'GPU')
                     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
 
-                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+                    logging.info(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
                 except RuntimeError as e:
                     # Visible devices must be set before GPUs have been initialized
                     print(e)
@@ -55,46 +56,34 @@ def main(argv):
     if FLAGS.dataset == 'oai_challenge':
 
         batch_size = FLAGS.batch_size * FLAGS.num_cores
-        steps_per_epoch = 19200 // batch_size
-        validation_steps = 4480 // batch_size
+
+        if FLAGS.use_2D:
+            steps_per_epoch = 19200 // batch_size
+            validation_steps = 4480 // batch_size
+        else:
+            steps_per_epoch = 120 // batch_size
+            validation_steps = 28 // batch_size
+
         logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
 
-        if FLAGS.model_architecture != 'vnet':
-            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=True,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
-            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=False,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False if FLAGS.backbone_architecture == 'default' else True)
-        else:
-            train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train_3d/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     parse_fn=parse_fn_3d,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=True,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False)
+        train_dir = 'train/' if FLAGS.use_2d else 'train_3d/'
+        valid_dir = 'valid/' if FLAGS.use_2d else 'valid_3d/'
 
-            valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid_3d/'),
-                                     batch_size=batch_size,
-                                     buffer_size=FLAGS.buffer_size,
-                                     augmentation=FLAGS.aug_strategy,
-                                     multi_class=FLAGS.multi_class,
-                                     is_training=False,
-                                     use_bfloat16=FLAGS.use_bfloat16,
-                                     use_RGB=False)
+        ds_args = {
+            'batch_size': batch_size,
+            'buffer_size': FLAGS.buffer_size,
+            'augmentation': FLAGS.aug_strategy,
+            'parse_fn': parse_fn_2d if FLAGS.use_2d else parse_fn_3d,
+            'multi_class': FLAGS.multi_class,
+            'is_training': True,
+            'use_bfloat16': FLAGS.use_bfloat16,
+            'use_RGB': False if FLAGS.backbone_architecture == 'default' else True
+        }
+
+        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, train_dir),
+                                 **ds_args)
+        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, valid_dir),
+                                 **ds_args)
 
         num_classes = 7 if FLAGS.multi_class else 1
 
@@ -149,7 +138,7 @@ def main(argv):
             model.summary()
 
         if FLAGS.multi_class:
-            if FLAGS.model_architecture != 'vnet':
+            if FLAGS.use_2d:
                 model.compile(optimizer=optimiser,
                               loss=loss_fn,
                               metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
@@ -186,52 +175,35 @@ def main(argv):
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
 
-        plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
-    elif not FLAGS.visual_file == "":
+        # plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
+
+    elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
         print('model_fn', model_fn)
-        core_visual_kwargs = {
-            'model': model_fn,
-            'logdir': FLAGS.logdir,
-            'visual_file': FLAGS.visual_file,
-            'tpu_name': tpu,
-            'bucket_name': FLAGS.bucket,
-            'weights_dir': FLAGS.weights_dir,
-            'is_multi_class': FLAGS.multi_class,
-            'model_args': model_args
-        }
-        if not FLAGS.which_representation == '':
-            visual_extra_args = {**core_visual_kwargs, 
-                            **{
-                                'tfrecords_dir': os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                                'aug_strategy': FLAGS.aug_strategy,
-                                'which_epoch': FLAGS.gif_epochs,
-                                'which_volume': FLAGS.gif_volume,
-                                'gif_dir': FLAGS.gif_directory,
-                                'gif_cmap': FLAGS.gif_cmap,
-                            }
-                         }
-            if FLAGS.which_representation == 'volume':
-                volume_gif('clean': FLAGS.clean_gif,
-                           **visual_extra_args)
 
-            elif FLAGS.which_representation == 'epoch':
-                epoch_gif(which_slice=FLAGS.gif_slice,
-                          epoch_limit=FLAGS.gif_epochs,
-                          **visual_extra_args)
+        eval_loop(trained_model=model,
+                  logdir=FLAGS.logdir,
+                  visual_file=FLAGS.visual_file,
+                  tpu_name=tpu,
+                  bucket_name=FLAGS.bucket,
+                  weights_dir=FLAGS.weights_dir,
+                  tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+                  fig_dir=FLAGS.fig_dir,
+                  save_freq=FLAGS.save_freq,
+                  which_volume=FLAGS.gif_volume,
+                  which_epoch=FLAGS.gif_epochs,
+                  which_slice=FLAGS.gif_slice,
+                  dataset=valid_ds,
+                  validation_steps=validation_steps,
+                  aug_strategy=FLAGS.aug_strategy,
+                  multi_class=FLAGS.multi_class,
+                  model=model_fn,
+                  model_architecture=FLAGS.model_architecture,
+                  model_args=model_args,
+                  callbacks=[tb],
+                  num_classes=num_classes
+                  )
 
-            elif FLAGS.which_representation == 'slice':
-                take_slice('clean': FLAGS.clean_gif,
-                           which_slice=FLAGS.gif_slice,
-                           multi_as_binary=False,
-                           save_dir=FLAGS.gif_directory,
-                           **visual_extra_args)
-            else:
-                print("The 'which_representation' flag does not match any of the options, try either 'volume', 'epoch' or 'slice'")
-        else:
-            plot_and_eval_3D(dataset=valid_ds,
-                             save_freq=FLAGS.save_freq,
-                             **core_visual_kwargs)
     else:
         # load the checkpoint in the FLAGS.weights_dir file
         # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
@@ -240,16 +212,16 @@ def main(argv):
         logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
         logdir = os.path.join(logdir, time)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch', write_images=True)
-        confusion_matrix(trained_model=model,
-                         weights_dir=FLAGS.weights_dir,
-                         fig_dir=FLAGS.fig_dir,
-                         dataset=valid_ds,
-                         validation_steps=validation_steps,
-                         multi_class=FLAGS.multi_class,
-                         model_architecture=FLAGS.model_architecture,
-                         callbacks=[tb],
-                         num_classes=num_classes
-                         )
+        # confusion_matrix(trained_model=model,
+        #                  weights_dir=FLAGS.weights_dir,
+        #                  fig_dir=FLAGS.fig_dir,
+        #                  dataset=valid_ds,
+        #                  validation_steps=validation_steps,
+        #                  multi_class=FLAGS.multi_class,
+        #                  model_architecture=FLAGS.model_architecture,
+        #                  callbacks=[tb],
+        #                  num_classes=num_classes
+        #                  )
 
 
 if __name__ == '__main__':

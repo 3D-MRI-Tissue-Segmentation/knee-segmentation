@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow.keras.layers as tfkl
-from Segmentation.model.unet_build_blocks import Conv2D_Block, Up_Conv2D
+from Segmentation.model.unet_build_blocks import Conv_Block, Up_Conv
 from Segmentation.model.unet_build_blocks import Attention_Gate
 from Segmentation.model.unet_build_blocks import Recurrent_ResConv_block
 from Segmentation.model.backbone import Encoder
@@ -13,9 +13,10 @@ class UNet(tf.keras.Model):
     def __init__(self,
                  num_channels,
                  num_classes,
+                 use_2d=True,
                  backbone_name='default',
                  num_conv_layers=2,
-                 kernel_size=(3, 3),
+                 kernel_size=3,
                  nonlinearity='relu',
                  use_attention=False,
                  use_batchnorm=True,
@@ -28,62 +29,61 @@ class UNet(tf.keras.Model):
 
         super(UNet, self).__init__(**kwargs)
 
-        self.num_classes = num_classes
-        self.num_channels = num_channels
         self.backbone_name = backbone_name
-        self.num_conv_layers = num_conv_layers
-        self.kernel_size = kernel_size
-        self.nonlinearity = nonlinearity
-        self.use_attention = use_attention
-        self.use_batchnorm = use_batchnorm
-        self.use_bias = use_bias
-        self.use_dropout = use_dropout
-        self.dropout_rate = dropout_rate
-        self.use_spatial_dropout = use_spatial_dropout
-        self.data_format = data_format
-
         self.contracting_path = []
+        self.upsampling_path = []
 
         if self.backbone_name == 'default':
-            for i in range(len(self.num_channels)):
-                output = self.num_channels[i]
-                self.contracting_path.append(Conv2D_Block(output,
-                                                          self.num_conv_layers,
-                                                          self.kernel_size,
-                                                          self.nonlinearity,
-                                                          self.use_batchnorm,
-                                                          self.use_bias,
-                                                          self.use_dropout,
-                                                          self.dropout_rate,
-                                                          self.use_spatial_dropout,
-                                                          self.data_format))
-                if i != len(self.num_channels) - 1:
-                    self.contracting_path.append(tfkl.MaxPooling2D())
+            for i in range(len(num_channels)):
+                output = num_channels[i]
+                self.contracting_path.append(Conv_Block(num_channels=output,
+                                                        use_2d=use_2d,
+                                                        num_conv_layers=num_conv_layers,
+                                                        kernel_size=kernel_size,
+                                                        nonlinearity=nonlinearity,
+                                                        use_batchnorm=use_batchnorm,
+                                                        use_bias=use_bias,
+                                                        use_dropout=use_dropout,
+                                                        dropout_rate=dropout_rate,
+                                                        use_spatial_dropout=use_spatial_dropout,
+                                                        data_format=data_format))
+                if i != len(num_channels) - 1:
+                    if use_2d:
+                        self.contracting_path.append(tfkl.MaxPooling2D())
+                    else:
+                        self.contracting_path.append(tfkl.MaxPooling3D())
         else:
-            encoder = Encoder(weights_init='imagenet', model_architecture=self.backbone_name)
+            assert use_2d is True
+            encoder = Encoder(weights_init='imagenet', model_architecture=backbone_name)
             encoder.freeze_pretrained_layers()
             self.backbone = encoder.construct_backbone()
 
-        self.upsampling_path = []
-
         n = len(self.num_channels) - 2
         for i in range(n, -1, -1):
-            output = self.num_channels[i]
-            self.upsampling_path.append(Up_Conv2D(output,
-                                                  kernel_size=(2, 2),
-                                                  nonlinearity=self.nonlinearity,
-                                                  use_attention=self.use_attention,
-                                                  use_batchnorm=self.use_batchnorm,
-                                                  use_transpose=False,
-                                                  use_bias=self.use_bias,
-                                                  strides=(2, 2),
-                                                  data_format=self.data_format))
+            output = num_channels[i]
+            self.upsampling_path.append(Up_Conv(output,
+                                                use_2d=use_2d,
+                                                kernel_size=2,
+                                                nonlinearity=nonlinearity,
+                                                use_attention=use_attention,
+                                                use_batchnorm=use_batchnorm,
+                                                use_transpose=False,
+                                                use_bias=use_bias,
+                                                strides=2,
+                                                data_format=data_format))
 
-        self.conv_1x1 = tfkl.Conv2D(num_classes,
-                                    (1, 1),
-                                    activation='linear',
-                                    padding='same',
-                                    data_format=data_format)
+        if use_2d:
+            self.conv_1x1 = tfkl.Conv2D(num_classes,
+                                        (1, 1),
+                                        activation='sigmoid' if num_classes == 1 else 'softmax',
+                                        padding='same',
+                                        data_format=data_format)
+        else:
+            self.conv_1x1 = tfkl.Conv3D(num_classes,
+                                        (1, 1, 1),
+                                        activation='linear' if num_classes == 1 else 'softmax',
+                                        padding='same',
+                                        data_format=data_format)
 
     def call(self, x, training=False):
         blocks = []
@@ -107,11 +107,7 @@ class UNet(tf.keras.Model):
         if self.backbone_name not in ['default', 'vgg16', 'vgg19']:
             x = tfkl.UpSampling2D()(x)
 
-        x = self.conv_1x1(x)
-        if self.num_classes == 1:
-            output = tfkl.Activation('sigmoid')(x)
-        else:
-            output = tfkl.Activation('softmax')(x)
+        output = self.conv_1x1(x)
         return output
 
 class R2_UNet(tf.keras.Model):
@@ -122,8 +118,9 @@ class R2_UNet(tf.keras.Model):
     def __init__(self,
                  num_channels,
                  num_classes,
+                 use_2d=True,
                  num_conv_layers=2,
-                 kernel_size=(3, 3),
+                 kernel_size=3,
                  nonlinearity='relu',
                  t=2,
                  use_attention=False,
@@ -134,64 +131,65 @@ class R2_UNet(tf.keras.Model):
 
         super(R2_UNet, self).__init__(**kwargs)
 
-        self.num_classes = num_classes
-        self.num_channels = num_channels
-        self.num_conv_layers = num_conv_layers
-        self.kernel_size = kernel_size
-        self.nonlinearity = nonlinearity
-        self.t = t
-        self.use_attention = use_attention
-        self.use_batchnorm = use_batchnorm
-        self.use_bias = use_bias
-        self.data_format = data_format
-
         self.contracting_path = []
-
-        for i in range(len(self.num_channels)):
-            output = self.num_channels[i]
-            self.contracting_path.append(Recurrent_ResConv_block(output,
-                                                                 self.kernel_size,
-                                                                 self.nonlinearity,
-                                                                 'same',
-                                                                 (1, 1),
-                                                                 self.t,
-                                                                 self.use_batchnorm,
-                                                                 self.data_format))
-            if i != len(self.num_channels) - 1:
-                self.contracting_path.append(tfkl.MaxPooling2D())
-
         self.upsampling_path = []
 
-        n = len(self.num_channels) - 2
+        for i in range(len(num_channels)):
+            output = num_channels[i]
+            self.contracting_path.append(Recurrent_ResConv_block(num_channels=output,
+                                                                 use_2d=use_2d,
+                                                                 kernel_size=kernel_size,
+                                                                 nonlinearity=nonlinearity,
+                                                                 padding='same',
+                                                                 strides=1,
+                                                                 t=t,
+                                                                 use_batchnorm=use_batchnorm,
+                                                                 data_format=data_format))
+            if i != len(num_channels) - 1:
+                if use_2d:
+                    self.contracting_path.append(tfkl.MaxPooling2D())
+                else:
+                    self.contracting_path.append(tfkl.MaxPooling3D())
+
+        n = len(num_channels) - 2
         for i in range(n, -1, -1):
-            output = self.num_channels[i]
-            up_conv = Up_Conv2D(output,
-                                kernel_size=(2, 2),
-                                nonlinearity=self.nonlinearity,
-                                use_attention=self.use_attention,
-                                use_batchnorm=self.use_batchnorm,
-                                use_transpose=False,
-                                use_bias=self.use_bias,
-                                strides=(2, 2),
-                                data_format=self.data_format)
+            output = num_channels[i]
+            up_conv = Up_Conv(output,
+                              use_2d,
+                              kernel_size=2,
+                              nonlinearity=nonlinearity,
+                              use_attention=use_attention,
+                              use_batchnorm=use_batchnorm,
+                              use_transpose=False,
+                              use_bias=use_bias,
+                              strides=2,
+                              data_format=data_format)
 
             # override default conv block with recurrent-residual conv block
-            up_conv.conv_block = Recurrent_ResConv_block(output,
-                                                         self.kernel_size,
-                                                         self.nonlinearity,
-                                                         'same',
-                                                         (1, 1),
-                                                         self.t,
-                                                         self.use_batchnorm,
-                                                         self.data_format)
+            up_conv.conv_block = Recurrent_ResConv_block(num_channels=output,
+                                                         use_2d=use_2d,
+                                                         kernel_size=kernel_size,
+                                                         nonlinearity=nonlinearity,
+                                                         padding='same',
+                                                         strides=1,
+                                                         t=t,
+                                                         use_batchnorm=use_batchnorm,
+                                                         data_format=data_format)
 
             self.upsampling_path.append(up_conv)
 
-        self.conv_1x1 = tfkl.Conv2D(self.num_classes,
-                                    (1, 1),
-                                    activation='linear',
-                                    padding='same',
-                                    data_format=data_format)
+        if use_2d:
+            self.conv_1x1 = tfkl.Conv2D(filters=num_classes,
+                                        kernel_size=(1, 1),
+                                        activation='sigmoid' if num_classes == 1 else 'softmax',
+                                        padding='same',
+                                        data_format=data_format)
+        else:
+            self.conv_1x1 = tfkl.Conv3D(filters=num_classes,
+                                        kernel_size=(1, 1, 1),
+                                        activation='sigmoid' if num_classes == 1 else 'softmax',
+                                        padding='same',
+                                        data_format=data_format)
 
     def call(self, x, training=False):
         blocks = []
@@ -205,19 +203,19 @@ class R2_UNet(tf.keras.Model):
 
         del blocks
 
-        x = self.conv_1x1(x)
-        if self.num_classes == 1:
-            output = tfkl.Activation('sigmoid')(x)
-        else:
-            output = tfkl.Activation('softmax')(x)
+        output = self.conv_1x1(x)
 
         return output
 
 class Nested_UNet(tf.keras.Model):
+    """ Tensorflow 2 Implementation of 'UNet++: A Nested
+    U-Net Architecture for Medical Image Segmentation'
+    https://arxiv.org/pdf/1807.10165.pdf """
 
     def __init__(self,
                  num_channels,
                  num_classes,
+                 use_2d=True,
                  num_conv_layers=2,
                  kernel_size=(3, 3),
                  nonlinearity='relu',
@@ -228,42 +226,39 @@ class Nested_UNet(tf.keras.Model):
 
         super(Nested_UNet, self).__init__(**kwargs)
 
-        self.num_classes = num_classes
-        self.num_channels = num_channels
-        self.num_conv_layers = num_conv_layers
-        self.kernel_size = kernel_size
-        self.nonlinearity = nonlinearity
-        self.use_batchnorm = use_batchnorm
-        self.use_bias = use_bias
-        self.data_format = data_format
-
         self.conv_block_lists = []
+        self.pool = tfkl.MaxPooling2D() if use_2d else tfkl.MaxPooling3D()
+        self.up = tfkl.UpSampling2D() if use_2d else tfkl.UpSampling3D()
 
-        for i in range(len(self.num_channels)):
-            output_ch = self.num_channels[i]
+        for i in range(len(num_channels)):
+            output_ch = num_channels[i]
             conv_layer_lists = []
-            num_conv_blocks = len(self.num_channels) - i
+            num_conv_blocks = len(num_channels) - i
 
             for _ in range(num_conv_blocks):
-
-                conv_layer_lists.append(Conv2D_Block(output_ch,
-                                                     self.num_conv_layers,
-                                                     self.kernel_size,
-                                                     self.nonlinearity,
-                                                     self.use_batchnorm,
-                                                     self.use_bias,
-                                                     self.data_format))
+                conv_layer_lists.append(Conv_Block(num_channels=output_ch,
+                                                   use_2d=use_2d,
+                                                   num_conv_layers=num_conv_layers,
+                                                   kernel_size=kernel_size,
+                                                   nonlinearity=nonlinearity,
+                                                   use_batchnorm=use_batchnorm,
+                                                   use_bias=use_bias,
+                                                   data_format=data_format))
 
             self.conv_block_lists.append(conv_layer_lists)
 
-        self.pool = tfkl.MaxPooling2D()
-        self.up = tfkl.UpSampling2D()
-
-        self.conv_1x1 = tfkl.Conv2D(self.num_classes,
-                                    (1, 1),
-                                    activation='linear',
-                                    padding='same',
-                                    data_format=data_format)
+        if use_2d:
+            self.conv_1x1 = tfkl.Conv2D(num_classes,
+                                        (1, 1),
+                                        activation='sigmoid' if self.num_classes == 1 else 'softmax',
+                                        padding='same',
+                                        data_format=data_format)
+        else:
+            self.conv_1x1 = tfkl.Conv3D(num_classes,
+                                        (1, 1, 1),
+                                        activation='sigmoid' if self.num_classes == 1 else 'softmax',
+                                        padding='same',
+                                        data_format=data_format)
 
     def call(self, input, training=False):
 
@@ -290,11 +285,6 @@ class Nested_UNet(tf.keras.Model):
             block_list.append(layer_list)
         output = self.conv_1x1(x)
 
-        if self.num_classes == 1:
-            output = tfkl.Activation('sigmoid')(output)
-        else:
-            output = tfkl.Activation('softmax')(output)
-
         return output
 
 class Nested_UNet_v2(tf.keras.Model):
@@ -302,6 +292,7 @@ class Nested_UNet_v2(tf.keras.Model):
     def __init__(self,
                  num_channels,
                  num_classes,
+                 use_2d=True,
                  num_conv_layers=2,
                  kernel_size=(3, 3),
                  nonlinearity='relu',
@@ -310,44 +301,41 @@ class Nested_UNet_v2(tf.keras.Model):
                  data_format='channels_last',
                  **kwargs):
 
-        super(Nested_UNet_v2, self).__init__(**kwargs)
-
-        self.num_classes = num_classes
-        self.num_channels = num_channels
-        self.num_conv_layers = num_conv_layers
-        self.kernel_size = kernel_size
-        self.nonlinearity = nonlinearity
-        self.use_batchnorm = use_batchnorm
-        self.use_bias = use_bias
-        self.data_format = data_format
+        super(Nested_UNet, self).__init__(**kwargs)
 
         self.conv_block_lists = []
+        self.pool = tfkl.MaxPooling2D() if use_2d else tfkl.MaxPooling3D()
+        self.up = tfkl.UpSampling2D() if use_2d else tfkl.UpSampling3D()
 
-        for i in range(len(self.num_channels)):
-            output_ch = self.num_channels[i]
+        for i in range(len(num_channels)):
+            output_ch = num_channels[i]
             conv_layer_lists = []
-            num_conv_blocks = len(self.num_channels) - i
+            num_conv_blocks = len(num_channels) - i
 
             for _ in range(num_conv_blocks):
-
-                conv_layer_lists.append(Conv2D_Block(output_ch,
-                                                     self.num_conv_layers,
-                                                     self.kernel_size,
-                                                     self.nonlinearity,
-                                                     self.use_batchnorm,
-                                                     self.use_bias,
-                                                     self.data_format))
+                conv_layer_lists.append(Conv_Block(num_channels=output_ch,
+                                                   use_2d=use_2d,
+                                                   num_conv_layers=num_conv_layers,
+                                                   kernel_size=kernel_size,
+                                                   nonlinearity=nonlinearity,
+                                                   use_batchnorm=use_batchnorm,
+                                                   use_bias=use_bias,
+                                                   data_format=data_format))
 
             self.conv_block_lists.append(conv_layer_lists)
 
-        self.pool = tfkl.MaxPooling2D()
-        self.up = tfkl.UpSampling2D()
-
-        self.conv_1x1 = tfkl.Conv2D(self.num_classes,
-                                    (1, 1),
-                                    activation='linear',
-                                    padding='same',
-                                    data_format=data_format)
+        if use_2d:
+            self.conv_1x1 = tfkl.Conv2D(num_classes,
+                                        (1, 1),
+                                        activation='sigmoid' if self.num_classes == 1 else 'softmax',
+                                        padding='same',
+                                        data_format=data_format)
+        else:
+            self.conv_1x1 = tfkl.Conv3D(num_classes,
+                                        (1, 1, 1),
+                                        activation='sigmoid' if self.num_classes == 1 else 'softmax',
+                                        padding='same',
+                                        data_format=data_format)
 
     def call(self, input, training=False):
 
@@ -382,10 +370,5 @@ class Nested_UNet_v2(tf.keras.Model):
                 j = j + 1
 
         output = self.conv_1x1(x[last_name])
-        
-        if self.num_classes == 1:
-            output = tfkl.Activation('sigmoid')(output)
-        else:
-            output = tfkl.Activation('softmax')(output)
 
         return output

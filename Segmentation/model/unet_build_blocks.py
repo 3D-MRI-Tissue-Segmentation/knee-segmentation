@@ -2,12 +2,13 @@ import tensorflow as tf
 import tensorflow.keras.layers as tfkl
 
 
-class Conv2D_Block(tf.keras.Sequential):
+class Conv_Block(tf.keras.Sequential):
 
     def __init__(self,
                  num_channels,
+                 use_2d=True,
                  num_conv_layers=2,
-                 kernel_size=(3, 3),
+                 kernel_size=3,
                  nonlinearity='relu',
                  use_batchnorm=False,
                  use_bias=True,
@@ -17,103 +18,108 @@ class Conv2D_Block(tf.keras.Sequential):
                  data_format='channels_last',
                  **kwargs):
 
-        super(Conv2D_Block, self).__init__(**kwargs)
-
-        self.num_channels = num_channels
-        self.num_conv_layers = num_conv_layers
-        self.kernel_size = kernel_size
-        self.nonlinearity = nonlinearity
-        self.use_batchnorm = use_batchnorm
-        self.use_bias = use_bias
-        self.use_dropout = use_dropout
-        self.dropout_rate = dropout_rate
-        self.use_spatial_dropout = use_spatial_dropout
-        self.data_format = data_format
+        super(Conv_Block, self).__init__(**kwargs)
 
         for _ in range(self.num_conv_layers):
-            self.add(tfkl.Conv2D(self.num_channels,
-                                 self.kernel_size,
-                                 padding='same',
-                                 use_bias=self.use_bias,
-                                 data_format=self.data_format))
-            if self.use_batchnorm:
-                self.add(tfkl.BatchNormalization(axis=-1,
+            if use_2d:
+                self.add(tfkl.Conv2D(num_channels,
+                                     kernel_size,
+                                     padding='same',
+                                     use_bias=use_bias,
+                                     data_format=data_format))
+            else:
+                self.add(tfkl.Conv3D(num_channels,
+                                     kernel_size,
+                                     padding='same',
+                                     use_bias=use_bias,
+                                     data_format=data_format))
+            if use_batchnorm:
+                self.add(tfkl.BatchNormalization(axis=-1 if data_format == 'channels_last' else 1,
                                                  momentum=0.95,
                                                  epsilon=0.001))
-            self.add(tfkl.Activation(self.nonlinearity))
+            self.add(tfkl.Activation(nonlinearity))
 
-        if self.use_dropout:
-            if self.use_spatial_dropout:
-                self.add(tfkl.SpatialDropout2D(rate=self.dropout_rate))
+        if use_dropout:
+            if use_spatial_dropout:
+                if use_2d:
+                    self.add(tfkl.SpatialDropout2D(rate=dropout_rate))
+                else:
+                    self.add(tfkl.SpatialDropout3D(rate=dropout_rate))
             else:
-                self.add(tfkl.Dropout(rate=self.dropout_rate))
+                self.add(tfkl.Dropout(rate=dropout_rate))
 
     def call(self, inputs, training=False):
 
-        outputs = super(Conv2D_Block, self).call(inputs, training=training)
+        outputs = super(Conv_Block, self).call(inputs, training=training)
 
         return outputs
 
 
-class Up_Conv2D(tf.keras.Model):
+class Up_Conv(tf.keras.Model):
 
     def __init__(self,
                  num_channels,
-                 kernel_size=(2, 2),
+                 use_2d=True,
+                 kernel_size=2,
                  nonlinearity='relu',
                  use_attention=False,
                  use_batchnorm=False,
                  use_transpose=False,
                  use_bias=True,
-                 strides=(2, 2),
+                 strides=2,
                  data_format='channels_last',
                  **kwargs):
 
-        super(Up_Conv2D, self).__init__(**kwargs)
+        super(Up_Conv, self).__init__(**kwargs)
 
-        self.num_channels = num_channels
-        self.kernel_size = kernel_size
-        self.nonlinearity = nonlinearity
-        self.use_attention = use_attention
-        self.use_batchnorm = use_batchnorm
-        self.use_transpose = use_transpose
-        self.use_bias = use_bias
-        self.strides = strides
         self.data_format = data_format
 
-        if self.use_transpose:
-            self.upconv_layer = tfkl.Conv2DTranspose(self.num_channels,
-                                                     self.kernel_size,
-                                                     padding='same',
-                                                     strides=self.strides,
-                                                     data_format=self.data_format)
+        if use_transpose:
+            if use_2d:
+                self.upconv_layer = tfkl.Conv2DTranspose(num_channels,
+                                                         kernel_size,
+                                                         padding='same',
+                                                         strides=strides,
+                                                         data_format=self.data_format)
+            else:
+                self.upconv_layer = tfkl.Conv3DTranspose(num_channels,
+                                                         kernel_size,
+                                                         padding='same',
+                                                         strides=strides,
+                                                         data_format=self.data_format)
         else:
-            self.upconv_layer = tfkl.UpSampling2D(size=self.strides)
+            if use_2d:
+                self.upconv_layer = tfkl.UpSampling2D(size=strides)
+            else:
+                self.upconv_layer = tfkl.UpSampling3D(size=strides)
 
         if self.use_attention:
-            self.attention = Attention_Gate(num_channels,
-                                            (1, 1),
-                                            self.nonlinearity,
+            self.attention = Attention_Gate(num_channels=num_channels,
+                                            use_2d=use_2d,
+                                            kernel_size=1,
+                                            nonlinearity=nonlinearity,
                                             padding='same',
-                                            strides=self.strides,
-                                            use_bias=self.use_bias,
+                                            strides=strides,
+                                            use_bias=use_bias,
                                             data_format=self.data_format)
 
-        self.conv = Conv2D_Block(num_channels,
-                                 num_conv_layers=1,
-                                 kernel_size=kernel_size,
-                                 nonlinearity=nonlinearity,
-                                 use_batchnorm=use_batchnorm,
-                                 use_dropout=False,
-                                 data_format=data_format)
+        self.conv = Conv_Block(num_channels=num_channels,
+                               use_2d=use_2d,
+                               num_conv_layers=1,
+                               kernel_size=kernel_size,
+                               nonlinearity=nonlinearity,
+                               use_batchnorm=use_batchnorm,
+                               use_dropout=False,
+                               data_format=self.data_format)
 
-        self.conv_block = Conv2D_Block(num_channels,
-                                       num_conv_layers=2,
-                                       kernel_size=(3, 3),
-                                       nonlinearity=nonlinearity,
-                                       use_batchnorm=use_batchnorm,
-                                       use_dropout=False,
-                                       data_format=data_format)
+        self.conv_block = Conv_Block(num_channels=num_channels,
+                                     use_2d=use_2d,
+                                     num_conv_layers=2,
+                                     kernel_size=3,
+                                     nonlinearity=nonlinearity,
+                                     use_batchnorm=use_batchnorm,
+                                     use_dropout=False,
+                                     data_format=self.data_format)
 
     def call(self, inputs, bridge, training=False):
 
@@ -121,7 +127,7 @@ class Up_Conv2D(tf.keras.Model):
         up = self.conv(up, training=training)
         if self.use_attention:
             up = self.attention(bridge, up, training=training)
-        out = tfkl.concatenate([up, bridge], axis=-1)
+        out = tfkl.concatenate([up, bridge], axis=-1 if self.data_format == 'channels_last' else 1)
         out = self.conv_block(out, training=training)
 
         return out
@@ -131,10 +137,11 @@ class Attention_Gate(tf.keras.Model):
 
     def __init__(self,
                  num_channels,
-                 kernel_size=(1, 1),
+                 use_2d=True,
+                 kernel_size=1,
                  nonlinearity='relu',
                  padding='same',
-                 strides=(1, 1),
+                 strides=1,
                  use_bias=True,
                  use_batchnorm=True,
                  data_format='channels_last',
@@ -143,22 +150,24 @@ class Attention_Gate(tf.keras.Model):
         super(Attention_Gate, self).__init__(**kwargs)
 
         self.conv_blocks = []
+        self.data_format = data_format
 
         for _ in range(3):
-            self.conv_blocks.append(Conv2D_Block(num_channels,
-                                                 num_conv_layers=1,
-                                                 kernel_size=kernel_size,
-                                                 nonlinearity=nonlinearity,
-                                                 use_batchnorm=use_batchnorm,
-                                                 use_dropout=False,
-                                                 data_format=data_format))
+            self.conv_blocks.append(Conv_Block(num_channels,
+                                               use_2d=use_2d,
+                                               num_conv_layers=1,
+                                               kernel_size=kernel_size,
+                                               nonlinearity=nonlinearity,
+                                               use_batchnorm=use_batchnorm,
+                                               use_dropout=False,
+                                               data_format=self.data_format))
 
     def call(self, input_x, input_g, training=False):
 
         x_g = self.conv_blocks[0](input_g, training=training)
         x_l = self.conv_blocks[1](input_x, training=training)
 
-        x = tfkl.concatenate([x_g, x_l], axis=-1)
+        x = tfkl.concatenate([x_g, x_l], axis=-1 if self.data_format == 'channels_last' else 1)
         x = tfkl.Activation('relu')(x)
 
         x = self.conv_blocks[2](x, training=training)
@@ -173,10 +182,11 @@ class Recurrent_Block(tf.keras.Model):
 
     def __init__(self,
                  num_channels,
-                 kernel_size=(3, 3),
+                 use_2d=True,
+                 kernel_size=3,
                  nonlinearity='relu',
                  padding='same',
-                 strides=(1, 1),
+                 strides=1,
                  t=2,
                  use_batchnorm=True,
                  data_format='channels_last',
@@ -184,21 +194,13 @@ class Recurrent_Block(tf.keras.Model):
 
         super(Recurrent_Block, self).__init__(**kwargs)
 
-        self.num_channels = num_channels
-        self.kernel_size = kernel_size
-        self.nonlinearity = nonlinearity
-        self.padding = padding
-        self.strides = strides
-        self.t = t
-        self.use_batchnorm = use_batchnorm
-        self.data_format = data_format
-
-        self.conv = Conv2D_Block(num_channels=self.num_channels,
-                                 num_conv_layers=1,
-                                 kernel_size=self.kernel_size,
-                                 nonlinearity=self.nonlinearity,
-                                 use_batchnorm=self.use_batchnorm,
-                                 data_format=self.data_format)
+        self.conv = Conv_Block(num_channels=num_channels,
+                               use_2d=use_2d,
+                               num_conv_layers=1,
+                               kernel_size=kernel_size,
+                               nonlinearity=nonlinearity,
+                               use_batchnorm=use_batchnorm,
+                               data_format=data_format)
 
     def call(self, x, training=False):
 
@@ -216,10 +218,11 @@ class Recurrent_Block(tf.keras.Model):
 class Recurrent_ResConv_block(tf.keras.Model):
     def __init__(self,
                  num_channels,
-                 kernel_size=(3, 3),
+                 use_2d=True,
+                 kernel_size=3,
                  nonlinearity='relu',
                  padding='same',
-                 strides=(1, 1),
+                 strides=1,
                  t=2,
                  use_batchnorm=True,
                  data_format='channels_last',
@@ -227,38 +230,38 @@ class Recurrent_ResConv_block(tf.keras.Model):
 
         super(Recurrent_ResConv_block, self).__init__(**kwargs)
 
-        self.num_channels = num_channels
-        self.kernel_size = kernel_size
-        self.nonlinearity = nonlinearity
-        self.padding = padding
-        self.strides = strides
-        self.t = t
-        self.use_batchnorm = use_batchnorm
-        self.data_format = data_format
-
         self.Recurrent_CNN = tf.keras.Sequential([
-            Recurrent_Block(self.num_channels,
-                            self.kernel_size,
-                            self.nonlinearity,
-                            self.padding,
-                            self.strides,
-                            self.t,
-                            self.use_batchnorm,
-                            self.data_format),
-            Recurrent_Block(self.num_channels,
-                            self.kernel_size,
-                            self.nonlinearity,
-                            self.padding,
-                            self.strides,
-                            self.t,
-                            self.use_batchnorm,
-                            self.data_format)])
+            Recurrent_Block(num_channels,
+                            use_2d,
+                            kernel_size,
+                            nonlinearity,
+                            padding,
+                            strides,
+                            t,
+                            use_batchnorm,
+                            data_format),
+            Recurrent_Block(num_channels,
+                            use_2d,
+                            kernel_size,
+                            nonlinearity,
+                            padding,
+                            strides,
+                            t,
+                            use_batchnorm,
+                            data_format)])
 
-        self.Conv_1x1 = tf.keras.layers.Conv2D(self.num_channels,
-                                               kernel_size=(1, 1),
-                                               strides=self.strides,
-                                               padding=self.padding,
-                                               data_format=self.data_format)
+        if use_2d:
+            self.Conv_1x1 = tf.keras.layers.Conv2D(num_channels,
+                                                   kernel_size=(1, 1),
+                                                   strides=strides,
+                                                   padding=padding,
+                                                   data_format=data_format)
+        else:
+            self.Conv_1x1 = tf.keras.layers.Conv3D(num_channels,
+                                                   kernel_size=(1, 1, 1),
+                                                   strides=strides,
+                                                   padding=padding,
+                                                   data_format=data_format)
 
     def call(self, x):
         x = self.Conv_1x1(x)
