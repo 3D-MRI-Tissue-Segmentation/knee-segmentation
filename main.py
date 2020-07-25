@@ -14,7 +14,7 @@ from Segmentation.utils.data_loader import read_tfrecord_2d as read_tfrecord
 from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
-from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
+from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
 from Segmentation.utils.evaluation_utils import eval_loop
 
@@ -180,7 +180,7 @@ def main(argv):
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
 
-        plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
+        # plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
 
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
