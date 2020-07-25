@@ -16,6 +16,3 @@ def extract_images_from_event(event_filename: str, image_tags: List[str], ouput_
                     tf_img = tf.image.decode_image(s)  # [H, W, C]
                     np_img = tf_img.numpy()
                     imageio.imwrite(ouput_dir + str(count) + ".png", np_img)
-
-
-

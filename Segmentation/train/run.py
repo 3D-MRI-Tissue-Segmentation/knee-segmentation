@@ -1,7 +1,8 @@
 import tensorflow as tf
 from time import time
 import os
-from Segmentation.train.train import load_datasets, Train, build_model
+from Segmentation.train.build import build_model
+from Segmentation.train.train import load_datasets, Train
 from Segmentation.train.utils import LearningRateUpdate, Metric
 from Segmentation.train.validation import validate_best_model
 from Segmentation.utils.losses import dice_loss, tversky_loss, iou_loss
@@ -116,3 +117,7 @@ def main(epochs,
         print(f"Total Time: {time() - t0:.02f}")
         with open("results/3d_result.txt", "a") as f:
             f.write(f'{log_dir_now}: total_loss {total_loss} {metric_str} \n')
+
+
+if __name__ == "__main__":
+    main(3, 'test')
