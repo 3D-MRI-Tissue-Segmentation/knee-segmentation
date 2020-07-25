@@ -59,7 +59,7 @@ def main(argv):
 
         batch_size = FLAGS.batch_size * FLAGS.num_cores
 
-        if FLAGS.use_2D:
+        if FLAGS.use_2d:
             steps_per_epoch = 19200 // batch_size
             validation_steps = 4480 // batch_size
         else:
