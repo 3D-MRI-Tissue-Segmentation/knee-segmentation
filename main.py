@@ -1,14 +1,10 @@
 import tensorflow as tf
-import numpy as np
-import matplotlib.pyplot as plt
 
 import os
 from pathlib import Path
 from datetime import datetime
 from absl import app
-from absl import flags
 from absl import logging
-from glob import glob
 
 from Segmentation.utils.data_loader import read_tfrecord_2d as read_tfrecord
 from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
@@ -139,7 +135,6 @@ def main(argv):
                     model.build((None, 288, 288, 3))
             else:
                 model.build((None, 160, 384, 384, 1))
-
             model.summary()
 
         if FLAGS.multi_class:
@@ -227,6 +222,7 @@ def main(argv):
         #                  callbacks=[tb],
         #                  num_classes=num_classes
         #                  )
+
 
 if __name__ == '__main__':
     app.run(main)

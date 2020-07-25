@@ -766,7 +766,7 @@ def update_gif_slice(x, y, model,
                which_slice,
                which_volume=1,
                save_dir='',
-               cmap='gray',
+               gif_cmap='gray',
                clean=False):
 
 
