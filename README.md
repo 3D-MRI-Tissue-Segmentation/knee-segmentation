@@ -6,13 +6,15 @@ Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia 
 
 ### 2D Models Implemented
 
+- [x] SegNet 
 - [x] Vanilla UNet 
 - [x] Attention UNet
-- [x] Multi-res UNet
+- [x] <del> Multi-res UNet </del>
 - [x] R2_UNet
 - [x] R2_Attention UNet
-- [ ] 100-layer Tiramisu
-- [ ] DeepLabv3+ 
+- [x] UNet++
+- [x] 100-layer Tiramisu
+- [x] DeepLabv3+ 
 
 ### 3D Models Implemented
 
@@ -154,3 +156,24 @@ Unit-Testing and Unit-Test Converage
 
 python -m pytest --cov-report term-missing:skip-covered --cov=Segmentation && coverage html && open ./htmlcov.index.html
 ```
+
+``` Bash
+Start tensorboard on Pompeii
+
+On pompeii: tensorboard --logdir logs --samples_per_plugin images=100
+
+On your local machine: ssh -L 16006:127.0.0.1:6006 username@ip
+
+Go to localhost: http://localhost:16006/
+```
+
+---
+
+### Valid 3D Configs
+
+Batch / GPU | Crop Size | Depth Crop Size | Num Channels | Num Conv Layers | Kernel Size
+:----------:|:--------:|:---------------:|:------------:|:---------------:|:----------:
+1 | 32 | 32 | 20 | 2  | (5,5,5)
+1 | 64 | 64 | 32 | 2  | (3,3,3)
+1 | 64 | 64 | 32 | 2  | (5,5,5)
+3 | 64 | 32 | 16 | 2  | (3,3,3)

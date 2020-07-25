@@ -1,63 +1,51 @@
 import tensorflow as tf
-import numpy as np
-import matplotlib.pyplot as plt
 
 import os
+from pathlib import Path
 from datetime import datetime
 from absl import app
-from absl import flags
 from absl import logging
 
-from Segmentation.model.unet import UNet, AttentionUNet_v1, MultiResUnet
-from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.training_utils import dice_coef, tversky_loss  # dice_coef_loss, iou_loss_core, Mean_IOU
-from Segmentation.utils.training_utils import plot_train_history_loss, visualise_multi_class, make_lr_scheduler  # visualise_binary
+from Segmentation.utils.data_loader import read_tfrecord_2d as read_tfrecord
+from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
+from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss  # focal_tversky
+from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
+from Segmentation.utils.training_utils import LearningRateSchedule
+# from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
+from Segmentation.utils.evaluation_utils import eval_loop
+from Segmentation.train.train import Train
 
-# Dataset/training options
-flags.DEFINE_integer('seed', 1, 'Random seed.')
-flags.DEFINE_integer('batch_size', 5, 'Batch size per TPU Core / GPU')
-flags.DEFINE_float('base_learning_rate', 5e-05, 'base learning rate at the start of training session')
-flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
-flags.DEFINE_bool('2D', True, 'True to train on 2D slices, False to train on 3D data')
-flags.DEFINE_bool('corruptions', False, 'Whether to test on corrupted dataset')
-flags.DEFINE_integer('train_epochs', 5, 'Number of training epochs.')
+from flags import FLAGS
+from select_model import select_model
 
-# Model options
-flags.DEFINE_string('model_architecture', 'unet', 'Model: unet (default), multires_unet, attention_unet_v1, R2_unet, R2_attention_unet')
-flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
-flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
-flags.DEFINE_bool('batchnorm', True, 'Whether to use batch normalisation')
-flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout')
-flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate')
-flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size (default: 1000)')
-flags.DEFINE_integer('respath_length', 2, 'residual path length')
-flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
-flags.DEFINE_integer('num_conv', 2, 'number of convolution layers in each block')
-flags.DEFINE_integer('num_filters', 64, 'number of filters in the model')
-
-# Logging, saving and testing options
-flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', './checkpoints', 'directory for checkpoints')
-flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
-
-# Accelerator flags
-flags.DEFINE_bool('use_gpu', True, 'Whether to run on GPU or otherwise TPU.')
-flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
-flags.DEFINE_integer('num_cores', 1, 'Number of TPU cores or number of GPUs.')
-flags.DEFINE_string('tpu', None, 'Name of the TPU. Only used if use_gpu is False.')
-
-FLAGS = flags.FLAGS
 
 def main(argv):
 
+    if FLAGS.visual_file:
+        assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
+
     del argv  # unused arg
-    tf.random.set_seed(FLAGS.seed)
+    tf.random.set_seed(FLAGS.seed)  # set seed
 
     # set whether to train on GPU or TPU
     if FLAGS.use_gpu:
         logging.info('Using GPU...')
-        strategy = tf.distribute.MirroredStrategy()
+        # strategy requires: export TF_FORCE_GPU_ALLOW_GROWTH=true to be wrote in cmd
+        if FLAGS.num_cores == 1:
+            strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
+        else:
+            strategy = tf.distribute.MirroredStrategy()
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        if gpus:
+            for gpu in gpus:
+                try:
+                    tf.config.experimental.set_visible_devices(gpu, 'GPU')
+                    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+
+                    logging.info(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+                except RuntimeError as e:
+                    # Visible devices must be set before GPUs have been initialized
+                    print(e)
     else:
         logging.info('Use TPU at %s',
                      FLAGS.tpu if FLAGS.tpu is not None else 'local')
@@ -68,97 +56,192 @@ def main(argv):
 
     # set dataset configuration
     if FLAGS.dataset == 'oai_challenge':
-        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'train/'),
-                                 batch_size=FLAGS.batch_size * FLAGS.num_cores,
-                                 buffer_size=FLAGS.buffer_size,
-                                 multi_class=FLAGS.multi_class,
-                                 is_training=True)
-        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
-                                 batch_size=FLAGS.batch_size * FLAGS.num_cores,
-                                 buffer_size=FLAGS.buffer_size,
-                                 multi_class=FLAGS.multi_class,
-                                 is_training=False)
 
-    num_classes = 7 if FLAGS.multi_class else 1
-    crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy if FLAGS.multi_class else tf.keras.losses.binary_crossentropy
+        batch_size = FLAGS.batch_size * FLAGS.num_cores
+
+        if FLAGS.use_2D:
+            steps_per_epoch = 19200 // batch_size
+            validation_steps = 4480 // batch_size
+        else:
+            steps_per_epoch = 120 // batch_size
+            validation_steps = 28 // batch_size
+
+        logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
+
+        train_dir = 'train/' if FLAGS.use_2d else 'train_3d/'
+        valid_dir = 'valid/' if FLAGS.use_2d else 'valid_3d/'
+
+        ds_args = {
+            'batch_size': batch_size,
+            'buffer_size': FLAGS.buffer_size,
+            'augmentation': FLAGS.aug_strategy,
+            'parse_fn': parse_fn_2d if FLAGS.use_2d else parse_fn_3d,
+            'multi_class': FLAGS.multi_class,
+            'is_training': True,
+            'use_bfloat16': FLAGS.use_bfloat16,
+            'use_RGB': False if FLAGS.backbone_architecture == 'default' else True
+        }
+
+        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, train_dir),
+                                 **ds_args)
+        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, valid_dir),
+                                 **ds_args)
+
+        num_classes = 7 if FLAGS.multi_class else 1
+
+    if FLAGS.multi_class:
+        loss_fn = tversky_loss
+        crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
+    else:
+        loss_fn = dice_coef_loss
+        crossentropy_loss_fn = tf.keras.losses.binary_crossentropy
+
+    if FLAGS.use_bfloat16:
+        policy = tf.keras.mixed_precision.experimental.Policy('mixed_bfloat16')
+        tf.keras.mixed_precision.experimental.set_policy(policy)
 
     # set model architecture
+
+    model_fn, model_args = select_model(FLAGS, num_classes)
+
     with strategy.scope():
-        if FLAGS.model_architecture == 'unet':
-            model = UNet(FLAGS.num_filters,
-                         num_classes,
-                         FLAGS.num_conv,
-                         FLAGS.kernel_size,
-                         FLAGS.activation,
-                         FLAGS.batchnorm,
-                         FLAGS.dropout_rate,
-                         FLAGS.use_spatial,
-                         FLAGS.channel_order)
+        model = model_fn(*model_args)
 
-        elif FLAGS.model_architecture == 'multires_unet':
-            model = MultiResUnet(FLAGS.num_filters,
-                                 num_classes,
-                                 FLAGS.respath_length,
-                                 FLAGS.num_conv,
-                                 FLAGS.kernel_size,
-                                 use_bias=False,
-                                 padding='same',
-                                 nonlinearity=FLAGS.activation,
-                                 use_batchnorm=FLAGS.batchnorm,
-                                 use_transpose=True,
-                                 data_format=FLAGS.channel_order)
-
-        elif FLAGS.model_architecture == 'attention_unet_v1':
-            model = AttentionUNet_v1(FLAGS.num_filters,
-                                     num_classes,
-                                     FLAGS.num_conv,
-                                     FLAGS.kernel_size,
-                                     use_bias=False,
-                                     padding='same',
-                                     nonlinearity=FLAGS.activation,
-                                     use_batchnorm=FLAGS.batchnorm,
-                                     use_transpose=True,
-                                     data_format=FLAGS.channel_order)
-
+        if FLAGS.custom_decay_lr:
+            lr_decay_epochs = FLAGS.lr_decay_epochs
         else:
-            print("%s is not a valid or supported model architecture." % FLAGS.model_architecture)
-            exit()
+            lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs + 1, FLAGS.train_epochs))
 
-        optimiser = tf.keras.optimizers.Adam(learning_rate=FLAGS.base_learning_rate)
+        lr_rate = LearningRateSchedule(steps_per_epoch,
+                                       FLAGS.base_learning_rate,
+                                       FLAGS.lr_drop_ratio,
+                                       lr_decay_epochs,
+                                       FLAGS.lr_warmup_epochs)
+
+        if FLAGS.optimizer == 'adam':
+            optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+        elif FLAGS.optimizer == 'rms-prop':
+            optimiser = tf.keras.optimizers.RMSprop(learning_rate=lr_rate)
+        elif FLAGS.optimizer == 'sgd':
+            optimiser = tf.keras.optimizers.SGD(learning_rate=lr_rate)
+        else:
+            print('Not a valid input optimizer, using Adam.')
+            optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
+
+        # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
+        if FLAGS.train:
+            if FLAGS.model_architecture != 'vnet':
+                if FLAGS.backbone_architecture == 'default':
+                    model.build((None, 288, 288, 1))
+                else:
+                    model.build((None, 288, 288, 3))
+            else:
+                model.build((None, 160, 384, 384, 1))
+            model.summary()
+
+        if FLAGS.multi_class:
+            if FLAGS.use_2d:
+                metrics = [dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc']
+                # model.compile(optimizer=optimiser,
+                #               loss=loss_fn,
+                #               metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+            else:
+                metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
+                # model.compile(optimizer=optimiser,
+                #               loss=loss_fn,
+                #               metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
+        else:
+            metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
+            # model.compile(optimizer=optimiser,
+            #               loss=loss_fn,
+            #               metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 
         model.compile(optimizer=optimiser,
-                      loss=tversky_loss,
-                      metrics=[dice_coef, crossentropy_loss_fn, 'acc'])
+                        loss=loss_fn,
+                        metrics=metrics)
 
     if FLAGS.train:
-
         # define checkpoints
-        logdir = 'checkpoints\\' + datetime.now().strftime("%Y%m%d-%H%M%S")
-        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(FLAGS.logdir + '/' + FLAGS.model_architecture + '_weights.{epoch:03d}.ckpt',
-                                                     save_best_only=False, save_weights_only=True)
-        lr_schedule = make_lr_scheduler(FLAGS.base_learning_rate)
-        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='batch')
+        time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        training_history_dir = os.path.join(FLAGS.fig_dir, FLAGS.tpu)
+        training_history_dir = os.path.join(training_history_dir, time)
+        Path(training_history_dir).mkdir(parents=True, exist_ok=True)
+        flag_name = os.path.join(training_history_dir, 'test_flags.cfg')
+        FLAGS.append_flags_into_file(flag_name)
 
-        history = model.fit(train_ds,
-                            steps_per_epoch=19200 // FLAGS.batch_size,
-                            epochs=FLAGS.train_epochs,
-                            validation_data=valid_ds,
-                            validation_steps=4480 // FLAGS.batch_size,
-                            callbacks=[ckpt_cb, lr_schedule, tb])
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
+        logdir = os.path.join(logdir, time)
+        logdir_arch = os.path.join(logdir, FLAGS.model_architecture)
+        ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
+                                                     save_best_only=False,
+                                                     save_weights_only=True)
+        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
 
-        if FLAGS.num_classes == 1:
-            plot_train_history_loss(history, multi_class=False)
-        else:
-            plot_train_history_loss(history, multi_class=True)
+        # history = model.fit(train_ds,
+        #                     steps_per_epoch=steps_per_epoch,
+        #                     epochs=FLAGS.train_epochs,
+        #                     validation_data=valid_ds,
+        #                     validation_steps=validation_steps,
+        #                     callbacks=[ckpt_cb, tb])
+
+        lr_manager = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
+                                          initial_learning_rate=FLAGS.base_learning_rate,
+                                          drop=FLAGS.lr_drop_ratio,
+                                          epochs_drop=FLAGS.lr_decay_epochs,
+                                          warmup_epochs=FLAGS.lr_warmup_epochs)
+        
+        train = Train(epochs=FLAGS.train_epochs,
+                      batch_size=FLAGS.batch_size,
+                      enable_function=True,
+                      model=model,
+                      optimizer=optimiser,
+                      loss_func=loss_fn,
+                      lr_manager=lr_manager,
+                      predict_slice=FLAGS.which_slice,
+                      metrics=metrics,
+                      tfrec_dir='./Data/tfrecords/',
+                      log_dir="logs")
+
+        log_dir_now = train.train_model_loop(train_ds=train_ds,
+                                             valid_ds=valid_ds,
+                                             strategy=strategy,
+                                             visual_save_freq=FLAGS.visual_save_freq,
+                                             multi_class=FLAGS.multi_class,
+                                             debug=False,
+                                             num_to_visualise=0)
+
+
+    elif FLAGS.visual_file is not None:
+        tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
+
+        eval_loop(dataset=valid_ds, validation_steps=validation_steps, aug_strategy=FLAGS.aug_strategy,
+                  bucket_name=FLAGS.bucket, logdir=FLAGS.logdir, tpu_name=tpu, visual_file=FLAGS.visual_file, weights_dir=FLAGS.weights_dir,
+                  fig_dir=FLAGS.fig_dir,
+                  which_volume=FLAGS.gif_volume, which_epoch=FLAGS.gif_epochs, which_slice=FLAGS.gif_slice,
+                  multi_as_binary=False,
+                  trained_model=model, model_architecture=FLAGS.model_architecture,
+                  callbacks=[tb],
+                  num_classes=num_classes)
 
     else:
-        # load the latest checkpoint in the FLAGS.logdir file
-        # latest = tf.train.latest_checkpoint(FLAGS.logdir)
-        model.load_weights('./checkpoints/unet/14-4-2020/unet_weights.005.ckpt').expect_partial()
-        for step, (image, label) in enumerate(valid_ds):
-            if step >= 80:
-                pred = model(image, training=False)
-                visualise_multi_class(label, pred)
+        # load the checkpoint in the FLAGS.weights_dir file
+        # maybe_weights = os.path.join(FLAGS.weights_dir, FLAGS.tpu, FLAGS.visual_file)
+
+        time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        logdir = os.path.join(FLAGS.logdir, FLAGS.tpu)
+        logdir = os.path.join(logdir, time)
+        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch', write_images=True)
+        # confusion_matrix(trained_model=model,
+        #                  weights_dir=FLAGS.weights_dir,
+        #                  fig_dir=FLAGS.fig_dir,
+        #                  dataset=valid_ds,
+        #                  validation_steps=validation_steps,
+        #                  multi_class=FLAGS.multi_class,
+        #                  model_architecture=FLAGS.model_architecture,
+        #                  callbacks=[tb],
+        #                  num_classes=num_classes
+        #                  )
+
 
 if __name__ == '__main__':
     app.run(main)
