@@ -10,10 +10,11 @@ from Segmentation.train.utils import setup_gpu, LearningRateUpdate, Metric
 from Segmentation.train.reshape import get_mid_slice, get_mid_vol
 from Segmentation.train.validation import validate_best_model
 from Segmentation.utils.data_loader import read_tfrecord_3d
-from Segmentation.utils.losses import dice_loss, tversky_loss, iou_loss, iou_loss_eval_3d, dice_coef_eval_3d, dice_loss_weighted_3d, focal_tversky
 from Segmentation.utils.visualise_utils import visualise_sample
+from Segmentation.utils.losses import dice_loss, tversky_loss, iou_loss
+from Segmentation.utils.losses import iou_loss_eval_3d, dice_coef_eval_3d
+from Segmentation.utils.losses import dice_loss_weighted_3d, focal_tversky
 from Segmentation.model.vnet import VNet
-
 
 class Train:
     def __init__(self,
@@ -358,7 +359,7 @@ def main(epochs,
                                                      predict_slice,
                                                      Metric(metrics))
         print(f"Train Time: {train_time:.02f}")
-        print(f"Validation Time: {time() - t1:.02f}")                 
+        print(f"Validation Time: {time() - t1:.02f}")              
         print(f"Total Time: {time() - t0:.02f}")
-        with open("results/3d_result.txt","a") as f:
+        with open("results/3d_result.txt", "a") as f:
             f.write(f'{log_dir_now}: total_loss {total_loss} {metric_str} \n')

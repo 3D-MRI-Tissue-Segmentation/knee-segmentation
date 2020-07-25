@@ -1,20 +1,16 @@
 import tensorflow as tf
-import numpy as np
-import matplotlib.pyplot as plt
 
 import os
 from pathlib import Path
 from datetime import datetime
 from absl import app
-from absl import flags
 from absl import logging
-from glob import glob
 
 from Segmentation.utils.data_loader import read_tfrecord_2d as read_tfrecord
 from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss, focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
-from Segmentation.utils.training_utils import plot_train_history_loss, LearningRateSchedule
+from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
 from Segmentation.utils.evaluation_utils import eval_loop
 from Segmentation.utils.training_utils import LearningRateSchedule
@@ -141,7 +137,6 @@ def main(argv):
                     model.build((None, 288, 288, 3))
             else:
                 model.build((None, 160, 384, 384, 1))
-
             model.summary()
 
         if FLAGS.multi_class:
@@ -194,14 +189,7 @@ def main(argv):
                                           drop=FLAGS.lr_drop_ratio,
                                           epochs_drop=FLAGS.lr_decay_epochs,
                                           warmup_epochs=FLAGS.lr_warmup_epochs)
-
-
-        if not FLAGS.use_gpu:
-            resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=FLAGS.tpu)
-            strategy = tf.distribute.experimental.TPUStrategy(resolver)
-        else:
-            strategy = tf.distribute.MirroredStrategy()
-
+        
         train = Train(epochs=FLAGS.train_epochs,
                       batch_size=FLAGS.batch_size,
                       enable_function=True,
@@ -222,7 +210,6 @@ def main(argv):
                                              debug=False,
                                              num_to_visualise=0)
 
-        # plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
 
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
@@ -254,6 +241,7 @@ def main(argv):
         #                  callbacks=[tb],
         #                  num_classes=num_classes
         #                  )
+
 
 if __name__ == '__main__':
     app.run(main)

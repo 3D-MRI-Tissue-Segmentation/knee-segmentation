@@ -36,7 +36,6 @@ def select_model(FLAGS, num_classes):
                       FLAGS.dropout_rate,
                       FLAGS.use_spatial,
                       FLAGS.channel_order]
-
         model_fn = VNet
     elif FLAGS.model_architecture == 'r2unet':
         model_args = [FLAGS.num_filters,
@@ -50,7 +49,6 @@ def select_model(FLAGS, num_classes):
                       FLAGS.use_batchnorm,
                       FLAGS.use_bias,
                       FLAGS.channel_order]
-
         model_fn = R2_UNet
 
     elif FLAGS.model_architecture == 'segnet':
@@ -79,7 +77,6 @@ def select_model(FLAGS, num_classes):
                       FLAGS.use_batchnorm,
                       FLAGS.use_bias,
                       FLAGS.channel_order]
-
         model_fn = Nested_UNet
 
     elif FLAGS.model_architecture == '100-Layer-Tiramisu':

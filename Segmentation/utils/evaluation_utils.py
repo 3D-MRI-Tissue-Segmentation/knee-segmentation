@@ -756,7 +756,7 @@ def update_gif_slice(x, y, trained_model,
                multi_as_binary, multi_class,
                which_epoch, which_slice, which_volume=1,
                save_dir='',
-               cmap='gray',
+               gif_cmap='gray',
                clean=False):
 
 
