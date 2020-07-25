@@ -13,6 +13,8 @@ from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
 from Segmentation.utils.evaluation_utils import eval_loop
+from Segmentation.utils.training_utils import LearningRateSchedule
+from Segmentation.train.train import Train
 
 from flags import FLAGS
 from select_model import select_model
@@ -139,17 +141,24 @@ def main(argv):
 
         if FLAGS.multi_class:
             if FLAGS.use_2d:
-                model.compile(optimizer=optimiser,
-                              loss=loss_fn,
-                              metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
+                metrics = [dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc']
+                # model.compile(optimizer=optimiser,
+                #               loss=loss_fn,
+                #               metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
             else:
-                model.compile(optimizer=optimiser,
-                              loss=loss_fn,
-                              metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
+                metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
+                # model.compile(optimizer=optimiser,
+                #               loss=loss_fn,
+                #               metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
         else:
-            model.compile(optimizer=optimiser,
-                          loss=loss_fn,
-                          metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
+            metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
+            # model.compile(optimizer=optimiser,
+            #               loss=loss_fn,
+            #               metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
+
+        model.compile(optimizer=optimiser,
+                        loss=loss_fn,
+                        metrics=metrics)
 
     if FLAGS.train:
         # define checkpoints
@@ -168,41 +177,51 @@ def main(argv):
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
 
-        history = model.fit(train_ds,
-                            steps_per_epoch=steps_per_epoch,
-                            epochs=FLAGS.train_epochs,
-                            validation_data=valid_ds,
-                            validation_steps=validation_steps,
-                            callbacks=[ckpt_cb, tb])
+        # history = model.fit(train_ds,
+        #                     steps_per_epoch=steps_per_epoch,
+        #                     epochs=FLAGS.train_epochs,
+        #                     validation_data=valid_ds,
+        #                     validation_steps=validation_steps,
+        #                     callbacks=[ckpt_cb, tb])
 
-        # plot_train_history_loss(history, multi_class=FLAGS.multi_class, savefig=training_history_dir)
+        lr_manager = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
+                                          initial_learning_rate=FLAGS.base_learning_rate,
+                                          drop=FLAGS.lr_drop_ratio,
+                                          epochs_drop=FLAGS.lr_decay_epochs,
+                                          warmup_epochs=FLAGS.lr_warmup_epochs)
+        
+        train = Train(epochs=FLAGS.train_epochs,
+                      batch_size=FLAGS.batch_size,
+                      enable_function=True,
+                      model=model,
+                      optimizer=optimiser,
+                      loss_func=loss_fn,
+                      lr_manager=lr_manager,
+                      predict_slice=FLAGS.which_slice,
+                      metrics=metrics,
+                      tfrec_dir='./Data/tfrecords/',
+                      log_dir="logs")
+
+        log_dir_now = train.train_model_loop(train_ds=train_ds,
+                                             valid_ds=valid_ds,
+                                             strategy=strategy,
+                                             visual_save_freq=FLAGS.visual_save_freq,
+                                             multi_class=FLAGS.multi_class,
+                                             debug=False,
+                                             num_to_visualise=0)
+
 
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
-        print('model_fn', model_fn)
 
-        eval_loop(trained_model=model,
-                  logdir=FLAGS.logdir,
-                  visual_file=FLAGS.visual_file,
-                  tpu_name=tpu,
-                  bucket_name=FLAGS.bucket,
-                  weights_dir=FLAGS.weights_dir,
-                  tfrecords_dir=os.path.join(FLAGS.tfrec_dir, 'valid/'),
+        eval_loop(dataset=valid_ds, validation_steps=validation_steps, aug_strategy=FLAGS.aug_strategy,
+                  bucket_name=FLAGS.bucket, logdir=FLAGS.logdir, tpu_name=tpu, visual_file=FLAGS.visual_file, weights_dir=FLAGS.weights_dir,
                   fig_dir=FLAGS.fig_dir,
-                  save_freq=FLAGS.save_freq,
-                  which_volume=FLAGS.gif_volume,
-                  which_epoch=FLAGS.gif_epochs,
-                  which_slice=FLAGS.gif_slice,
-                  dataset=valid_ds,
-                  validation_steps=validation_steps,
-                  aug_strategy=FLAGS.aug_strategy,
-                  multi_class=FLAGS.multi_class,
-                  model=model_fn,
-                  model_architecture=FLAGS.model_architecture,
-                  model_args=model_args,
+                  which_volume=FLAGS.gif_volume, which_epoch=FLAGS.gif_epochs, which_slice=FLAGS.gif_slice,
+                  multi_as_binary=False,
+                  trained_model=model, model_architecture=FLAGS.model_architecture,
                   callbacks=[tb],
-                  num_classes=num_classes
-                  )
+                  num_classes=num_classes)
 
     else:
         # load the checkpoint in the FLAGS.weights_dir file

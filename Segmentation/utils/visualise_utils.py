@@ -5,8 +5,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+### train model loop
+def visualise_sample(x, y, pred, 
+                    num_to_visualise,
+                    slice_writer, vol_writer, 
+                    use_2d, epoch, multi_class, predict_slice, is_training):
+    img = get_mid_slice(x.values[0], y.values[0], pred.values[0], multi_class)
+    session_type = "Train" if is_training else "Validation"
+    with slice_writer.as_default():
+        tf.summary.image(f"{session_type} - Slice", img, step=epoch)
+    if epoch % visual_save_freq == 0:
+        if not predict_slice:
+            img = get_mid_vol(y.values[0], pred.values[0], multi_class, check_empty=True)
+            if img is None:
+                num_to_visualise += 1
+            else:
+                with vol_writer.as_default():
+                    tf.summary.image(f"{session_type} - Volume", img, step=epoch)
+    return num_to_visualise
 
-#### VNet: vnet_train 
+
+## VNet: vnet_train from og dev_rl
 
 def plot_imgs(images_arr, img_plt_names, plt_supertitle, save_fig_name, color_map="gray"):
     """ Plot images via imshow with titles.
