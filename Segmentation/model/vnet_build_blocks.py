@@ -11,9 +11,10 @@ class Conv_ResBlock(tf.keras.Model):
                  strides=2,
                  res_activation='relu',
                  data_format='channels_last',
+                 name="conv_res_block",
                  **kwargs):
 
-        super(Conv_ResBlock, self).__init__(**kwargs)
+        super(Conv_ResBlock, self).__init__(name=name)
 
         self.num_channels = num_channels
         self.use_2d = use_2d
@@ -58,8 +59,9 @@ class Up_ResBlock(tf.keras.Model):
                  num_channels,
                  use_2d=False,
                  kernel_size=3,
+                 name="upsampling_conv_res_block",
                  **kwargs):
-        super(Up_ResBlock, self).__init__(**kwargs)
+        super(Up_ResBlock, self).__init__(name=name)
 
         self.num_channels = num_channels
         self.use_2d = use_2d

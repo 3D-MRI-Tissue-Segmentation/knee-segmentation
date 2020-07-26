@@ -18,10 +18,11 @@ class VNet(tf.keras.Model):
                  use_spatial_dropout=True,
                  predict_slice=False,
                  slice_format="mean",
+                 name="vnet",
                  **kwargs):
 
         self.params = str(inspect.currentframe().f_locals)
-        super(VNet, self).__init__(**kwargs)
+        super(VNet, self).__init__(name=name)
         self.noise = noise
         self.predict_slice = predict_slice
         self.slice_format = slice_format

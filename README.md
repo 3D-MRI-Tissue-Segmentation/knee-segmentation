@@ -1,6 +1,6 @@
 # Automated Tissue Segmentation from High-Resolution 3D Steady-State MRI with Deep Learning
 
-Albert Ugwudike, Joe Arrowsmith, Joonsu Gha, Kamal Shah, Lapo Rastrelli, Olivia Gallupova, Pietro Vitiello
+Joe Arrowsmith, Joonsu Gha, Lapo Rastrelli, Olivia Gallupova, Pietro Vitiello
 
 ---
 

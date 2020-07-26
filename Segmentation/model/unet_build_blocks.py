@@ -9,18 +9,19 @@ class Conv_Block(tf.keras.Sequential):
                  use_2d=True,
                  num_conv_layers=2,
                  kernel_size=3,
-                 nonlinearity='relu',
+                 activation='relu',
                  use_batchnorm=False,
                  use_bias=True,
                  use_dropout=False,
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
                  data_format='channels_last',
+                 name="convolution_block",
                  **kwargs):
 
-        super(Conv_Block, self).__init__(**kwargs)
+        super(Conv_Block, self).__init__(name=name)
 
-        for _ in range(self.num_conv_layers):
+        for _ in range(num_conv_layers):
             if use_2d:
                 self.add(tfkl.Conv2D(num_channels,
                                      kernel_size,
@@ -37,7 +38,10 @@ class Conv_Block(tf.keras.Sequential):
                 self.add(tfkl.BatchNormalization(axis=-1 if data_format == 'channels_last' else 1,
                                                  momentum=0.95,
                                                  epsilon=0.001))
-            self.add(tfkl.Activation(nonlinearity))
+            if activation == 'prelu':
+                self.add(tfkl.PReLU())
+            else:
+                self.add(tfkl.Activation(activation))
 
         if use_dropout:
             if use_spatial_dropout:
@@ -61,18 +65,20 @@ class Up_Conv(tf.keras.Model):
                  num_channels,
                  use_2d=True,
                  kernel_size=2,
-                 nonlinearity='relu',
+                 activation='relu',
                  use_attention=False,
                  use_batchnorm=False,
                  use_transpose=False,
                  use_bias=True,
                  strides=2,
                  data_format='channels_last',
+                 name="upsampling_conv_block",
                  **kwargs):
 
-        super(Up_Conv, self).__init__(**kwargs)
+        super(Up_Conv, self).__init__(name=name)
 
         self.data_format = data_format
+        self.use_attention = use_attention
 
         if use_transpose:
             if use_2d:
@@ -97,7 +103,7 @@ class Up_Conv(tf.keras.Model):
             self.attention = Attention_Gate(num_channels=num_channels,
                                             use_2d=use_2d,
                                             kernel_size=1,
-                                            nonlinearity=nonlinearity,
+                                            activation=activation,
                                             padding='same',
                                             strides=strides,
                                             use_bias=use_bias,
@@ -107,7 +113,7 @@ class Up_Conv(tf.keras.Model):
                                use_2d=use_2d,
                                num_conv_layers=1,
                                kernel_size=kernel_size,
-                               nonlinearity=nonlinearity,
+                               activation=activation,
                                use_batchnorm=use_batchnorm,
                                use_dropout=False,
                                data_format=self.data_format)
@@ -116,7 +122,7 @@ class Up_Conv(tf.keras.Model):
                                      use_2d=use_2d,
                                      num_conv_layers=2,
                                      kernel_size=3,
-                                     nonlinearity=nonlinearity,
+                                     activation=activation,
                                      use_batchnorm=use_batchnorm,
                                      use_dropout=False,
                                      data_format=self.data_format)
@@ -139,15 +145,16 @@ class Attention_Gate(tf.keras.Model):
                  num_channels,
                  use_2d=True,
                  kernel_size=1,
-                 nonlinearity='relu',
+                 activation='relu',
                  padding='same',
                  strides=1,
                  use_bias=True,
                  use_batchnorm=True,
                  data_format='channels_last',
+                 name='attention_gate',
                  **kwargs):
 
-        super(Attention_Gate, self).__init__(**kwargs)
+        super(Attention_Gate, self).__init__(name=name)
 
         self.conv_blocks = []
         self.data_format = data_format
@@ -157,7 +164,7 @@ class Attention_Gate(tf.keras.Model):
                                                use_2d=use_2d,
                                                num_conv_layers=1,
                                                kernel_size=kernel_size,
-                                               nonlinearity=nonlinearity,
+                                               activation=activation,
                                                use_batchnorm=use_batchnorm,
                                                use_dropout=False,
                                                data_format=self.data_format))
@@ -184,21 +191,22 @@ class Recurrent_Block(tf.keras.Model):
                  num_channels,
                  use_2d=True,
                  kernel_size=3,
-                 nonlinearity='relu',
+                 activation='relu',
                  padding='same',
                  strides=1,
                  t=2,
                  use_batchnorm=True,
                  data_format='channels_last',
+                 name='recurrent_block',
                  **kwargs):
 
-        super(Recurrent_Block, self).__init__(**kwargs)
+        super(Recurrent_Block, self).__init__(name=name)
 
         self.conv = Conv_Block(num_channels=num_channels,
                                use_2d=use_2d,
                                num_conv_layers=1,
                                kernel_size=kernel_size,
-                               nonlinearity=nonlinearity,
+                               activation=activation,
                                use_batchnorm=use_batchnorm,
                                data_format=data_format)
 
@@ -220,21 +228,22 @@ class Recurrent_ResConv_block(tf.keras.Model):
                  num_channels,
                  use_2d=True,
                  kernel_size=3,
-                 nonlinearity='relu',
+                 activation='relu',
                  padding='same',
                  strides=1,
                  t=2,
                  use_batchnorm=True,
                  data_format='channels_last',
+                 name='res_recurrent_block',
                  **kwargs):
 
-        super(Recurrent_ResConv_block, self).__init__(**kwargs)
+        super(Recurrent_ResConv_block, self).__init__(name=name)
 
         self.Recurrent_CNN = tf.keras.Sequential([
             Recurrent_Block(num_channels,
                             use_2d,
                             kernel_size,
-                            nonlinearity,
+                            activation,
                             padding,
                             strides,
                             t,
@@ -243,7 +252,7 @@ class Recurrent_ResConv_block(tf.keras.Model):
             Recurrent_Block(num_channels,
                             use_2d,
                             kernel_size,
-                            nonlinearity,
+                            activation,
                             padding,
                             strides,
                             t,

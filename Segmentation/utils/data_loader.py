@@ -1,9 +1,6 @@
 import h5py
 import numpy as np
 import os
-import random
-import matplotlib.pyplot as plt
-import math
 from functools import partial
 import tensorflow as tf
 from glob import glob
@@ -23,7 +20,6 @@ def get_multiclass(label):
     batch_size = label.shape[0]
     height = label.shape[1]
     width = label.shape[2]
-    channels = label.shape[3]
 
     background = np.zeros((batch_size, height, width, 1))
     label_sum = np.sum(label, axis=3)
@@ -56,7 +52,7 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
     if not os.path.exists(tfrecord_directory):
         os.mkdir(tfrecord_directory)
 
-    train_val = 'train' if get_train else 'valid'
+    # train_val = 'train' if get_train else 'valid'
     files = glob(os.path.join(data_folder, f'*.im'))
 
     for idx, f in enumerate(files):
@@ -83,7 +79,7 @@ def create_OAI_dataset(data_folder, tfrecord_directory, get_train=True, use_2d=T
 
             assert img_mid == seg_mid, "We expect the mid shapes to be the same size"
 
-            seg_total = np.sum(seg)
+            # seg_total = np.sum(seg)
 
             img = img[img_mid[0] - crop_size:img_mid[0] + crop_size,
                       img_mid[1] - crop_size:img_mid[1] + crop_size, :]
@@ -236,12 +232,14 @@ def parse_fn_3d(example_proto, training, multi_class=True, use_bfloat16=False, u
     # Parse the input tf.Example proto using the dictionary above.
     image_features = tf.io.parse_single_example(example_proto, features)
     image_raw = tf.io.decode_raw(image_features['image_raw'], tf.float32)
-    
-    image = tf.reshape(image_raw, [160, 384, 384, 1])
+
+    image = tf.reshape(image_raw, [image_features['height'], image_features['width'],
+                                   image_features['depth'], 1])
     image = tf.cast(image, dtype)
 
     seg_raw = tf.io.decode_raw(image_features['label_raw'], tf.int16)
-    seg = tf.reshape(seg_raw, [160, 384, 384, 7])
+    seg = tf.reshape(seg_raw, [image_features['height'], image_features['width'],
+                               image_features['depth'], image_features['num_channels']])
     seg = tf.cast(seg, dtype)
 
     if not multi_class:
@@ -250,19 +248,21 @@ def parse_fn_3d(example_proto, training, multi_class=True, use_bfloat16=False, u
         seg = tf.expand_dims(seg, axis=-1)
         seg = tf.clip_by_value(seg, 0, 1)
 
-    if training:
-        dx = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=128), tf.int32)
-        dy = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=96), tf.int32)
-        dz = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=96), tf.int32)
+    # if training:
+    #     dx = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=128), tf.int32)
+    #     dy = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=96), tf.int32)
+    #     dz = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=96), tf.int32)
 
-        image = image[dx:dx+32, dy:dy+288, dz:dz+288, :]
-        seg = seg[dx:dx+32, dy:dy+288, dz:dz+288, :]
-    else:
-        image = image[64:96, 48:336, 48:336, :]
-        seg = seg[64:96, 48:336, 48:336, :]
+    #     image = image[dx: dx + 32, dy: dy + 288, dz: dz + 288, :]
+    #     seg = seg[dx: dx + 32, dy: dy + 288, dz: dz + 288, :]
+    # else:
+    #     image = image[64:96, 48:336, 48:336, :]
+    #     seg = seg[64:96, 48:336, 48:336, :]
 
-    image = tf.reshape(image, [32, 288, 288, 1])
-    seg = tf.reshape(seg, [32, 288, 288, 7])
+    # image = tf.reshape(image, [32, 288, 288, 1])
+    # tf.print(seg.shape)
+    # print(seg.shape)
+    # seg = tf.reshape(seg, [32, 288, 288, 7])
 
     return (image, seg)
 
@@ -278,7 +278,7 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
         shards = shards.repeat()
     cycle_length = 4
     if use_2d:
-        cycle_l = 8 if is_training else 1
+        cycle_length = 8 if is_training else 1
 
     dataset = shards.interleave(tf.data.TFRecordDataset,
                                 cycle_length=cycle_length,
@@ -289,11 +289,11 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
 
     if use_2d:
         parser = partial(parse_fn,
-                        training=is_training,
-                        augmentation=augmentation_2d,
-                        multi_class=multi_class,
-                        use_bfloat16=use_bfloat16_2d,
-                        use_RGB=use_RGB_2d)
+                         training=is_training,
+                         augmentation=augmentation_2d,
+                         multi_class=multi_class,
+                         use_bfloat16=use_bfloat16_2d,
+                         use_RGB=use_RGB_2d)
     else:
         parser = partial(parse_fn, training=is_training, multi_class=multi_class)
 

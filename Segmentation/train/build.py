@@ -1,4 +1,4 @@
-from Segmentation.model.vnet import VNet
+from Segmentation.model.vnet_old import VNet
 
 
 def build_model(num_channels, num_classes, name, **kwargs):

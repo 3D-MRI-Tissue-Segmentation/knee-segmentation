@@ -12,7 +12,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                  num_classes,
                  kernel_size=(3, 3),
                  pool_size=(2, 2),
-                 nonlinearity='relu',
+                 activation='relu',
                  dropout_rate=0.2,
                  strides=(2, 2),
                  padding='same',
@@ -28,7 +28,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
         self.num_classes = num_classes
         self.kernel_size = kernel_size
         self.pool_size = pool_size
-        self.nonlinearity = nonlinearity
+        self.activation = activation
         self.dropout_rate = dropout_rate
         self.strides = strides
         self.padding = padding
@@ -57,7 +57,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                                                      growth_rate,
                                                      kernel_size,
                                                      dropout_rate,
-                                                     nonlinearity,
+                                                     activation,
                                                      use_dropout=False,
                                                      use_concat=True))
 
@@ -69,7 +69,7 @@ class Hundred_Layer_Tiramisu(tf.keras.Model):
                                                              kernel_size=(1, 1),
                                                              pool_size=(2, 2),
                                                              dropout_rate=0.2,
-                                                             nonlinearity='relu',
+                                                             activation='relu',
                                                              use_dropout=False))
 
         for idx in range(len(self.layers_per_block) - 1, 0, -1):
@@ -109,7 +109,7 @@ class conv_layer(tf.keras.Sequential):
                  num_channels,
                  kernel_size=(3, 3),
                  dropout_rate=0.2,
-                 nonlinearity='relu',
+                 activation='relu',
                  use_dropout=False,
                  **kwargs):
 
@@ -118,14 +118,14 @@ class conv_layer(tf.keras.Sequential):
         self.num_channels = num_channels
         self.kernel_size = kernel_size
         self.dropout_rate = dropout_rate
-        self.nonlinearity = nonlinearity
+        self.activation = activation
         self.use_dropout = use_dropout
 
         self.add(tfkl.BatchNormalization(axis=-1,
                                          momentum=0.95,
                                          epsilon=0.001))
 
-        self.add(tfkl.Activation(self.nonlinearity))
+        self.add(tfkl.Activation(self.activation))
 
         self.add(tfkl.Conv2D(self.num_channels,
                              self.kernel_size,
@@ -150,7 +150,7 @@ class dense_layer(tf.keras.Sequential):
                  growth_rate,
                  kernel_size=(3, 3),
                  dropout_rate=0.2,
-                 nonlinearity='relu',
+                 activation='relu',
                  use_dropout=False,
                  use_concat=True,
                  **kwargs):
@@ -161,7 +161,7 @@ class dense_layer(tf.keras.Sequential):
         self.growth_rate = growth_rate
         self.kernel_size = kernel_size
         self.dropout_rate = dropout_rate
-        self.nonlinearity = nonlinearity
+        self.activation = activation
         self.use_dropout = use_dropout
         self.use_concat = use_concat
 
@@ -170,7 +170,7 @@ class dense_layer(tf.keras.Sequential):
             self.conv_list.append(conv_layer(num_channels=self.growth_rate,
                                              kernel_size=self.kernel_size,
                                              dropout_rate=self.dropout_rate,
-                                             nonlinearity=self.nonlinearity,
+                                             activation=self.activation,
                                              use_dropout=self.use_dropout))
 
     def call(self, inputs, training=False):
@@ -198,7 +198,7 @@ class down_transition(tf.keras.Sequential):
                  kernel_size=(1, 1),
                  pool_size=(2, 2),
                  dropout_rate=0.2,
-                 nonlinearity='relu',
+                 activation='relu',
                  use_dropout=False,
                  **kwargs):
 
@@ -207,13 +207,13 @@ class down_transition(tf.keras.Sequential):
         self.kernel_size = kernel_size
         self.pool_size = pool_size
         self.dropout_rate = dropout_rate
-        self.nonlinearity = nonlinearity
+        self.activation = activation
         self.use_dropout = use_dropout
 
         self.add(tfkl.BatchNormalization(axis=-1,
                                          momentum=0.95,
                                          epsilon=0.001))
-        self.add(tfkl.Activation(nonlinearity))
+        self.add(tfkl.Activation(activation))
         self.add(tfkl.Conv2D(num_channels, kernel_size, padding='same'))
 
         if use_dropout:
@@ -238,7 +238,7 @@ class up_transition(tf.keras.Model):
                  kernel_size=(3, 3),
                  strides=(2, 2),
                  padding='same',
-                 nonlinearity='relu',
+                 activation='relu',
                  use_concat=False,
                  **kwargs):
         
@@ -250,7 +250,7 @@ class up_transition(tf.keras.Model):
         self.kernel_size = kernel_size
         self.strides = strides
         self.padding = padding
-        self.nonlinearity = nonlinearity
+        self.activation = activation
         self.use_concat = use_concat
 
         self.up_conv = tfkl.Conv2DTranspose(num_channels,
@@ -262,7 +262,7 @@ class up_transition(tf.keras.Model):
                                        growth_rate, 
                                        kernel_size,
                                        strides,
-                                       nonlinearity,
+                                       activation,
                                        use_concat=self.use_concat)
 
     def call(self, inputs, bridge, training=False):
