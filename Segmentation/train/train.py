@@ -66,7 +66,8 @@ class Train:
                          visual_save_freq=5,
                          debug=False,
                          num_to_visualise=0):
-        """ Trains 3D model with custom tf loop and MirrorStrategy
+        """
+        Trains 3D model with custom tf loop and MirrorStrategy
         """
 
         def run_train_strategy(x, y, visualise):

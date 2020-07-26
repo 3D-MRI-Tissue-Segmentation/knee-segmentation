@@ -68,3 +68,6 @@ logs/vnet-aug/test/binary/20200627/010407: total_loss 0.2547071576118469  - val_
 logs/vnet-aug/test/binary/20200627/082840: total_loss 0.9302355647087097  - val_mIoU: 0.036170 - mIoU: 0.000000 - val_dice: 0.930236 - dice: 0.000000 
 logs/vnet-aug/test/binary/20200627/154609: total_loss 0.22151891887187958  - val_mIoU: 0.637687 - mIoU: 0.000000 - val_dice: 0.221519 - dice: 0.000000 
 logs/vnet-noaug/test/binary/20200627/230904: total_loss 0.16653092205524445  - val_mIoU: 0.714793 - mIoU: 0.000000 - val_dice: 0.166531 - dice: 0.000000 
+========================================== 
+========================================== 
+========================================== 

@@ -26,11 +26,9 @@ def replace_vector(img, search, replace):
 
 def get_mid_slice(x, y, pred, multi_class):
     mid = tf.cast(tf.divide(tf.shape(y)[1], 2), tf.int32)
-    start = [0, mid, 0, 0, 0]
-    size = [1, 1, -1, -1, -1]
-    x_slice = tf.slice(x, start, size)
-    y_slice = tf.slice(y, start, size)
-    pred_slice = tf.slice(pred, start, size)
+    x_slice = tf.slice(x, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+    y_slice = tf.slice(y, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+    pred_slice = tf.slice(pred, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
     if multi_class:
         x_slice = tf.squeeze(x_slice, axis=-1)
         x_slice = tf.stack((x_slice,) * 3, axis=-1)
@@ -54,9 +52,7 @@ def get_mid_slice(x, y, pred, multi_class):
 
 def get_mid_vol(y, pred, multi_class, rad=12, check_empty=False):
     y_shape = tf.shape(y)
-    slice_start = [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0]
-    slice_size = [1, rad * 2, rad * 2, rad * 2, -1]
-    y_subvol = tf.slice(y, slice_start, slice_size)
+    y_subvol = tf.slice(y, [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0], [1, rad * 2, rad * 2, rad * 2, -1])
 
     if (check_empty) and (tf.math.reduce_sum(y_subvol) < 25):
         return None
@@ -67,7 +63,7 @@ def get_mid_vol(y, pred, multi_class, rad=12, check_empty=False):
     else:
         y_subvol = tf.reshape(y_subvol, (y_subvol.shape[1:4]))
     y_subvol = tf.stack((y_subvol,) * 3, axis=-1)
-    pred_subvol = tf.slice(pred, slice_start, slice_size)
+    pred_subvol = tf.slice(pred, [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0], [1, rad * 2, rad * 2, rad * 2, -1])
     if multi_class:
         pred_subvol = tf.argmax(pred_subvol, axis=-1)
         pred_subvol = tf.cast(pred_subvol, tf.float32)
@@ -94,12 +90,10 @@ def get_mid_vol(y, pred, multi_class, rad=12, check_empty=False):
 
 def plot_through_slices(batch_idx, x_crop, y_crop, mean_pred, writer, multi_class=False):
     imgs = []
-    slice_size = [1, 1, -1, -1, -1]
     for i in range(160):
-        slice_start = [batch_idx, i, 0, 0, 0]
-        x_slice = tf.slice(x_crop, slice_start, slice_size)
-        y_slice = tf.slice(y_crop, slice_start, slice_size)
-        m_slice = tf.slice(mean_pred, slice_start, slice_size)
+        x_slice = tf.slice(x_crop, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
+        y_slice = tf.slice(y_crop, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
+        m_slice = tf.slice(mean_pred, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
         if multi_class:
             y_slice = tf.argmax(y_slice, axis=-1)
             y_slice = tf.cast(y_slice, tf.float32)
@@ -123,7 +117,7 @@ def plot_through_slices(batch_idx, x_crop, y_crop, mean_pred, writer, multi_clas
         img = tf.concat((x_slice, y_slice, m_slice), axis=-2)
         img = tf.reshape(img, (img.shape[1:]))
         with writer.as_default():
-            tf.summary.image("Whole Validation - All Slices", img, step=i)
+            tf.summary.image(f"Whole Validation - All Slices", img, step=i)
         img = tf.reshape(img, (img.shape[1:]))
         if not multi_class:
             img = tf.reshape(img, (img.shape[:-1]))
