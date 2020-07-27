@@ -14,6 +14,7 @@ colour_maps = {
     6: [tf.constant([6, 6, 6], dtype=tf.float32), tf.constant([[[[255, 165, 0]]]], dtype=tf.float32)],
 }
 
+
 def replace_vector(img, search, replace):
     condition = tf.equal(img, search)
     condition = tf.reduce_all(condition, axis=-1)
@@ -22,13 +23,12 @@ def replace_vector(img, search, replace):
     replace_tiled = tf.reshape(replace_tiled, img.shape)
     return tf.where(condition, replace_tiled, img)
 
+
 def get_mid_slice(x, y, pred, multi_class):
     mid = tf.cast(tf.divide(tf.shape(y)[1], 2), tf.int32)
-    start = [0, mid, 0, 0, 0]
-    size = [1, 1, -1, -1, -1]
-    x_slice = tf.slice(x, start, size)
-    y_slice = tf.slice(y, start, size)
-    pred_slice = tf.slice(pred, start, size)
+    x_slice = tf.slice(x, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+    y_slice = tf.slice(y, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
+    pred_slice = tf.slice(pred, [0, mid, 0, 0, 0], [1, 1, -1, -1, -1])
     if multi_class:
         x_slice = tf.squeeze(x_slice, axis=-1)
         x_slice = tf.stack((x_slice,) * 3, axis=-1)
@@ -49,11 +49,10 @@ def get_mid_slice(x, y, pred, multi_class):
 
     return tf.reshape(img, (img.shape[1:]))
 
+
 def get_mid_vol(y, pred, multi_class, rad=12, check_empty=False):
     y_shape = tf.shape(y)
-    slice_start = [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0]
-    slice_size = [1, rad * 2, rad * 2, rad * 2, -1]
-    y_subvol = tf.slice(y, slice_start, slice_size)
+    y_subvol = tf.slice(y, [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0], [1, rad * 2, rad * 2, rad * 2, -1])
 
     if (check_empty) and (tf.math.reduce_sum(y_subvol) < 25):
         return None
@@ -64,7 +63,7 @@ def get_mid_vol(y, pred, multi_class, rad=12, check_empty=False):
     else:
         y_subvol = tf.reshape(y_subvol, (y_subvol.shape[1:4]))
     y_subvol = tf.stack((y_subvol,) * 3, axis=-1)
-    pred_subvol = tf.slice(pred, slice_start, slice_size)
+    pred_subvol = tf.slice(pred, [0, (y_shape[1] // 2) - rad, (y_shape[2] // 2) - rad, (y_shape[3] // 2) - rad, 0], [1, rad * 2, rad * 2, rad * 2, -1])
     if multi_class:
         pred_subvol = tf.argmax(pred_subvol, axis=-1)
         pred_subvol = tf.cast(pred_subvol, tf.float32)
@@ -88,14 +87,13 @@ def get_mid_vol(y, pred, multi_class, rad=12, check_empty=False):
     img = tf.concat((y_img, pred_img), axis=-2)
     return img
 
+
 def plot_through_slices(batch_idx, x_crop, y_crop, mean_pred, writer, multi_class=False):
     imgs = []
-    slice_size = [1, 1, -1, -1, -1]
     for i in range(160):
-        slice_start = [batch_idx, i, 0, 0, 0]
-        x_slice = tf.slice(x_crop, slice_start, slice_size)
-        y_slice = tf.slice(y_crop, slice_start, slice_size)
-        m_slice = tf.slice(mean_pred, slice_start, slice_size)
+        x_slice = tf.slice(x_crop, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
+        y_slice = tf.slice(y_crop, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
+        m_slice = tf.slice(mean_pred, [batch_idx, i, 0, 0, 0], [1, 1, -1, -1, -1])
         if multi_class:
             y_slice = tf.argmax(y_slice, axis=-1)
             y_slice = tf.cast(y_slice, tf.float32)
@@ -111,7 +109,7 @@ def plot_through_slices(batch_idx, x_crop, y_crop, mean_pred, writer, multi_clas
             m_slice = tf.math.round(m_slice)
         if multi_class:
             x_slice = tf.squeeze(x_slice, axis=-1)
-            x_slice = tf.stack((x_slice,) * 3, axis=-1)        
+            x_slice = tf.stack((x_slice,) * 3, axis=-1)
         if not multi_class:
             x_min = tf.reduce_min(x_slice)
             x_max = tf.reduce_max(x_slice)

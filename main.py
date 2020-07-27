@@ -142,19 +142,10 @@ def main(argv):
         if FLAGS.multi_class:
             if FLAGS.use_2d:
                 metrics = [dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc']
-                # model.compile(optimizer=optimiser,
-                #               loss=loss_fn,
-                #               metrics=[dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc'])
             else:
                 metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
-                # model.compile(optimizer=optimiser,
-                #               loss=loss_fn,
-                #               metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
         else:
             metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
-            # model.compile(optimizer=optimiser,
-            #               loss=loss_fn,
-            #               metrics=[dice_coef, iou_loss, crossentropy_loss_fn, 'acc'])
 
         model.compile(optimizer=optimiser,
                         loss=loss_fn,

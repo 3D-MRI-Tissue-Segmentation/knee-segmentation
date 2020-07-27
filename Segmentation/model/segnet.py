@@ -11,7 +11,7 @@ class SegNet (tf.keras.Model):
                  backbone='default',
                  kernel_size=(3, 3),
                  pool_size=(2, 2),
-                 nonlinearity='relu',
+                 activation='relu',
                  use_batchnorm=True,
                  use_bias=True,
                  use_transpose=False,
@@ -28,7 +28,7 @@ class SegNet (tf.keras.Model):
         self.backbone = backbone
         self.kernel_size = kernel_size
         self.pool_size = pool_size
-        self.nonlinearity = nonlinearity
+        self.activation = activation
         self.use_batchnorm = use_batchnorm
         self.use_bias = use_bias
         self.use_transpose = use_transpose
@@ -49,7 +49,7 @@ class SegNet (tf.keras.Model):
                                                    num_conv,
                                                    self.kernel_size,
                                                    self.pool_size,
-                                                   self.nonlinearity,
+                                                   self.activation,
                                                    self.use_batchnorm,
                                                    self.use_bias,
                                                    self.use_dropout,
@@ -70,7 +70,7 @@ class SegNet (tf.keras.Model):
                                                          num_conv_layers=num_conv,
                                                          kernel_size=(2, 2),
                                                          upsampling_size=(2, 2),
-                                                         nonlinearity=self.nonlinearity,
+                                                         activation=self.activation,
                                                          use_batchnorm=self.use_batchnorm,
                                                          use_transpose=self.use_transpose,
                                                          use_bias=self.use_bias,
@@ -103,7 +103,7 @@ class SegNet_Conv2D_Block(tf.keras.Sequential):
                  num_conv_layers=2,
                  kernel_size=(3, 3),
                  pool_size=(2, 2),
-                 nonlinearity='relu',
+                 activation='relu',
                  use_batchnorm=True,
                  use_bias=True,
                  use_dropout=False,
@@ -124,7 +124,7 @@ class SegNet_Conv2D_Block(tf.keras.Sequential):
                 self.add(tfkl.BatchNormalization(axis=-1,
                                                  momentum=0.95,
                                                  epsilon=0.001))
-            self.add(tfkl.Activation(nonlinearity))
+            self.add(tfkl.Activation(activation))
 
         if use_dropout:
             if use_spatial_dropout:
@@ -147,7 +147,7 @@ class segnet_Up_Conv2D_block(tf.keras.Sequential):
                  num_conv_layers,
                  kernel_size=(3, 3),
                  upsampling_size=(2, 2),
-                 nonlinearity='relu',
+                 activation='relu',
                  use_batchnorm=True,
                  use_transpose=False,
                  use_bias=True,
@@ -175,7 +175,7 @@ class segnet_Up_Conv2D_block(tf.keras.Sequential):
                 self.add(tfkl.BatchNormalization(axis=-1,
                                                  momentum=0.95,
                                                  epsilon=0.001))
-            self.add(tfkl.Activation(nonlinearity))
+            self.add(tfkl.Activation(activation))
 
     def call(self, x, training=False):
 

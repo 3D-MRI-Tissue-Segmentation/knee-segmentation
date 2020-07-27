@@ -1,5 +1,4 @@
 import tensorflow as tf
-from glob import glob
 import math
 
 
@@ -82,7 +81,7 @@ class Metric():
     def record_metric_to_summary(self, e):
         for metric_loss in self.metrics:
             for metric in self.metrics[metric_loss]:
-                for training in range(2):    
+                for training in range(2):
                     pos = -2 if training else -1
                     with self.metrics[metric_loss][metric][pos].as_default():
                         tf.summary.scalar('metrics', self.metrics[metric_loss][metric][pos - 2].result(), step=e)
