@@ -20,7 +20,7 @@ class Conv_Block(tf.keras.Sequential):
 
         super(Conv_Block, self).__init__(**kwargs)
 
-        for _ in range(self.num_conv_layers):
+        for _ in range(num_conv_layers):
             if use_2d:
                 self.add(tfkl.Conv2D(num_channels,
                                      kernel_size,
@@ -73,6 +73,7 @@ class Up_Conv(tf.keras.Model):
         super(Up_Conv, self).__init__(**kwargs)
 
         self.data_format = data_format
+        self.use_attention = use_attention
 
         if use_transpose:
             if use_2d:

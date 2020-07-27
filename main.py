@@ -177,13 +177,14 @@ def main(argv):
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
 
-        # history = model.fit(train_ds,
-        #                     steps_per_epoch=steps_per_epoch,
-        #                     epochs=FLAGS.train_epochs,
-        #                     validation_data=valid_ds,
-        #                     validation_steps=validation_steps,
-        #                     callbacks=[ckpt_cb, tb])
-
+        history = model.fit(train_ds,
+                            steps_per_epoch=steps_per_epoch,
+                            epochs=FLAGS.train_epochs,
+                            validation_data=valid_ds,
+                            validation_steps=validation_steps,
+                            callbacks=[ckpt_cb, tb])
+        
+        """
         lr_manager = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
                                           initial_learning_rate=FLAGS.base_learning_rate,
                                           drop=FLAGS.lr_drop_ratio,
@@ -201,7 +202,7 @@ def main(argv):
                       metrics=metrics,
                       tfrec_dir='./Data/tfrecords/',
                       log_dir="logs")
-
+    
         log_dir_now = train.train_model_loop(train_ds=train_ds,
                                              valid_ds=valid_ds,
                                              strategy=strategy,
@@ -209,8 +210,8 @@ def main(argv):
                                              multi_class=FLAGS.multi_class,
                                              debug=False,
                                              num_to_visualise=0)
-
-
+        
+        """
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
 

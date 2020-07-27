@@ -61,10 +61,10 @@ flags.DEFINE_list('num_channels_UpConv', [512, 256, 128], 'Number of filters for
 flags.DEFINE_integer('kernel_size_UpConv', 3, 'Kernel size for the upsampling convolutions')
 
 # Logging, saving and testing options
-flags.DEFINE_string('tfrec_dir', './Data/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', 'checkpoints', 'directory for checkpoints')
+flags.DEFINE_string('tfrec_dir', 'gs://oai-ml-dataset/tfrecords/', 'directory for TFRecords folder')
+flags.DEFINE_string('logdir', 'gs://oai-ml-dataset/checkpoints', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
-flags.DEFINE_string('bucket', 'oai-challenge-dataset', 'GCloud Bucket for storage of data and weights')
+flags.DEFINE_string('bucket', 'oai-ml-dataset', 'GCloud Bucket for storage of data and weights')
 flags.DEFINE_integer('visual_save_freq', 1, 'Save visualisations every x epochs')
 flags.DEFINE_integer('roi_npy', 80, 'Save the middle x*x*x voxels')
 
@@ -84,6 +84,6 @@ flags.DEFINE_string('which_representation', None, 'Whether to do epoch gif ("epo
 flags.DEFINE_bool('use_gpu', False, 'Whether to run on GPU or otherwise TPU.')
 flags.DEFINE_bool('use_bfloat16', False, 'Whether to use mixed precision.')
 flags.DEFINE_integer('num_cores', 8, 'Number of TPU cores or number of GPUs.')
-flags.DEFINE_string('tpu', 'joe', 'Name of the TPU. Only used if use_gpu is False.')
+flags.DEFINE_string('tpu', 'oai-tpu', 'Name of the TPU. Only used if use_gpu is False.')
 
 FLAGS = flags.FLAGS
