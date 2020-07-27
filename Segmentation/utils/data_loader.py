@@ -269,7 +269,7 @@ def parse_fn_3d(example_proto, training, multi_class=True, use_bfloat16=False, u
 
 def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
                   multi_class=True, is_training=False, use_keras_fit=True, crop_size=None,
-                  use_2d=False, augmentation_2d=None, use_bfloat16_2d=False, use_RGB_2d=False):
+                  use_2d=True, augmentation=None, use_bfloat16=False, use_RGB=False):
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
     if is_training:
@@ -290,10 +290,10 @@ def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
     if use_2d:
         parser = partial(parse_fn,
                          training=is_training,
-                         augmentation=augmentation_2d,
+                         augmentation=augmentation,
                          multi_class=multi_class,
-                         use_bfloat16=use_bfloat16_2d,
-                         use_RGB=use_RGB_2d)
+                         use_bfloat16=use_bfloat16,
+                         use_RGB=use_RGB)
     else:
         parser = partial(parse_fn, training=is_training, multi_class=multi_class)
 

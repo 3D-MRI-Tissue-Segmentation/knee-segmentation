@@ -6,7 +6,7 @@ from datetime import datetime
 from absl import app
 from absl import logging
 
-from Segmentation.utils.data_loader import read_tfrecord_2d as read_tfrecord
+from Segmentation.utils.data_loader import read_tfrecord
 from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss  # focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
