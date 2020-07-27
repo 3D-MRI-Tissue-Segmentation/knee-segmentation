@@ -10,7 +10,7 @@ class VNet(tf.keras.Model):
                  num_classes,
                  use_2d=False,
                  num_conv_layers=2,
-                 kernel_size=(3, 3, 3),
+                 kernel_size=3,
                  activation='prelu',
                  use_batchnorm=True,
                  noise=0.0,

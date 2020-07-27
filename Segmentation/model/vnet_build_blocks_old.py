@@ -4,8 +4,8 @@ import tensorflow as tf
 class Conv3d_ResBlock(tf.keras.layers.Layer):
     def __init__(self,
                  num_channels,
-                 kernel_size=(3, 3, 3),
-                 strides=(2, 2, 2),
+                 kernel_size=3,
+                 strides=2,
                  res_activation='relu',
                  name="conv_res_block",
                  **kwargs):
@@ -30,7 +30,7 @@ class Conv3d_ResBlock(tf.keras.layers.Layer):
 class Up_ResBlock(tf.keras.layers.Layer):
     def __init__(self,
                  num_channels,
-                 kernel_size=(3, 3, 3),
+                 kernel_size=3,
                  name="upsampling_conv_res_block",
                  **kwargs):
         super(Up_ResBlock, self).__init__(name=name)

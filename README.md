@@ -61,3 +61,24 @@ Batch / GPU | Crop Size | Depth Crop Size | Num Channels | Num Conv Layers | Ker
 1 | 64 | 64 | 32 | 2  | (3,3,3)
 1 | 64 | 64 | 32 | 2  | (5,5,5)
 3 | 64 | 32 | 16 | 2  | (3,3,3)
+
+
+seg
+\ train
+    \ build - passes args to models
+    \ Train
+\ eval
+    \ validation - validate over whole vol
+\ data_loader
+    \ creation of data
+    \ loading of data
+    \ data augmentation
+\ utils
+    \ metrics
+    \ losses
+    \ setup GPU \ tpu
+\ visualise
+    \ reshape (visualise_vol/slice)
+\ unit_test
+\ models
+
