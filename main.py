@@ -114,6 +114,7 @@ def main(argv):
 
         lr_rate = LearningRateSchedule(steps_per_epoch,
                                        FLAGS.base_learning_rate,
+                                       FLAGS.min_learning_rate,
                                        FLAGS.lr_drop_ratio,
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)

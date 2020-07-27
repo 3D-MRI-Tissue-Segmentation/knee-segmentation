@@ -4,6 +4,7 @@ from absl import flags
 flags.DEFINE_integer('seed', 1, 'Random seed.')
 flags.DEFINE_integer('batch_size', 32, 'Batch size per TPU Core / GPU')
 flags.DEFINE_float('base_learning_rate', 3.2e-04, 'base learning rate at the start of training session')
+flags.DEFINE_float('min_learning_rate', 1e-09, 'minimum learning rate')
 flags.DEFINE_integer('lr_warmup_epochs', 1, 'No. of epochs for a warmup to the base_learning_rate. 0 for no warmup')
 flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
 flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay learning rate.')
