@@ -37,6 +37,9 @@ def main(epochs,
          ):
     t0 = time()
 
+    if not use_tpu:
+        setup_gpu()
+
     if tpu_name:
         tfrec_dir = 'gs://oai-challenge-dataset/tfrecords'
 
@@ -121,8 +124,6 @@ def main(epochs,
 
 if __name__ == "__main__":
     use_tpu = False
-    if not use_tpu:
-        setup_gpu()
 
     with open("results/3d_result.txt", "a") as f:
         f.write(f'========================================== \n')
