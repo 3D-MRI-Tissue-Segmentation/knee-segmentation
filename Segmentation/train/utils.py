@@ -1,8 +1,14 @@
 import tensorflow as tf
 import math
 
+"""
+def setup_accelerator()
+    
+"""
+
 
 def setup_gpu():
+    
     gpus = tf.config.experimental.list_physical_devices('GPU')
     print(gpus)
     if gpus:

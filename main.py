@@ -148,8 +148,8 @@ def main(argv):
             metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
 
         model.compile(optimizer=optimiser,
-                        loss=loss_fn,
-                        metrics=metrics)
+                      loss=loss_fn,
+                      metrics=metrics)
 
     if FLAGS.train:
         # define checkpoints
@@ -200,7 +200,6 @@ def main(argv):
                                              multi_class=FLAGS.multi_class,
                                              debug=False,
                                              num_to_visualise=0)
-
 
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
