@@ -27,6 +27,8 @@ def main(argv):
     del argv  # unused arg
     tf.random.set_seed(FLAGS.seed)  # set seed
 
+    # # ---------------------------------------------------------------------------------
+    # # def setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, tpu_name=FLAGS.tpu)
     # set whether to train on GPU or TPU
     if FLAGS.use_gpu:
         logging.info('Using GPU...')
@@ -53,7 +55,11 @@ def main(argv):
         tf.config.experimental_connect_to_cluster(resolver)
         tf.tpu.experimental.initialize_tpu_system(resolver)
         strategy = tf.distribute.experimental.TPUStrategy(resolver)
+    # # --------------------------------------------------------------------------------
 
+
+    # # --------------------------------------------------------------------------------
+    # #  def load_dataset()
     # set dataset configuration
     if FLAGS.dataset == 'oai_challenge':
 
@@ -88,7 +94,11 @@ def main(argv):
                                  **ds_args)
 
         num_classes = 7 if FLAGS.multi_class else 1
+    # # --------------------------------------------------------------------------------
 
+
+    # # --------------------------------------------------------------------------------
+    # # def set_metrics()
     if FLAGS.multi_class:
         loss_fn = tversky_loss
         crossentropy_loss_fn = tf.keras.losses.categorical_crossentropy
@@ -99,11 +109,14 @@ def main(argv):
     if FLAGS.use_bfloat16:
         policy = tf.keras.mixed_precision.experimental.Policy('mixed_bfloat16')
         tf.keras.mixed_precision.experimental.set_policy(policy)
+    # # --------------------------------------------------------------------------------
 
     # set model architecture
-
     model_fn, model_args = select_model(FLAGS, num_classes)
 
+    # # --------------------------------------------------------------------------------
+    # # if FLAGS.train:
+    # #     def train()
     with strategy.scope():
         model = model_fn(*model_args)
 
@@ -150,7 +163,8 @@ def main(argv):
         model.compile(optimizer=optimiser,
                       loss=loss_fn,
                       metrics=metrics)
-
+    
+    # FLAGS.train will be outside train() 
     if FLAGS.train:
         # define checkpoints
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -200,7 +214,11 @@ def main(argv):
                                              multi_class=FLAGS.multi_class,
                                              debug=False,
                                              num_to_visualise=0)
+    # # --------------------------------------------------------------------------------
 
+    # # --------------------------------------------------------------------------------
+    # else:
+    # # def eval()
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
 
@@ -231,6 +249,7 @@ def main(argv):
         #                  callbacks=[tb],
         #                  num_classes=num_classes
         #                  )
+    # # --------------------------------------------------------------------------------
 
 
 if __name__ == '__main__':
