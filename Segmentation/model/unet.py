@@ -58,7 +58,7 @@ class UNet(tf.keras.Model):
             encoder.freeze_pretrained_layers()
             self.backbone = encoder.construct_backbone()
 
-        n = len(self.num_channels) - 2
+        n = len(num_channels) - 2
         for i in range(n, -1, -1):
             output = num_channels[i]
             self.upsampling_path.append(Up_Conv(output,

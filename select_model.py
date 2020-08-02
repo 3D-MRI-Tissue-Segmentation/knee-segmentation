@@ -142,3 +142,5 @@ def select_model(FLAGS, num_classes):
 
     else:
         logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
+
+    return model_fn, model_args

@@ -138,6 +138,7 @@ def parse_fn_3d(example_proto, training, multi_class=True, use_bfloat16=False, u
     return (image, seg)
 
 
+<<<<<<< HEAD
 def read_tfrecord(tfrecords_dir,
                   batch_size,
                   buffer_size,
@@ -153,6 +154,11 @@ def read_tfrecord(tfrecords_dir,
     """This function reads and returns TFRecords dataset in tf.data.Dataset format
     """
 
+=======
+def read_tfrecord(tfrecords_dir, batch_size, buffer_size, parse_fn=parse_fn_2d,
+                  multi_class=True, is_training=False, use_keras_fit=True, crop_size=None,
+                  use_2d=True, augmentation=None, use_bfloat16=False, use_RGB=False):
+>>>>>>> 8bfeb3791bc4d88ddc715842770cfee726b60521
     file_list = tf.io.matching_files(os.path.join(tfrecords_dir, '*-*'))
     shards = tf.data.Dataset.from_tensor_slices(file_list)
     if is_training:

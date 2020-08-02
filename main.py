@@ -6,8 +6,13 @@ from datetime import datetime
 from absl import app
 from absl import logging
 
+<<<<<<< HEAD
 from Segementation.utils.accelerator import setup_accelerator
 from Segmentation.utils.data_loader import load_dataset
+=======
+from Segmentation.utils.data_loader import read_tfrecord
+from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
+>>>>>>> 8bfeb3791bc4d88ddc715842770cfee726b60521
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss  # focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import LearningRateSchedule
@@ -70,6 +75,7 @@ def main(argv):
 
         lr_rate = LearningRateSchedule(steps_per_epoch,
                                        FLAGS.base_learning_rate,
+                                       FLAGS.min_learning_rate,
                                        FLAGS.lr_drop_ratio,
                                        lr_decay_epochs,
                                        FLAGS.lr_warmup_epochs)
@@ -125,13 +131,14 @@ def main(argv):
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
 
-        # history = model.fit(train_ds,
-        #                     steps_per_epoch=steps_per_epoch,
-        #                     epochs=FLAGS.train_epochs,
-        #                     validation_data=valid_ds,
-        #                     validation_steps=validation_steps,
-        #                     callbacks=[ckpt_cb, tb])
-
+        history = model.fit(train_ds,
+                            steps_per_epoch=steps_per_epoch,
+                            epochs=FLAGS.train_epochs,
+                            validation_data=valid_ds,
+                            validation_steps=validation_steps,
+                            callbacks=[ckpt_cb, tb])
+        
+        """
         lr_manager = LearningRateSchedule(steps_per_epoch=steps_per_epoch,
                                           initial_learning_rate=FLAGS.base_learning_rate,
                                           drop=FLAGS.lr_drop_ratio,
@@ -149,7 +156,7 @@ def main(argv):
                       metrics=metrics,
                       tfrec_dir='./Data/tfrecords/',
                       log_dir="logs")
-
+    
         log_dir_now = train.train_model_loop(train_ds=train_ds,
                                              valid_ds=valid_ds,
                                              strategy=strategy,
@@ -157,11 +164,16 @@ def main(argv):
                                              multi_class=FLAGS.multi_class,
                                              debug=False,
                                              num_to_visualise=0)
+<<<<<<< HEAD
     # # --------------------------------------------------------------------------------
 
     # # --------------------------------------------------------------------------------
     # else:
     # # def eval()
+=======
+        
+        """
+>>>>>>> 8bfeb3791bc4d88ddc715842770cfee726b60521
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
 

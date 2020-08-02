@@ -4,11 +4,12 @@ Joe Arrowsmith, Joonsu Gha, Lapo Rastrelli, Olivia Gallupova, Pietro Vitiello
 
 ---
 
-### 2D Models Implemented
+### Models Implemented
 
 - [x] SegNet 
 - [x] Vanilla UNet 
 - [x] Attention UNet
+- [x] VNet
 - [x] <del> Multi-res UNet </del>
 - [x] R2_UNet
 - [x] R2_Attention UNet
@@ -16,69 +17,7 @@ Joe Arrowsmith, Joonsu Gha, Lapo Rastrelli, Olivia Gallupova, Pietro Vitiello
 - [x] 100-layer Tiramisu
 - [x] DeepLabv3+ 
 
-### 3D Models Implemented
-
-- [x] 3D UNet
-- [x] Relative 3D UNet
-- [x] Slice 3D UNet
-- [x] VNet
-- [x] Relative VNet
-- [x] Slice VNet
-
----
-
 ### Useful Code Snippets
 
-``` Bash
-Run 3D Train
-
-python Segmentation/model/vnet_train.py
-```
-
-``` Bash
-Unit-Testing and Unit-Test Converage
-
-python -m pytest --cov-report term-missing:skip-covered --cov=Segmentation && coverage html && open ./htmlcov.index.html
-```
-
-``` Bash
-Start tensorboard on Pompeii
-
-On pompeii: tensorboard --logdir logs --samples_per_plugin images=100
-
-On your local machine: ssh -L 16006:127.0.0.1:6006 username@ip
-
-Go to localhost: http://localhost:16006/
-```
-
----
-
-### Valid 3D Configs
-
-Batch / GPU | Crop Size | Depth Crop Size | Num Channels | Num Conv Layers | Kernel Size
-:----------:|:--------:|:---------------:|:------------:|:---------------:|:----------:
-1 | 32 | 32 | 20 | 2  | (5,5,5)
-1 | 64 | 64 | 32 | 2  | (3,3,3)
-1 | 64 | 64 | 32 | 2  | (5,5,5)
-3 | 64 | 32 | 16 | 2  | (3,3,3)
-
-
-seg
-\ train
-    \ build - passes args to models
-    \ Train
-\ eval
-    \ validation - validate over whole vol
-\ data_loader
-    \ creation of data
-    \ loading of data
-    \ data augmentation
-\ utils
-    \ metrics
-    \ losses
-    \ setup GPU \ tpu
-\ visualise
-    \ reshape (visualise_vol/slice)
-\ unit_test
-\ models
+TBC
 
