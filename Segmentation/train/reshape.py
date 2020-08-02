@@ -14,7 +14,6 @@ colour_maps = {
     6: [tf.constant([6, 6, 6], dtype=tf.float32), tf.constant([[[[255, 165, 0]]]], dtype=tf.float32)],
 }
 
-
 def replace_vector(img, search, replace):
     condition = tf.equal(img, search)
     condition = tf.reduce_all(condition, axis=-1)

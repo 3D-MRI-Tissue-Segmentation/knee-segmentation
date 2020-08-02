@@ -7,8 +7,7 @@ from Segmentation.train.utils import Metric
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.visualise_utils import visualise_sample
 
-
-class Train:
+class Trainer:
     def __init__(self,
                  epochs,
                  batch_size,
@@ -203,28 +202,3 @@ class Train:
         return log_dir_now
 
 
-def load_datasets(batch_size, buffer_size,
-                  tfrec_dir='./Data/tfrecords/',
-                  multi_class=False,
-                  crop_size=144,
-                  depth_crop_size=80,
-                  aug=[],
-                  predict_slice=False,
-                  ):
-    """
-    Loads tf records datasets for 3D models.
-    """
-    args = {
-        'batch_size': batch_size,
-        'buffer_size': buffer_size,
-        'multi_class': multi_class,
-        'use_keras_fit': False,
-        'crop_size': crop_size,
-        'depth_crop_size': depth_crop_size,
-        'aug': aug,
-    }
-    train_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'train_3d/'),
-                                is_training=True, predict_slice=predict_slice, **args)
-    valid_ds = read_tfrecord_3d(tfrecords_dir=os.path.join(tfrec_dir, 'valid_3d/'),
-                                is_training=False, predict_slice=predict_slice, **args)
-    return train_ds, valid_ds

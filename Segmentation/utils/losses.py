@@ -1,4 +1,3 @@
-# import numpy as np
 from tensorflow.keras.losses import binary_crossentropy, categorical_crossentropy
 import tensorflow.keras.backend as K
 import tensorflow as tf
@@ -6,10 +5,8 @@ import tensorflow as tf
 epsilon = 1e-5
 smooth = 1
 
-
 def dice_coef_loss(y_true, y_pred):
     return -dice_coef(y_true, y_pred)
-
 
 def dice_coef(y_true, y_pred, smooth=1):
     y_true_f = K.flatten(y_true)
@@ -17,7 +14,6 @@ def dice_coef(y_true, y_pred, smooth=1):
 
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f * y_true_f) + K.sum(y_pred_f * y_pred_f) + smooth)
-
 
 def dsc(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py

@@ -6,97 +6,40 @@ from datetime import datetime
 from absl import app
 from absl import logging
 
-from Segmentation.utils.data_loader import read_tfrecord_2d as read_tfrecord
-from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
+from Segementation.utils.accelerator import setup_accelerator
+from Segmentation.utils.data_loader import load_dataset
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss  # focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import LearningRateSchedule
-# from Segmentation.utils.evaluation_utils import plot_and_eval_3D, confusion_matrix, epoch_gif, volume_gif, take_slice
 from Segmentation.utils.evaluation_utils import eval_loop
 from Segmentation.train.train import Train
 
 from flags import FLAGS
 from select_model import select_model
 
-
 def main(argv):
 
     if FLAGS.visual_file:
         assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
-
     del argv  # unused arg
+
     tf.random.set_seed(FLAGS.seed)  # set seed
 
-    # # ---------------------------------------------------------------------------------
-    # # def setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, tpu_name=FLAGS.tpu)
     # set whether to train on GPU or TPU
-    if FLAGS.use_gpu:
-        logging.info('Using GPU...')
-        # strategy requires: export TF_FORCE_GPU_ALLOW_GROWTH=true to be wrote in cmd
-        if FLAGS.num_cores == 1:
-            strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
-        else:
-            strategy = tf.distribute.MirroredStrategy()
-        gpus = tf.config.experimental.list_physical_devices('GPU')
-        if gpus:
-            for gpu in gpus:
-                try:
-                    tf.config.experimental.set_visible_devices(gpu, 'GPU')
-                    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+    def setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)
 
-                    logging.info(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
-                except RuntimeError as e:
-                    # Visible devices must be set before GPUs have been initialized
-                    print(e)
-    else:
-        logging.info('Use TPU at %s',
-                     FLAGS.tpu if FLAGS.tpu is not None else 'local')
-        resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=FLAGS.tpu)
-        tf.config.experimental_connect_to_cluster(resolver)
-        tf.tpu.experimental.initialize_tpu_system(resolver)
-        strategy = tf.distribute.experimental.TPUStrategy(resolver)
-    # # --------------------------------------------------------------------------------
-
-
-    # # --------------------------------------------------------------------------------
-    # #  def load_dataset()
     # set dataset configuration
-    if FLAGS.dataset == 'oai_challenge':
-
-        batch_size = FLAGS.batch_size * FLAGS.num_cores
-
-        if FLAGS.use_2d:
-            steps_per_epoch = 19200 // batch_size
-            validation_steps = 4480 // batch_size
-        else:
-            steps_per_epoch = 120 // batch_size
-            validation_steps = 28 // batch_size
-
-        logging.info('Using Augmentation Strategy: {}'.format(FLAGS.aug_strategy))
-
-        train_dir = 'train/' if FLAGS.use_2d else 'train_3d/'
-        valid_dir = 'valid/' if FLAGS.use_2d else 'valid_3d/'
-
-        ds_args = {
-            'batch_size': batch_size,
-            'buffer_size': FLAGS.buffer_size,
-            'augmentation': FLAGS.aug_strategy,
-            'parse_fn': parse_fn_2d if FLAGS.use_2d else parse_fn_3d,
-            'multi_class': FLAGS.multi_class,
-            'is_training': True,
-            'use_bfloat16': FLAGS.use_bfloat16,
-            'use_RGB': False if FLAGS.backbone_architecture == 'default' else True
-        }
-
-        train_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, train_dir),
-                                 **ds_args)
-        valid_ds = read_tfrecord(tfrecords_dir=os.path.join(FLAGS.tfrec_dir, valid_dir),
-                                 **ds_args)
-
-        num_classes = 7 if FLAGS.multi_class else 1
-    # # --------------------------------------------------------------------------------
-
-
+    train_ds, validation_ds = def load_dataset(batch_size=FLAGS.batch_size,
+                                               dataset_dir=FLAGS.tfrec_dir,
+                                               augmentation=FLAGS.aug_strategy,
+                                               use_2d=FLAGS.use_2d,
+                                               multi_class=FLAGS.multi_class,
+                                               crop_size=288,
+                                               buffer_size=FLAGS.buffer_size,
+                                               use_bfloat16=FLAGS.use_bfloat16,
+                                               use_RGB=False if FLAGS.backbone_architecture == 'default' else True
+                                               )
+    
     # # --------------------------------------------------------------------------------
     # # def set_metrics()
     if FLAGS.multi_class:
@@ -222,12 +165,21 @@ def main(argv):
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
 
-        eval_loop(dataset=valid_ds, validation_steps=validation_steps, aug_strategy=FLAGS.aug_strategy,
-                  bucket_name=FLAGS.bucket, logdir=FLAGS.logdir, tpu_name=tpu, visual_file=FLAGS.visual_file, weights_dir=FLAGS.weights_dir,
+        eval_loop(dataset=valid_ds,
+                  validation_steps=validation_steps,
+                  aug_strategy=FLAGS.aug_strategy,
+                  bucket_name=FLAGS.bucket,
+                  logdir=FLAGS.logdir,
+                  tpu_name=tpu,
+                  visual_file=FLAGS.visual_file,
+                  weights_dir=FLAGS.weights_dir,
                   fig_dir=FLAGS.fig_dir,
-                  which_volume=FLAGS.gif_volume, which_epoch=FLAGS.gif_epochs, which_slice=FLAGS.gif_slice,
+                  which_volume=FLAGS.gif_volume,
+                  which_epoch=FLAGS.gif_epochs,
+                  which_slice=FLAGS.gif_slice,
                   multi_as_binary=False,
-                  trained_model=model, model_architecture=FLAGS.model_architecture,
+                  trained_model=model,
+                  model_architecture=FLAGS.model_architecture,
                   callbacks=[tb],
                   num_classes=num_classes)
 

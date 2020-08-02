@@ -2,7 +2,7 @@ import tensorflow as tf
 from time import time
 import os
 from Segmentation.train.build import build_model
-from Segmentation.train.train import load_datasets, Train
+from Segmentation.train.train import load_datasets, Trainer
 from Segmentation.train.utils import LearningRateUpdate, Metric, setup_gpu
 from Segmentation.train.validation import validate_best_model
 from Segmentation.utils.losses import dice_loss, tversky_loss, iou_loss
@@ -86,9 +86,16 @@ def main(epochs,
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         model = build_model(num_channels, num_classes, name, predict_slice=predict_slice, **model_kwargs)
 
-        trainer = Train(epochs, batch_size, enable_function,
-                        model, optimizer, loss_func, lr_manager, predict_slice, metrics,
-                        tfrec_dir=tfrec_dir)
+        trainer = Trainer(epochs,
+                          batch_size,
+                          enable_function,
+                          model,
+                          optimizer,
+                          loss_func,
+                          lr_manager,
+                          predict_slice,
+                          metrics,
+                          tfrec_dir=tfrec_dir)
 
         train_ds = strategy.experimental_distribute_dataset(train_ds)
         valid_ds = strategy.experimental_distribute_dataset(valid_ds)
