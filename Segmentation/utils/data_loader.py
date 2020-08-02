@@ -36,6 +36,8 @@ def parse_fn_2d(example_proto,
                 use_bfloat16=False,
                 use_RGB=False):
 
+    """ Parse and augment 2d data by batch """
+
     if use_bfloat16:
         dtype = tf.bfloat16
     else:
@@ -61,22 +63,23 @@ def parse_fn_2d(example_proto,
     seg = tf.reshape(seg_raw, [384, 384, 7])
     seg = tf.cast(seg, dtype)
 
+    supported_augs = ["random_crop", "noise", "crop_and_noise"]
     if training:
         if 'random_crop' in augmentation:
             image, seg = crop_randomly_image_pair_2d(image, seg)
-        elif 'noise' in augmentation:
+        if 'noise' in augmentation:
             image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
             image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
-        elif 'crop_and_noise' in augmentation:
+        if 'crop_and_noise' in augmentation:
             image, seg = crop_randomly_image_pair_2d(image, seg)
             image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
             image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
-        elif augmentation is None:
+        if augmentation is None:
             image = tf.image.resize_with_crop_or_pad(image, 288, 288)
             seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
-        else:
-            "Augmentation strategy {} does not exist or is not supported!".format(augmentation)
-
+        unsupported_augs = np.setdiff1d(supported_augs, augmentation)
+        if unsupported_augs is not None:
+            "Augmentation strategy {} does not exist or is not supported!".format(unsupported_augs)
     else:
         image = tf.image.resize_with_crop_or_pad(image, 288, 288)
         seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
@@ -86,6 +89,8 @@ def parse_fn_2d(example_proto,
         seg = tf.math.reduce_sum(seg, axis=-1)
         seg = tf.expand_dims(seg, axis=-1)
         seg = tf.clip_by_value(seg, 0, 1)
+    
+    image, seg = normalise(image, seg)
 
     return (image, seg)
 
@@ -98,6 +103,8 @@ def parse_fn_3d(example_proto,
                 multi_class=True,
                 use_bfloat16=False,
                 use_RGB=False):
+
+    """ Parse and augment 3d data by batch """
 
     if use_bfloat16:
         dtype = tf.bfloat16
