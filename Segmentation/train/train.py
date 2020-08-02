@@ -11,8 +11,8 @@ class Trainer:
     def __init__(self,
                  epochs,
                  batch_size,
-                 enable_function,
-                 model,
+                 enable_function, # run_eager
+                 model, 
                  optimizer,
                  loss_func,
                  lr_manager,
@@ -93,16 +93,25 @@ class Trainer:
             total_loss, num_train_batch = 0.0, 0.0
             is_training = True
             use_2d = False
+
             for x_train, y_train in train_ds:
                 visualise = (num_train_batch < num_to_visualise)
                 loss, pred = run_train_strategy(x_train, y_train, visualise)
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    num_to_visualise = visualise_sample(x_train, y_train, pred,
+                    # let's check if this works
+                    num_to_visualise = visualise_sample(x_train, 
+                                                        y_train, 
+                                                        pred,
                                                         num_to_visualise,
-                                                        slice_writer, vol_writer,
-                                                        use_2d, epoch, multi_class, predict_slice, is_training)
+                                                        slice_writer,
+                                                        vol_writer,
+                                                        use_2d, 
+                                                        epoch, 
+                                                        multi_class, 
+                                                        predict_slice, 
+                                                        is_training)
                 num_train_batch += 1
             return total_loss / num_train_batch
 
@@ -124,13 +133,21 @@ class Trainer:
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
                 if visualise:
-                    num_to_visualise = visualise_sample(x_valid, y_valid, pred,
+                    num_to_visualise = visualise_sample(x_valid,
+                                                        y_valid,
+                                                        pred,
                                                         num_to_visualise,
-                                                        slice_writer, vol_writer,
-                                                        use_2d, epoch, multi_class, predict_slice, is_training)
+                                                        slice_writer,
+                                                        vol_writer,
+                                                        use_2d,
+                                                        epoch,
+                                                        multi_class,
+                                                        predict_slice,
+                                                        is_training)
                 num_test_batch += 1
             return total_loss / num_test_batch
 
+        #if self.run_eager:
         if self.enable_function:
             run_train_strategy = tf.function(run_train_strategy)
             run_test_strategy = tf.function(run_test_strategy)
