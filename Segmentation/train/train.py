@@ -7,6 +7,7 @@ from Segmentation.train.utils import Metric
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.visualise_utils import visualise_sample
 
+
 class Trainer:
     def __init__(self,
                  epochs,

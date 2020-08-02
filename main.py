@@ -6,13 +6,8 @@ from datetime import datetime
 from absl import app
 from absl import logging
 
-<<<<<<< HEAD
-from Segementation.utils.accelerator import setup_accelerator
+from Segmentation.utils.accelerator import setup_accelerator
 from Segmentation.utils.data_loader import load_dataset
-=======
-from Segmentation.utils.data_loader import read_tfrecord
-from Segmentation.utils.data_loader import parse_fn_2d, parse_fn_3d
->>>>>>> 8bfeb3791bc4d88ddc715842770cfee726b60521
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss  # focal_tversky
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import LearningRateSchedule
@@ -21,6 +16,7 @@ from Segmentation.train.train import Train
 
 from flags import FLAGS
 from select_model import select_model
+
 
 def main(argv):
 
@@ -164,16 +160,11 @@ def main(argv):
                                              multi_class=FLAGS.multi_class,
                                              debug=False,
                                              num_to_visualise=0)
-<<<<<<< HEAD
     # # --------------------------------------------------------------------------------
 
     # # --------------------------------------------------------------------------------
     # else:
     # # def eval()
-=======
-        
-        """
->>>>>>> 8bfeb3791bc4d88ddc715842770cfee726b60521
     elif FLAGS.visual_file is not None:
         tpu = FLAGS.tpu_dir if FLAGS.tpu_dir else FLAGS.tpu
 
@@ -218,3 +209,5 @@ def main(argv):
 
 if __name__ == '__main__':
     app.run(main)
+
+"""
