@@ -7,13 +7,12 @@ from Segmentation.train.utils import Metric
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.visualise_utils import visualise_sample
 
-
 class Trainer:
     def __init__(self,
                  epochs,
                  batch_size,
-                 enable_function, # run_eager
-                 model, 
+                 run_eager,
+                 model,
                  optimizer,
                  loss_func,
                  lr_manager,
@@ -23,7 +22,7 @@ class Trainer:
                  log_dir="logs"):
         self.epochs = epochs
         self.batch_size = batch_size
-        self.enable_function = enable_function
+        self.run_eager = run_eager
         self.model = model
         self.optimizer = optimizer
         self.loss_func = loss_func
@@ -102,16 +101,16 @@ class Trainer:
                 total_loss += loss
                 if visualise:
                     # let's check if this works
-                    num_to_visualise = visualise_sample(x_train, 
-                                                        y_train, 
+                    num_to_visualise = visualise_sample(x_train,
+                                                        y_train,
                                                         pred,
                                                         num_to_visualise,
                                                         slice_writer,
                                                         vol_writer,
-                                                        use_2d, 
-                                                        epoch, 
-                                                        multi_class, 
-                                                        predict_slice, 
+                                                        use_2d,
+                                                        epoch,
+                                                        multi_class,
+                                                        predict_slice,
                                                         is_training)
                 num_train_batch += 1
             return total_loss / num_train_batch
@@ -148,8 +147,7 @@ class Trainer:
                 num_test_batch += 1
             return total_loss / num_test_batch
 
-        #if self.run_eager:
-        if self.enable_function:
+        if self.run_eager:
             run_train_strategy = tf.function(run_train_strategy)
             run_test_strategy = tf.function(run_test_strategy)
 

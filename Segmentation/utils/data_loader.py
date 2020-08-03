@@ -89,7 +89,7 @@ def parse_fn_2d(example_proto,
         seg = tf.math.reduce_sum(seg, axis=-1)
         seg = tf.expand_dims(seg, axis=-1)
         seg = tf.clip_by_value(seg, 0, 1)
-    
+
     image, seg = normalise(image, seg)
 
     return (image, seg)
@@ -159,7 +159,12 @@ def parse_fn_3d(example_proto,
         if unsupported_augs is not None:
             "Augmentation strategy {} does not exist or is not supported!".format(unsupported_augs)
     else:
-        image, seg = apply_centre_crop_3d(image, seg, crop_size=crop_size, depth_crop_size=depth_crop_size, output_slice=predict_slice)
+        image, seg = apply_centre_crop_3d(image,
+                                          seg,
+                                          crop_size=crop_size,
+                                          depth_crop_size=depth_crop_size,
+                                          output_slice=predict_slice)  # predict_slice is undefined
+
     image, seg = normalise(image, seg)
 
     # if training:
