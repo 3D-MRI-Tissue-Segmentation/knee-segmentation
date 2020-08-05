@@ -42,6 +42,7 @@ def main(epochs,
          custom_loss=None,
          use_bfloat16=False,
          use_RGB=False,
+         verbose=True,
          **model_kwargs,
          ):
 
@@ -86,10 +87,10 @@ def main(epochs,
             loss_func = focal_tversky
         else:
             raise NotImplementedError(f"Custom loss: {custom_loss} not implemented.")
-        
+
         # rewrite a function that takes in model-specific arguments and returns model_fn
         model = select_model(name, num_channels, num_classes, use_2d, **model_kwargs)
-        
+
         batch_size = batch_size * num_cores
 
         # Fix hard-coding ad check that the lr_drop_freq is a list, not int
