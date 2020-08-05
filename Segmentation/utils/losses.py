@@ -40,15 +40,6 @@ def tversky_crossentropy(y_true, y_pred):
 
     return tversky + crossentropy
 
-def iou_loss(y_true, y_pred, smooth=1):
-    y_true = K.flatten(y_true)
-    y_pred = K.flatten(y_pred)
-    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    union = K.sum(y_true, -1) + K.sum(y_pred, -1) - intersection
-    iou = (intersection + smooth) / (union + smooth)
-
-    return iou
-
 def bce_dice_loss(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
     loss = binary_crossentropy(y_true, y_pred) + dice_coef_loss(y_true, y_pred)

@@ -15,18 +15,17 @@ class Trainer:
                  model,
                  optimizer,
                  loss_func,
-                 lr_manager,
                  predict_slice,
                  metrics,
                  tfrec_dir='./Data/tfrecords/',
                  log_dir="logs"):
+
         self.epochs = epochs
         self.batch_size = batch_size
         self.run_eager = run_eager
         self.model = model
         self.optimizer = optimizer
         self.loss_func = loss_func
-        self.lr_manager = lr_manager
         self.predict_slice = predict_slice
         self.metrics = Metric(metrics)
         self.tfrec_dir = tfrec_dir
@@ -36,6 +35,7 @@ class Trainer:
                    x_train,
                    y_train,
                    visualise):
+
         with tf.GradientTape() as tape:
             predictions = self.model(x_train, training=True)
             loss = self.loss_func(y_train, predictions)
@@ -169,7 +169,6 @@ class Trainer:
 
         best_loss = None
         for e in range(self.epochs):
-            self.optimizer.learning_rate = self.lr_manager.update_lr(e)
 
             et0 = time()
 
