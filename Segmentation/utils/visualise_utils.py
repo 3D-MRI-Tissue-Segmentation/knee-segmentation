@@ -7,16 +7,17 @@ import matplotlib.pyplot as plt
 
 ### train model loop
 def visualise_sample(x,
-                    y,
-                    pred,
-                    num_to_visualise,
-                    slice_writer,
-                    vol_writer, 
-                    use_2d,
-                    epoch,
-                    multi_class,
-                    predict_slice,
-                    is_training):
+                     y,
+                     pred,
+                     num_to_visualise,
+                     slice_writer,
+                     vol_writer,
+                     use_2d,
+                     epoch,
+                     multi_class,
+                     predict_slice,
+                     is_training):
+                     
     img = get_mid_slice(x.values[0], y.values[0], pred.values[0], multi_class)
     session_type = "Train" if is_training else "Validation"
     with slice_writer.as_default():

@@ -28,3 +28,5 @@ def setup_accelerator(use_gpu, num_cores, device_name=None):
         tf.config.experimental_connect_to_cluster(resolver)
         tf.tpu.experimental.initialize_tpu_system(resolver)
         strategy = tf.distribute.experimental.TPUStrategy(resolver)
+
+    return strategy
