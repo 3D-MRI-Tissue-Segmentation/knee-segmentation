@@ -66,7 +66,7 @@ def main(epochs,
     num_classes = 7 if multi_class else 1
 
     # metrics shouldn't be hard-coded
-    # Why do loss lists have 4 arugments???
+    # Why do loss lists have 5 arugments???
     if multi_class:
         metrics = {
             'losses': {
