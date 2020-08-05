@@ -17,6 +17,7 @@ from Segmentation.train.build_model import select_model
 # Too many arguments in a function
 def main(epochs,
          name,
+         num_classes,
          log_dir_now=None,
          batch_size=32,
          val_batch_size=32,
@@ -66,17 +67,29 @@ def main(epochs,
                                       )
 
     # This shouldn't be hard-coded. Edit load_dataset to return number of classes used.
-    num_classes = 7 if multi_class else 1
+    num_classes = num_classes if multi_class else 1
 
     # metrics shouldn't be hard-coded
     # Why do loss lists have 5 arugments???
     if multi_class:
-        metrics = {
+        metrics = {}
+        for i in range(num_classes):
+            dice_name = 'train/dice_' + str(i+1)
+            iou_name = 'train/iou_' + str(i+1)
+
+            metrics[dice_name] = tf.keras.metrics.Mean()
+            metrics[iou_name] = tf.keras.metrics.Mean()
+
+    else:
+        metrics['train/dice'] = tf.keras.metrics.Mean()
+        metrics['train/iou'] = tf.keras.metrics.Mean()
+        
+        '''metrics = {
             'losses': {
                 'dice': [dice_coef, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None],
                 'mIoU': [mIoU, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None]
             }
-        }
+        }'''
 
     with strategy.scope():
         if custom_loss is None:
