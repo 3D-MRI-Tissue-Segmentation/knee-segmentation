@@ -18,6 +18,7 @@ class Trainer:
                  lr_manager,
                  predict_slice,
                  metrics,
+                 verbose,
                  tfrec_dir='./Data/tfrecords/',
                  log_dir="logs"):
         self.epochs = epochs
