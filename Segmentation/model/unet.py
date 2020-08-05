@@ -13,7 +13,7 @@ class UNet(tf.keras.Model):
     def __init__(self,
                  num_channels,
                  num_classes,
-                 use_2d=True,
+                 use_2d,
                  backbone_name='default',
                  num_conv_layers=2,
                  kernel_size=3,

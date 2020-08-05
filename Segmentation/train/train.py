@@ -17,6 +17,7 @@ class Trainer:
                  loss_func,
                  predict_slice,
                  metrics,
+                 verbose,
                  tfrec_dir='./Data/tfrecords/',
                  log_dir="logs"):
 

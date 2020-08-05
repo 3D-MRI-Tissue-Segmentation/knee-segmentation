@@ -6,6 +6,7 @@ import itertools
 import os
 from Segmentation.utils.losses import dice_coef, iou_loss
 
+
 def iou_loss_eval(y_true, y_pred):
 
     y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
@@ -13,6 +14,7 @@ def iou_loss_eval(y_true, y_pred):
     iou = iou_loss(y_true, y_pred)
 
     return iou
+
 
 def dice_coef_eval(y_true, y_pred):
 
@@ -22,6 +24,7 @@ def dice_coef_eval(y_true, y_pred):
     dice = dice_coef(y_true, y_pred)
 
     return dice
+
 
 def get_confusion_matrix(y_true, y_pred, classes=None):
 
@@ -37,6 +40,7 @@ def get_confusion_matrix(y_true, y_pred, classes=None):
     print(cm)
 
     return cm
+
 
 def plot_confusion_matrix(cm, savefig, classes, normalise=True, title='confusion matrix', cmap=plt.cm.Blues):
 
