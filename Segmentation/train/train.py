@@ -14,9 +14,10 @@ class Trainer:
                  batch_size,
                  run_eager,
                  model,
+                 use_2d,
                  optimizer,
                  loss_func,
-                 use_2d,
+                 predict_slice,
                  metrics,
                  verbose,
                  tfrec_dir='./Data/tfrecords/',
@@ -26,17 +27,19 @@ class Trainer:
         self.batch_size = batch_size
         self.run_eager = run_eager
         self.model = model
+        self.use_2d = use_2d
         self.optimizer = optimizer
         self.loss_func = loss_func
-        self.use_2d = use_2d
+        self.predict_slice = predict_slice
         self.metrics = metrics
+        self.verbose = verbose
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
 
     # TODO: Generalize function for multiple metrics: 
-    def calculate_metrics(self, 
-                          predictions, 
-                          labels, 
+    def calculate_metrics(self,
+                          predictions,
+                          labels,
                           training):
 
         for i in range(labels.shape[-1]):
@@ -89,9 +92,6 @@ class Trainer:
                          visual_save_freq=5,
                          debug=False,
                          num_to_visualise=0):
-        """
-        Trains 3D model with custom tf loop and MirrorStrategy
-        """
 
         def run_train_strategy(x, y, visualise):
             total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise, ))
@@ -111,8 +111,9 @@ class Trainer:
                                     multi_class,
                                     slice_writer,
                                     vol_writer,
+                                    use_2d,
                                     visual_save_freq,
-                                    use_2d):
+                                    predict_slice):
 
             total_loss, num_train_batch = 0.0, 0.0
             is_training = True
@@ -134,7 +135,7 @@ class Trainer:
                                                         use_2d,
                                                         epoch,
                                                         multi_class,
-                                                        use_2d,
+                                                        predict_slice,
                                                         is_training)
                 num_train_batch += 1
             return total_loss / num_train_batch
@@ -146,8 +147,9 @@ class Trainer:
                                    multi_class,
                                    slice_writer,
                                    vol_writer,
+                                   use_2d,
                                    visual_save_freq,
-                                   use_2d):
+                                   predict_slice):
             total_loss, num_test_batch = 0.0, 0.0
             is_training = False
             use_2d = False
@@ -166,7 +168,7 @@ class Trainer:
                                                         use_2d,
                                                         epoch,
                                                         multi_class,
-                                                        use_2d,
+                                                        predict_slice,
                                                         is_training)
                 num_test_batch += 1
             return total_loss / num_test_batch
@@ -189,7 +191,8 @@ class Trainer:
         test_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/val/img/vol')
         lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr')
 
-        self.metrics.add_metric_summary_writer(log_dir_now)
+        # TODO: Store the metrics to a summary writer
+        # self.metrics.add_metric_summary_writer(log_dir_now)
 
         best_loss = None
         for e in range(self.epochs):
@@ -203,8 +206,9 @@ class Trainer:
                                                  multi_class,
                                                  train_img_slice_writer,
                                                  train_img_vol_writer,
+                                                 self.use_2d,
                                                  visual_save_freq,
-                                                 self.use_2d)
+                                                 self.predict_slice)
 
             with train_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', train_loss, step=e)
@@ -216,8 +220,10 @@ class Trainer:
                                                multi_class,
                                                test_img_slice_writer,
                                                test_img_vol_writer,
+                                               self.use_2d,
                                                visual_save_freq,
-                                               self.use_2d)
+                                               self.predict_slice)
+
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
 
@@ -241,5 +247,3 @@ class Trainer:
             with test_min_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', best_loss, step=e)
         return log_dir_now
-
-
