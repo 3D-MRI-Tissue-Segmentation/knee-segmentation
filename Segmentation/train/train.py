@@ -6,6 +6,7 @@ from time import time
 from Segmentation.train.utils import Metric
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.visualise_utils import visualise_sample
+from Segmentation.utils.metrics import dice_coef, mIoU
 
 class Trainer:
     def __init__(self,
@@ -16,7 +17,7 @@ class Trainer:
                  optimizer,
                  loss_func,
                  lr_manager,
-                 predict_slice,
+                 use_2d,
                  metrics,
                  verbose,
                  tfrec_dir='./Data/tfrecords/',
@@ -28,10 +29,30 @@ class Trainer:
         self.optimizer = optimizer
         self.loss_func = loss_func
         self.lr_manager = lr_manager
-        self.predict_slice = predict_slice
-        self.metrics = Metric(metrics)
+        self.use_2d = use_2d
+        self.metrics = metrics
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
+
+    # TODO: Generalize function for multiple metrics: 
+    def calculate_metrics(self, 
+                          predictions, 
+                          labels, 
+                          training):
+
+        for i in range(labels.shape[-1]):
+            dice = dice_coef(predictions[..., i], labels[..., i])
+            iou = mIoU(predictions[..., i], labels[..., i])
+
+            if training:
+                dice_name = 'train/dice_' + str(i+1)
+                iou_name = 'train/iou_' + str(i+1)
+            else:
+                dice_name = 'valid/dice_' + str(i+1)
+                iou_name = 'valid/iou_' + str(i+1)
+
+            self.metrics[dice_name].update_state(dice)
+            self.metrics[iou_name].update_state(iou)
 
     def train_step(self,
                    x_train,
@@ -42,7 +63,8 @@ class Trainer:
             loss = self.loss_func(y_train, predictions)
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-        self.metrics.store_metric(y_train, predictions, training=True)
+        self.calculate_metrics(predictions, y_train, training=True)
+        #self.metrics.store_metric(y_train, predictions, training=True)
         if visualise:
             return loss, predictions
         return loss, None
@@ -53,7 +75,8 @@ class Trainer:
                   visualise):
         predictions = self.model(x_test, training=False)
         loss = self.loss_func(y_test, predictions)
-        self.metrics.store_metric(y_test, predictions, training=False)
+        #self.metrics.store_metric(y_test, predictions, training=False)
+        self.calculate_metrics(predictions, y_test, training=True)
         if visualise:
             return loss, predictions
         return loss, None
@@ -89,7 +112,7 @@ class Trainer:
                                     slice_writer,
                                     vol_writer,
                                     visual_save_freq,
-                                    predict_slice):
+                                    use_2d):
 
             total_loss, num_train_batch = 0.0, 0.0
             is_training = True
@@ -111,7 +134,7 @@ class Trainer:
                                                         use_2d,
                                                         epoch,
                                                         multi_class,
-                                                        predict_slice,
+                                                        use_2d,
                                                         is_training)
                 num_train_batch += 1
             return total_loss / num_train_batch
@@ -124,7 +147,7 @@ class Trainer:
                                    slice_writer,
                                    vol_writer,
                                    visual_save_freq,
-                                   predict_slice):
+                                   use_2d):
             total_loss, num_test_batch = 0.0, 0.0
             is_training = False
             use_2d = False
@@ -143,7 +166,7 @@ class Trainer:
                                                         use_2d,
                                                         epoch,
                                                         multi_class,
-                                                        predict_slice,
+                                                        use_2d,
                                                         is_training)
                 num_test_batch += 1
             return total_loss / num_test_batch
@@ -182,7 +205,7 @@ class Trainer:
                                                  train_img_slice_writer,
                                                  train_img_vol_writer,
                                                  visual_save_freq,
-                                                 self.predict_slice)
+                                                 self.use_2d)
 
             with train_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', train_loss, step=e)
@@ -195,7 +218,7 @@ class Trainer:
                                                test_img_slice_writer,
                                                test_img_vol_writer,
                                                visual_save_freq,
-                                               self.predict_slice)
+                                               self.use_2d)
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
 
@@ -203,9 +226,11 @@ class Trainer:
             with lr_summary_writer.as_default():
                 tf.summary.scalar('epoch_lr', current_lr, step=e)
 
-            self.metrics.record_metric_to_summary(e)
-            metric_str = self.metrics.reset_metrics_get_str()
+            #self.metrics.record_metric_to_summary(e)
+            #metric_str = self.metrics.reset_metrics_get_str()
             print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}" + metric_str)
+            for metric in self.metrics:
+                print(metric.result())
 
             if best_loss is None:
                 self.model.save_weights(os.path.join(log_dir_now + '/best_weights.tf'))
