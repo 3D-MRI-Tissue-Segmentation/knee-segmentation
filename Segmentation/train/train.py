@@ -36,7 +36,7 @@ class Trainer:
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
 
-    # TODO: Generalize function for multiple metrics: 
+    # TODO: Generalize function for multiple metrics:
     def calculate_metrics(self,
                           predictions,
                           labels,
@@ -173,7 +173,7 @@ class Trainer:
                 num_test_batch += 1
             return total_loss / num_test_batch
 
-        if self.run_eager:
+        if not self.run_eager:
             run_train_strategy = tf.function(run_train_strategy)
             run_test_strategy = tf.function(run_test_strategy)
 
