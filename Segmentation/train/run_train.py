@@ -14,6 +14,7 @@ from Segmentation.utils.metrics import dice_coef, mIoU
 
 from Segmentation.train.build_model import select_model
 
+
 # Too many arguments in a function
 def main(epochs,
          name,
