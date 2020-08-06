@@ -182,6 +182,7 @@ class Trainer:
         db = "/debug" if debug else "/test"
         mc = "/multi" if multi_class else "/binary"
         log_dir_now = self.log_dir + name + db + mc + datetime.datetime.now().strftime("/%Y%m%d/%H%M%S")
+
         train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
         test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/val')
         test_min_summary_writer = tf.summary.create_file_writer(log_dir_now + '/val_min')
@@ -192,6 +193,9 @@ class Trainer:
         lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr')
 
         # TODO: Store the metrics to a summary writer
+        train_metric_summary_writer = tf.summary.create_file_writer(log_dir_now + '/metrics/train')
+        val_metric_summary_writer = tf.summary.create_file_writer(log_dir_now + '/metrics/val')
+
         # self.metrics.add_metric_summary_writer(log_dir_now)
 
         best_loss = None
@@ -233,9 +237,26 @@ class Trainer:
 
             # self.metrics.record_metric_to_summary(e)
             # metric_str = self.metrics.reset_metrics_get_str()
-            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}" + metric_str)
-            for metric in self.metrics:
-                print(metric.result())
+
+            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}")
+
+            train_metric_results = {}
+            val_metric_results = {}
+
+            for name, metric in self.metrics.items():
+                print(self.metrics.result())
+                if name.find('train')
+                    train_metric_results = {name: self.metrics.result()}
+                else:
+                    val_metric_results = {name: self.metrics.result()}
+
+            with summary_writer.as_default():
+                for name, result in train_metric_results.items():
+                    tf.summary.scalar(name, result, step=e)
+
+            with summary_writer.as_default():
+                for name, result in val_metric_results.items():
+                    tf.summary.scalar(name, result, step=e)
 
             if best_loss is None:
                 self.model.save_weights(os.path.join(log_dir_now + '/best_weights.tf'))
