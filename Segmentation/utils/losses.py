@@ -7,8 +7,10 @@ from Segmentation.utils.metrics import dice_coef
 epsilon = 1e-5
 smooth = 1
 
+
 def dice_coef_loss(y_true, y_pred):
     return -dice_coef(y_true, y_pred)
+
 
 def tversky_loss(y_true, y_pred, alpha=0.5, beta=0.5, smooth=1e-10):
     """ Tversky loss function.
@@ -32,6 +34,7 @@ def tversky_loss(y_true, y_pred, alpha=0.5, beta=0.5, smooth=1e-10):
 
     return 1 - answer
 
+
 def tversky_crossentropy(y_true, y_pred):
 
     tversky = tversky_loss(y_true, y_pred)
@@ -39,6 +42,7 @@ def tversky_crossentropy(y_true, y_pred):
     crossentropy = K.mean(crossentropy)
 
     return tversky + crossentropy
+
 
 def bce_dice_loss(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
@@ -50,6 +54,7 @@ def cce_dice_loss(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
     loss = categorical_crossentropy(y_true, y_pred) + dice_coef_loss(y_true, y_pred)
     return loss
+
 
 def focal_tversky(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
