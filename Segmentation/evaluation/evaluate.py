@@ -1,8 +1,7 @@
-
-
-
+from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
+from Segmentation.utils.evaluation_utils import update_cm, save_cm
+from Segmentation.utils.evaluation_utils import update_gif_slice, update_volume_comp_gif, update_epoch_gif, update_volume_npy 
 from Segmentation.utils.evaluation_utils import get_bucket_weights
-
 
 # TODO: update to use fewer directory names
 def get_bucket_weights(bucket_name, target_weights_dir):
@@ -139,6 +138,61 @@ class Evaluator:
             sample_pred = []  # prediction for current 160,288,288 vol
             sample_y = []    # y for current 160,288,288 vol
 
-        def eval_step():
+    def eval_step(self,
+                  num_classes,
+                  cm,
+                  trained_model,
+                  aug_strategy,
+                  multi_as_binary,
+                  multi_class,
+                  which_epoch,
+                  which_slice,
+                  images_gif,
+                  gif_dir,
+                  pred,
+                  target,
+                  sample_pred,
+                  sample_y,
+                  visual_file,
+                  name,
+                  which_volume,
+                  dataset):
 
-        
+        for step, (x, label) in enumerate(dataset):
+            print('step ', step)
+            pred = trained_model.predict(x)
+
+            # Update visuals
+            cm = update_cm(cm, num_classes)
+            visualise_multi_class(label, pred)
+
+            if step+1 == which_volume:
+                update_gif_slice(x, label, trained_model,
+                                 aug_strategy,
+                                 multi_as_binary, multi_class,
+                                 which_epoch, which_slice)
+
+                images_gif = update_volume_comp_gif(x,label, images_gif, trained_model,
+                                                    multi_class,
+                                                    which_epoch,
+                                                    gif_dir=gif_dir)
+
+                images_gif = update_epoch_gif(x, trained_model, aug_strategy,
+                                              multi_class, which_slice, 
+                                              gif_dir=gif_dir)
+            
+                sample_pred, sample_y = update_volume_npy(label, pred, target, 
+                                                          sample_pred, sample_y, 
+                                                          visual_file, name, 
+                                                          which_volume, multi_class)
+                    
+            iou = iou_loss_eval(label, pred) if multi_class else iou_loss(label, pred)
+            dice = dice_coef_eval(label, pred) if multi_class else dice_coef(label, pred)
+
+            with eval_metric_writer.as_default():
+                tf.summary.scalar('iou eval validation', iou, step=step)
+                tf.summary.scalar('dice eval validation', dice, step=step)
+
+        # Save visuals
+    #     save_cm(cm, model_architecture, fig_dir, classes)
+    # pred_evolution_gif(fig, images_gif, save_dir=gif_dir, save=True, no_margins=False)
