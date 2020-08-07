@@ -19,7 +19,7 @@ class Trainer:
                  metrics,
                  verbose,
                  tfrec_dir='./Data/tfrecords/',
-                 log_dir="logs"):
+                 log_dir="gs://oai-ml-dataset/logs"):
 
         self.epochs = epochs
         self.batch_size = batch_size

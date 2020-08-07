@@ -27,7 +27,7 @@ def main(argv):
     tf.random.set_seed(FLAGS.seed)  # set seed
 
     # set whether to train on GPU or TPU
-    setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)
+    strategy = setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)
 
     # set dataset configuration
     train_ds, validation_ds = load_dataset(batch_size=FLAGS.batch_size,
@@ -41,6 +41,9 @@ def main(argv):
                                            use_RGB=False if FLAGS.backbone_architecture == 'default' else True
                                            )
     
+    num_classes = 7 if FLAGS.multi_class else 1
+    steps_per_epoch = 19200 // (FLAGS.batch_size * FLAGS.num_cores)
+    validation_steps = 4480 // (FLAGS.batch_size * FLAGS.num_cores)
     # # --------------------------------------------------------------------------------
     # # def set_metrics()
     if FLAGS.multi_class:
@@ -68,7 +71,7 @@ def main(argv):
             lr_decay_epochs = FLAGS.lr_decay_epochs
         else:
             lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs + 1, FLAGS.train_epochs))
-
+        
         lr_rate = LearningRateSchedule(steps_per_epoch,
                                        FLAGS.base_learning_rate,
                                        FLAGS.min_learning_rate,
@@ -130,7 +133,7 @@ def main(argv):
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
-                            validation_data=valid_ds,
+                            validation_data=validation_ds,
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb])
         
