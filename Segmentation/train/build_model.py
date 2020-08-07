@@ -18,19 +18,17 @@ def select_model(name, num_classes, num_channels, use_2d=True, **model_kwargs):
         assert 'kernel_size_initial_conv' in model_kwargs
         assert use_2d is True
         model_fn = Deeplabv3(num_classes,
-                            model_kwargs['kernel_size_initial_conv'],
-                            num_channels_DCNN=num_channels,
-                            **model_kwargs)
-    
+                             model_kwargs['kernel_size_initial_conv'],
+                             num_channels_DCNN=num_channels,
+                             **model_kwargs)
+
     elif name == 'UNet':
         model_fn = UNet(num_channels,
                         num_classes,
-                        use_2d, 
+                        use_2d,
                         **model_kwargs)
-    
+
     else:
-        raise Exception ('Model name not recognised')
+        raise Exception('Model name not recognised')
 
     return model_fn
-
-
