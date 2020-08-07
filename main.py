@@ -6,14 +6,14 @@ from datetime import datetime
 from absl import app
 from absl import logging
 
-from Segementation.utils.accelerator import setup_accelerator
+from Segmentation.utils.accelerator import setup_accelerator
 from Segmentation.utils.data_loader import load_dataset
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss
 from Segmentation.utils.metrics import dice_coef, mIoU
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.evaluation_utils import eval_loop
-from Segmentation.train.train import Train
+from Segmentation.train.train import Trainer
 
 from flags import FLAGS
 from select_model import select_model
@@ -27,19 +27,19 @@ def main(argv):
     tf.random.set_seed(FLAGS.seed)  # set seed
 
     # set whether to train on GPU or TPU
-    def setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)
+    setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)
 
     # set dataset configuration
-    train_ds, validation_ds = def load_dataset(batch_size=FLAGS.batch_size,
-                                               dataset_dir=FLAGS.tfrec_dir,
-                                               augmentation=FLAGS.aug_strategy,
-                                               use_2d=FLAGS.use_2d,
-                                               multi_class=FLAGS.multi_class,
-                                               crop_size=288,
-                                               buffer_size=FLAGS.buffer_size,
-                                               use_bfloat16=FLAGS.use_bfloat16,
-                                               use_RGB=False if FLAGS.backbone_architecture == 'default' else True
-                                               )
+    train_ds, validation_ds = load_dataset(batch_size=FLAGS.batch_size,
+                                           dataset_dir=FLAGS.tfrec_dir,
+                                           augmentation=FLAGS.aug_strategy,
+                                           use_2d=FLAGS.use_2d,
+                                           multi_class=FLAGS.multi_class,
+                                           crop_size=288,
+                                           buffer_size=FLAGS.buffer_size,
+                                           use_bfloat16=FLAGS.use_bfloat16,
+                                           use_RGB=False if FLAGS.backbone_architecture == 'default' else True
+                                           )
     
     # # --------------------------------------------------------------------------------
     # # def set_metrics()

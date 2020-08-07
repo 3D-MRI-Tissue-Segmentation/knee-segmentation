@@ -3,8 +3,6 @@ import datetime
 import tensorflow as tf
 from time import time
 
-from Segmentation.train.utils import Metric
-from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.visualise_utils import visualise_sample
 from Segmentation.utils.metrics import dice_coef, mIoU
 
