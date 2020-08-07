@@ -3,8 +3,6 @@ from time import time
 import os
 
 from Segmentation.train.train import Trainer
-from Segmentation.train.utils import Metric
-from Segmentation.train.validation import validate_best_model
 
 from Segmentation.utils.accelerator import setup_accelerator
 from Segmentation.utils.data_loader import load_dataset
@@ -13,7 +11,6 @@ from Segmentation.utils.losses import tversky_loss, dice_coef_loss, focal_tversk
 from Segmentation.utils.metrics import dice_coef, mIoU
 
 from Segmentation.train.build_model import select_model
-
 
 # Too many arguments in a function
 def main(epochs,
@@ -190,6 +187,8 @@ if __name__ == "__main__":
          num_to_visualise=2,
          num_channels=[64, 128, 256, 512, 1024],
          buffer_size=5000,
+         run_eager=True,
+         tfrec_dir='gs://oai-ml-dataset/tfrecords/',
          multi_class=True,
          crop_size=288,
          predict_slice=True,
