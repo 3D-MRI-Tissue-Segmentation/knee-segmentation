@@ -124,6 +124,7 @@ class Trainer:
                 loss, pred = run_train_strategy(x_train, y_train, visualise)
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
+                """
                 if visualise:
                     # let's check if this works
                     num_to_visualise = visualise_sample(x_train,
@@ -137,6 +138,7 @@ class Trainer:
                                                         multi_class,
                                                         predict_slice,
                                                         is_training)
+                """
                 num_train_batch += 1
             return total_loss / num_train_batch
 
@@ -158,6 +160,7 @@ class Trainer:
                 loss, pred = run_test_strategy(x_valid, y_valid, visualise)
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
+                """
                 if visualise:
                     num_to_visualise = visualise_sample(x_valid,
                                                         y_valid,
@@ -170,6 +173,7 @@ class Trainer:
                                                         multi_class,
                                                         predict_slice,
                                                         is_training)
+                """
                 num_test_batch += 1
             return total_loss / num_test_batch
 
@@ -245,16 +249,16 @@ class Trainer:
 
             for name, metric in self.metrics.items():
                 print(self.metrics.result())
-                if name.find('train')
+                if name.find('train'):
                     train_metric_results = {name: self.metrics.result()}
                 else:
                     val_metric_results = {name: self.metrics.result()}
 
-            with summary_writer.as_default():
+            with train_metric_summary_writer.as_default():
                 for name, result in train_metric_results.items():
                     tf.summary.scalar(name, result, step=e)
 
-            with summary_writer.as_default():
+            with val_metric_summary_writer.as_default():
                 for name, result in val_metric_results.items():
                     tf.summary.scalar(name, result, step=e)
 

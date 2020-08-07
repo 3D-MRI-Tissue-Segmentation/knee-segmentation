@@ -6,9 +6,10 @@ from datetime import datetime
 from absl import app
 from absl import logging
 
-from Segmentation.utils.accelerator import setup_accelerator
+from Segementation.utils.accelerator import setup_accelerator
 from Segmentation.utils.data_loader import load_dataset
-from Segmentation.utils.losses import dice_coef_loss, tversky_loss, dice_coef, iou_loss  # focal_tversky
+from Segmentation.utils.losses import dice_coef_loss, tversky_loss
+from Segmentation.utils.metrics import dice_coef, mIoU
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.evaluation_utils import eval_loop
@@ -16,7 +17,6 @@ from Segmentation.train.train import Train
 
 from flags import FLAGS
 from select_model import select_model
-
 
 def main(argv):
 
@@ -99,9 +99,9 @@ def main(argv):
 
         if FLAGS.multi_class:
             if FLAGS.use_2d:
-                metrics = [dice_coef, iou_loss, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc']
+                metrics = [dice_coef, mIoU, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc']
             else:
-                metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
+                metrics = [dice_coef, mIoU, crossentropy_loss_fn, 'acc']
         else:
             metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
 
@@ -205,10 +205,7 @@ def main(argv):
         #                  num_classes=num_classes
         #                  )
     # # --------------------------------------------------------------------------------
-
+        """
 
 if __name__ == '__main__':
     app.run(main)
-
-"""
-confusion_matrix(
