@@ -6,6 +6,7 @@ from time import time
 from Segmentation.train.utils import Metric
 from Segmentation.utils.data_loader import read_tfrecord_3d
 from Segmentation.utils.visualise_utils import visualise_sample
+from Segmentation.utils.metrics import dice_coef, mIoU
 
 class Trainer:
     def __init__(self,
@@ -13,36 +14,60 @@ class Trainer:
                  batch_size,
                  run_eager,
                  model,
+                 use_2d,
                  optimizer,
                  loss_func,
-                 lr_manager,
                  predict_slice,
                  metrics,
                  verbose,
                  tfrec_dir='./Data/tfrecords/',
                  log_dir="logs"):
+
         self.epochs = epochs
         self.batch_size = batch_size
         self.run_eager = run_eager
         self.model = model
+        self.use_2d = use_2d
         self.optimizer = optimizer
         self.loss_func = loss_func
-        self.lr_manager = lr_manager
         self.predict_slice = predict_slice
-        self.metrics = Metric(metrics)
+        self.metrics = metrics
+        self.verbose = verbose
         self.tfrec_dir = tfrec_dir
         self.log_dir = log_dir
+
+    # TODO: Generalize function for multiple metrics:
+    def calculate_metrics(self,
+                          predictions,
+                          labels,
+                          training):
+
+        for i in range(labels.shape[-1]):
+            dice = dice_coef(predictions[..., i], labels[..., i])
+            iou = mIoU(predictions[..., i], labels[..., i])
+
+            if training:
+                dice_name = 'train/dice_' + str(i + 1)
+                iou_name = 'train/iou_' + str(i + 1)
+            else:
+                dice_name = 'valid/dice_' + str(i + 1)
+                iou_name = 'valid/iou_' + str(i + 1)
+
+            self.metrics[dice_name].update_state(dice)
+            self.metrics[iou_name].update_state(iou)
 
     def train_step(self,
                    x_train,
                    y_train,
                    visualise):
+
         with tf.GradientTape() as tape:
             predictions = self.model(x_train, training=True)
             loss = self.loss_func(y_train, predictions)
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-        self.metrics.store_metric(y_train, predictions, training=True)
+        self.calculate_metrics(predictions, y_train, training=True)
+        # self.metrics.store_metric(y_train, predictions, training=True)
         if visualise:
             return loss, predictions
         return loss, None
@@ -53,7 +78,8 @@ class Trainer:
                   visualise):
         predictions = self.model(x_test, training=False)
         loss = self.loss_func(y_test, predictions)
-        self.metrics.store_metric(y_test, predictions, training=False)
+        # self.metrics.store_metric(y_test, predictions, training=False)
+        self.calculate_metrics(predictions, y_test, training=True)
         if visualise:
             return loss, predictions
         return loss, None
@@ -66,9 +92,6 @@ class Trainer:
                          visual_save_freq=5,
                          debug=False,
                          num_to_visualise=0):
-        """
-        Trains 3D model with custom tf loop and MirrorStrategy
-        """
 
         def run_train_strategy(x, y, visualise):
             total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise, ))
@@ -88,6 +111,7 @@ class Trainer:
                                     multi_class,
                                     slice_writer,
                                     vol_writer,
+                                    use_2d,
                                     visual_save_freq,
                                     predict_slice):
 
@@ -123,6 +147,7 @@ class Trainer:
                                    multi_class,
                                    slice_writer,
                                    vol_writer,
+                                   use_2d,
                                    visual_save_freq,
                                    predict_slice):
             total_loss, num_test_batch = 0.0, 0.0
@@ -148,7 +173,7 @@ class Trainer:
                 num_test_batch += 1
             return total_loss / num_test_batch
 
-        if self.run_eager:
+        if not self.run_eager:
             run_train_strategy = tf.function(run_train_strategy)
             run_test_strategy = tf.function(run_test_strategy)
 
@@ -157,6 +182,7 @@ class Trainer:
         db = "/debug" if debug else "/test"
         mc = "/multi" if multi_class else "/binary"
         log_dir_now = self.log_dir + name + db + mc + datetime.datetime.now().strftime("/%Y%m%d/%H%M%S")
+
         train_summary_writer = tf.summary.create_file_writer(log_dir_now + '/train')
         test_summary_writer = tf.summary.create_file_writer(log_dir_now + '/val')
         test_min_summary_writer = tf.summary.create_file_writer(log_dir_now + '/val_min')
@@ -166,11 +192,14 @@ class Trainer:
         test_img_vol_writer = tf.summary.create_file_writer(log_dir_now + '/val/img/vol')
         lr_summary_writer = tf.summary.create_file_writer(log_dir_now + '/lr')
 
-        self.metrics.add_metric_summary_writer(log_dir_now)
+        # TODO: Store the metrics to a summary writer
+        train_metric_summary_writer = tf.summary.create_file_writer(log_dir_now + '/metrics/train')
+        val_metric_summary_writer = tf.summary.create_file_writer(log_dir_now + '/metrics/val')
+
+        # self.metrics.add_metric_summary_writer(log_dir_now)
 
         best_loss = None
         for e in range(self.epochs):
-            self.optimizer.learning_rate = self.lr_manager.update_lr(e)
 
             et0 = time()
 
@@ -181,6 +210,7 @@ class Trainer:
                                                  multi_class,
                                                  train_img_slice_writer,
                                                  train_img_vol_writer,
+                                                 self.use_2d,
                                                  visual_save_freq,
                                                  self.predict_slice)
 
@@ -194,8 +224,10 @@ class Trainer:
                                                multi_class,
                                                test_img_slice_writer,
                                                test_img_vol_writer,
+                                               self.use_2d,
                                                visual_save_freq,
                                                self.predict_slice)
+
             with test_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', test_loss, step=e)
 
@@ -203,9 +235,28 @@ class Trainer:
             with lr_summary_writer.as_default():
                 tf.summary.scalar('epoch_lr', current_lr, step=e)
 
-            self.metrics.record_metric_to_summary(e)
-            metric_str = self.metrics.reset_metrics_get_str()
-            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}" + metric_str)
+            # self.metrics.record_metric_to_summary(e)
+            # metric_str = self.metrics.reset_metrics_get_str()
+
+            print(f"Epoch {e+1}/{self.epochs} - {time() - et0:.0f}s - loss: {train_loss:.05f} - val_loss: {test_loss:.05f} - lr: {self.optimizer.get_config()['learning_rate']: .06f}")
+
+            train_metric_results = {}
+            val_metric_results = {}
+
+            for name, metric in self.metrics.items():
+                print(self.metrics.result())
+                if name.find('train')
+                    train_metric_results = {name: self.metrics.result()}
+                else:
+                    val_metric_results = {name: self.metrics.result()}
+
+            with summary_writer.as_default():
+                for name, result in train_metric_results.items():
+                    tf.summary.scalar(name, result, step=e)
+
+            with summary_writer.as_default():
+                for name, result in val_metric_results.items():
+                    tf.summary.scalar(name, result, step=e)
 
             if best_loss is None:
                 self.model.save_weights(os.path.join(log_dir_now + '/best_weights.tf'))
@@ -217,5 +268,3 @@ class Trainer:
             with test_min_summary_writer.as_default():
                 tf.summary.scalar('epoch_loss', best_loss, step=e)
         return log_dir_now
-
-

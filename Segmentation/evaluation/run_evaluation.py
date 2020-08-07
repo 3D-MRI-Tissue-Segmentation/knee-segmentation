@@ -9,6 +9,7 @@ def main():
     # set model architecture
     model_fn, model_args = select_model(FLAGS, num_classes)
 
+    # # --------------------------------------------------------------------------------
     # # def set_metrics()
     if FLAGS.multi_class:
         loss_fn = tversky_loss
@@ -44,4 +45,4 @@ def main():
     # # --------------------------------------------------------------------------------
 
     parameters = 0
-    evaluate = Evaluator(parameters) 
+    evaluator = Evaluator(parameters) 
