@@ -78,19 +78,18 @@ def main(epochs,
             metrics[train_iou_name] = tf.keras.metrics.Mean()
             metrics[valid_dice_name] = tf.keras.metrics.Mean()
             metrics[valid_iou_name] = tf.keras.metrics.Mean()
-
-    else:
-        metrics['train/dice'] = tf.keras.metrics.Mean()
-        metrics['train/iou'] = tf.keras.metrics.Mean()
-        metrics['valid/dice'] = tf.keras.metrics.Mean()
-        metrics['valid/iou'] = tf.keras.metrics.Mean()
-
-        '''metrics = {
-            'losses': {
-                'dice': [dice_coef, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None],
-                'mIoU': [mIoU, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None]
-            }
-        }'''
+        else:
+            metrics['train/dice'] = tf.keras.metrics.Mean()
+            metrics['train/iou'] = tf.keras.metrics.Mean()
+            metrics['valid/dice'] = tf.keras.metrics.Mean()
+            metrics['valid/iou'] = tf.keras.metrics.Mean()
+ 
+    '''metrics = {
+        'losses': {
+            'dice': [dice_coef, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None],
+            'mIoU': [mIoU, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None]
+        }
+    }'''
 
     with strategy.scope():
         if custom_loss is None:
@@ -110,7 +109,8 @@ def main(epochs,
         # Fix hard-coding ad check that the lr_drop_freq is a list, not int
         lr = LearningRateSchedule(19200 // batch_size, lr, min_lr, lr_drop, lr_drop_freq, lr_warmup)
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-
+        
+        
         trainer = Trainer(epochs,
                           batch_size,
                           run_eager,
@@ -172,6 +172,8 @@ if __name__ == "__main__":
         'use_spatial_dropout': True,
         'data_format': 'channels_last',
     }
+    
+    lr_decay_epochs = list(range(1, 50))
 
     main(epochs=50,
          model_name='UNet',
@@ -181,6 +183,7 @@ if __name__ == "__main__":
          val_batch_size=32,
          lr=3.2e-04,
          lr_drop=0.8,
+         lr_drop_freq=lr_decay_epochs,
          lr_warmup=1,
          num_to_visualise=2,
          num_channels=[64, 128, 256, 512, 1024],

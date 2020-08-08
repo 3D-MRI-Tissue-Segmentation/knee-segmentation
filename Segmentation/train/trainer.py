@@ -51,8 +51,8 @@ class Trainer:
                 dice_name = 'valid/dice_' + str(i + 1)
                 iou_name = 'valid/iou_' + str(i + 1)
 
-            self.metrics[dice_name].update_state(dice)
-            self.metrics[iou_name].update_state(iou)
+            self.metrics[dice_name](dice)
+            self.metrics[iou_name](iou)
 
     def train_step(self,
                    x_train,
@@ -77,7 +77,7 @@ class Trainer:
         predictions = self.model(x_test, training=False)
         loss = self.loss_func(y_test, predictions)
         # self.metrics.store_metric(y_test, predictions, training=False)
-        self.calculate_metrics(predictions, y_test, training=True)
+        self.calculate_metrics(predictions, y_test, training=False)
         if visualise:
             return loss, predictions
         return loss, None
@@ -92,12 +92,12 @@ class Trainer:
                          num_to_visualise=0):
 
         def run_train_strategy(x, y, visualise):
-            total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise, ))
+            total_step_loss, pred = strategy.run(self.train_step, args=(x, y, visualise,))
             return strategy.reduce(
                 tf.distribute.ReduceOp.SUM, total_step_loss, axis=None), pred
 
         def run_test_strategy(x, y, visualise):
-            total_step_loss, pred = strategy.run(self.test_step, args=(x, y, visualise, ))
+            total_step_loss, pred = strategy.run(self.test_step, args=(x, y, visualise,))
             return strategy.reduce(
                 tf.distribute.ReduceOp.SUM, total_step_loss, axis=None), pred
 
@@ -122,7 +122,7 @@ class Trainer:
                 loss, pred = run_train_strategy(x_train, y_train, visualise)
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
-                """
+
                 if visualise:
                     # let's check if this works
                     num_to_visualise = visualise_sample(x_train,
@@ -136,7 +136,7 @@ class Trainer:
                                                         multi_class,
                                                         predict_slice,
                                                         is_training)
-                """
+
                 num_train_batch += 1
             return total_loss / num_train_batch
 
@@ -158,7 +158,7 @@ class Trainer:
                 loss, pred = run_test_strategy(x_valid, y_valid, visualise)
                 loss /= strategy.num_replicas_in_sync
                 total_loss += loss
-                """
+                
                 if visualise:
                     num_to_visualise = visualise_sample(x_valid,
                                                         y_valid,
@@ -171,7 +171,7 @@ class Trainer:
                                                         multi_class,
                                                         predict_slice,
                                                         is_training)
-                """
+                
                 num_test_batch += 1
             return total_loss / num_test_batch
 
