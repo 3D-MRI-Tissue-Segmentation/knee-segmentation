@@ -51,8 +51,8 @@ class Trainer:
                 dice_name = 'valid/dice_' + str(i + 1)
                 iou_name = 'valid/iou_' + str(i + 1)
 
-            self.metrics[dice_name].update_state(dice)
-            self.metrics[iou_name].update_state(iou)
+            self.metrics[dice_name](dice)
+            self.metrics[iou_name](iou)
 
     def train_step(self,
                    x_train,
