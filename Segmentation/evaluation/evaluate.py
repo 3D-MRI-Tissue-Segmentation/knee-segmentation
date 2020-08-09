@@ -95,12 +95,8 @@ class Evaluator:
         if self.run_eager:
             run_eval_strategy = tf.function(run_eval_strategy)
 
-        multi_class = num_classes > 1
-        gif_dir=''
-
         # load the checkpoints in the specified log directory
-        session_weights = get_all_weights(bucket_name, logdir, tpu_name, visual_file, weights_dir)
-        last_epoch = len(session_weights)
+        session_weights = get_all_weights(bucket_name, target_weights_dir)
 
         # trained_model.load_weights(weights_dir).expect_partial()
         # trained_model.evaluate(dataset, steps=validation_steps, callbacks=callbacks)
@@ -117,6 +113,8 @@ class Evaluator:
         #######################
 
         # Init visuals
+        multi_class = num_classes > 1
+        gif_dir=''
         cm, classes = initialize_cm(multi_class, num_classes)
         fig, axes, images_gif = initialize_gif()
         target = 160 # how many slices in 1 vol
@@ -153,5 +151,3 @@ class Evaluator:
             sample_y = []    # y for current 160,288,288 vol
 
         def eval_step():
-
-        
