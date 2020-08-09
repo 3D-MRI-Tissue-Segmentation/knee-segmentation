@@ -2,22 +2,17 @@ import tensorflow as tf
 from time import time
 import os
 
-from Segmentation.train.train import Trainer
-from Segmentation.train.utils import Metric
-from Segmentation.train.validation import validate_best_model
-
+from Segmentation.train.trainer import Trainer
 from Segmentation.utils.accelerator import setup_accelerator
 from Segmentation.utils.data_loader import load_dataset
 from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.losses import tversky_loss, dice_coef_loss, focal_tversky, weighted_cat_cross_entropy
 from Segmentation.utils.metrics import dice_coef, mIoU
-
 from Segmentation.train.build_model import select_model
-
 
 # Too many arguments in a function
 def main(epochs,
-         name,
+         model_name,
          num_classes,
          log_dir_now=None,
          batch_size=32,
@@ -49,9 +44,9 @@ def main(epochs,
          ):
 
     t0 = time()
-
+    
     # set up accelerator and returns strategy used
-    strategy = setup_accelerator(use_gpu=False if tpu_name is None else True,
+    strategy = setup_accelerator(use_gpu=False,
                                  num_cores=num_cores,
                                  device_name=tpu_name)
 
@@ -74,16 +69,22 @@ def main(epochs,
     if multi_class:
         metrics = {}
         for i in range(num_classes):
-            dice_name = 'train/dice_' + str(i + 1)
-            iou_name = 'train/iou_' + str(i + 1)
+            train_dice_name = 'train/dice_' + str(i + 1)
+            train_iou_name = 'train/iou_' + str(i + 1)
+            valid_dice_name = 'valid/dice_' + str(i + 1)
+            valid_iou_name = 'valid/iou_' + str(i + 1)
 
-            metrics[dice_name] = tf.keras.metrics.Mean()
-            metrics[iou_name] = tf.keras.metrics.Mean()
+            metrics[train_dice_name] = tf.keras.metrics.Mean()
+            metrics[train_iou_name] = tf.keras.metrics.Mean()
+            metrics[valid_dice_name] = tf.keras.metrics.Mean()
+            metrics[valid_iou_name] = tf.keras.metrics.Mean()
 
     else:
         metrics['train/dice'] = tf.keras.metrics.Mean()
         metrics['train/iou'] = tf.keras.metrics.Mean()
-        
+        metrics['valid/dice'] = tf.keras.metrics.Mean()
+        metrics['valid/iou'] = tf.keras.metrics.Mean()
+
         '''metrics = {
             'losses': {
                 'dice': [dice_coef, tf.keras.metrics.Mean(), tf.keras.metrics.Mean(), None, None],
@@ -102,7 +103,7 @@ def main(epochs,
             raise NotImplementedError(f"Custom loss: {custom_loss} not implemented.")
 
         # rewrite a function that takes in model-specific arguments and returns model_fn
-        model = select_model(name, num_channels, num_classes, use_2d, **model_kwargs)
+        model = select_model(model_name, num_classes, num_channels, use_2d, **model_kwargs)
 
         batch_size = batch_size * num_cores
 
@@ -156,7 +157,47 @@ def main(epochs,
             f.write(f'{log_dir_now}: total_loss {total_loss} {metric_str} \n')
     """
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
+
+    kwargs = {
+        'backbone_name': 'default',
+        'num_conv_layers': 2,
+        'kernel_size': 3,
+        'activation': 'relu',
+        'use_attention': False,
+        'use_batchnorm': True,
+        'use_bias': True,
+        'use_dropout': False,
+        'dropout_rate': 0.25,
+        'use_spatial_dropout': True,
+        'data_format': 'channels_last',
+    }
+
+    main(epochs=50,
+         model_name='UNet',
+         num_classes=7,
+         log_dir_now=None,
+         batch_size=32,
+         val_batch_size=32,
+         lr=3.2e-04,
+         lr_drop=0.8,
+         lr_warmup=1,
+         num_to_visualise=2,
+         num_channels=[64, 128, 256, 512, 1024],
+         buffer_size=5000,
+         run_eager=False,
+         tfrec_dir='gs://oai-ml-dataset/tfrecords/',
+         multi_class=True,
+         crop_size=288,
+         predict_slice=True,
+         tpu_name='oai-tpu',
+         num_cores=8,
+         min_lr=1e-7,
+         custom_loss=None,
+         use_bfloat16=False,
+         use_RGB=False,
+         verbose=True,
+         **kwargs)
     # use_tpu = False
 
     # with open("results/3d_result.txt", "a") as f:

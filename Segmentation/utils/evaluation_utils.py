@@ -10,12 +10,11 @@ from pathlib import Path
 import os
 import datetime
 
-from Segmentation.utils.losses import dice_coef
 from Segmentation.plotting.voxels import plot_volume
 # from Segmentation.utils.data_loader import read_tfrecord_2d
 from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix, iou_loss_eval, dice_coef_eval
-from Segmentation.utils.losses import dice_coef, iou_loss
+from Segmentation.utils.metrics import dice_coef, mIoU
 
 def get_depth(conc):
     depth = 0

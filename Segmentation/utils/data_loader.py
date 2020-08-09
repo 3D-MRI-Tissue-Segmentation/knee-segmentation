@@ -65,21 +65,22 @@ def parse_fn_2d(example_proto,
 
     supported_augs = ["random_crop", "noise", "crop_and_noise"]
     if training:
-        if 'random_crop' in augmentation:
-            image, seg = crop_randomly_image_pair_2d(image, seg)
-        if 'noise' in augmentation:
-            image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
-            image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
-        if 'crop_and_noise' in augmentation:
-            image, seg = crop_randomly_image_pair_2d(image, seg)
-            image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
-            image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
         if augmentation is None:
             image = tf.image.resize_with_crop_or_pad(image, 288, 288)
             seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
-        unsupported_augs = np.setdiff1d(supported_augs, augmentation)
-        if unsupported_augs is not None:
-            "Augmentation strategy {} does not exist or is not supported!".format(unsupported_augs)
+        else:
+            if 'random_crop' in augmentation:
+                image, seg = crop_randomly_image_pair_2d(image, seg)
+            if 'noise' in augmentation:
+                image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
+                image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
+            if 'crop_and_noise' in augmentation:
+                image, seg = crop_randomly_image_pair_2d(image, seg)
+                image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
+                image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
+            unsupported_augs = np.setdiff1d(supported_augs, augmentation)
+            if unsupported_augs is not None:
+                "Augmentation strategy {} does not exist or is not supported!".format(unsupported_augs)
     else:
         image = tf.image.resize_with_crop_or_pad(image, 288, 288)
         seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
@@ -275,12 +276,12 @@ def load_dataset(batch_size,
         'use_RGB': use_RGB
     }
 
-    train_ds = read_tfrecord(tfrec_dir=os.path.join(dataset_dir, train_dir),
+    train_ds = read_tfrecord(tfrecords_dir=os.path.join(dataset_dir, train_dir),
                              is_training=True,
                              **ds_args
                              )
 
-    valid_ds = read_tfrecord(tfrec_dir=os.path.join(dataset_dir, valid_dir),
+    valid_ds = read_tfrecord(tfrecords_dir=os.path.join(dataset_dir, valid_dir),
                              is_training=False,
                              **ds_args)
 

@@ -4,14 +4,14 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import itertools
 import os
-from Segmentation.utils.losses import dice_coef, iou_loss
+from Segmentation.utils.metrics import dice_coef, mIoU 
 
 
 def iou_loss_eval(y_true, y_pred):
 
     y_true = tf.slice(y_true, [0, 0, 0, 1], [-1, -1, -1, 6])
     y_pred = tf.slice(y_pred, [0, 0, 0, 1], [-1, -1, -1, 6])
-    iou = iou_loss(y_true, y_pred)
+    iou = mIoU(y_true, y_pred)
 
     return iou
 
