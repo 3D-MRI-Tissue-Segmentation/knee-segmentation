@@ -66,23 +66,7 @@ def main(epochs,
     num_classes = num_classes if multi_class else 1
 
     # metrics shouldn't be hard-coded
-    if multi_class:
-        metrics = {}
-        for i in range(num_classes):
-            train_dice_name = 'train/dice_' + str(i + 1)
-            train_iou_name = 'train/iou_' + str(i + 1)
-            valid_dice_name = 'valid/dice_' + str(i + 1)
-            valid_iou_name = 'valid/iou_' + str(i + 1)
-
-            metrics[train_dice_name] = tf.keras.metrics.Mean()
-            metrics[train_iou_name] = tf.keras.metrics.Mean()
-            metrics[valid_dice_name] = tf.keras.metrics.Mean()
-            metrics[valid_iou_name] = tf.keras.metrics.Mean()
-        else:
-            metrics['train/dice'] = tf.keras.metrics.Mean()
-            metrics['train/iou'] = tf.keras.metrics.Mean()
-            metrics['valid/dice'] = tf.keras.metrics.Mean()
-            metrics['valid/iou'] = tf.keras.metrics.Mean()
+    
  
     '''metrics = {
         'losses': {
@@ -110,6 +94,23 @@ def main(epochs,
         lr = LearningRateSchedule(19200 // batch_size, lr, min_lr, lr_drop, lr_drop_freq, lr_warmup)
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         
+        if multi_class:
+            metrics = {}
+            for i in range(num_classes):
+                train_dice_name = 'train/dice_' + str(i + 1)
+                train_iou_name = 'train/iou_' + str(i + 1)
+                valid_dice_name = 'valid/dice_' + str(i + 1)
+                valid_iou_name = 'valid/iou_' + str(i + 1)
+
+                metrics[train_dice_name] = tf.keras.metrics.Mean()
+                metrics[train_iou_name] = tf.keras.metrics.Mean()
+                metrics[valid_dice_name] = tf.keras.metrics.Mean()
+                metrics[valid_iou_name] = tf.keras.metrics.Mean()
+        else:
+            metrics['train/dice'] = tf.keras.metrics.Mean()
+            metrics['train/iou'] = tf.keras.metrics.Mean()
+            metrics['valid/dice'] = tf.keras.metrics.Mean()
+            metrics['valid/iou'] = tf.keras.metrics.Mean()
         
         trainer = Trainer(epochs,
                           batch_size,
