@@ -1,6 +1,7 @@
 
 
 
+
 def main():
 
     # # --------------------------------------------------------------------------------
@@ -45,4 +46,9 @@ def main():
     # # --------------------------------------------------------------------------------
 
     parameters = 0
-    evaluator = Evaluator(parameters) 
+    evaluator = Evaluator(validation_steps,
+                          run_eager,
+                          target_weights_dir,
+                          vis_out_dir,
+                          vis_args,
+                          vis_weight_name='') 
