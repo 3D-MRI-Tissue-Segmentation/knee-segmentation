@@ -129,13 +129,15 @@ def main(argv):
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
+        file_writer_cm = tf.summary.create_file_writer(logdir + '/cm')
+        cm_callback = tf.keras.callbacks.LambdaCallback(on_epoch_end=get_confusion_matrix)
 
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
                             validation_data=validation_ds,
                             validation_steps=validation_steps,
-                            callbacks=[ckpt_cb, tb])
+                            callbacks=[ckpt_cb, tb, cm_callback])
         
         """
         lr_manager = LearningRateSchedule(steps_per_epoch=steps_per_epoch,

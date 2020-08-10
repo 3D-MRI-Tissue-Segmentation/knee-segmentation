@@ -1,5 +1,6 @@
 
 
+from Segmentation.utils.data_loader import load_dataset
 
 
 def main():
@@ -30,25 +31,34 @@ def main():
                                  num_cores=num_cores,
                                  device_name=tpu_name)
 
-    # load dataset
-    train_ds, valid_ds = load_dataset(batch_size=batch_size,
-                                      dataset_dir=tfrec_dir,
-                                      augmentation=aug,
-                                      use_2d=use_2d,
-                                      multi_class=multi_class,
-                                      crop_size=crop_size,
-                                      buffer_size=buffer_size,
-                                      use_bfloat16=use_bfloat16,
-                                      use_RGB=use_RGB
-                                      )
+    with strategy.scope():
+
+        evaluator = Evaluator(validation_steps,
+                              run_eager,
+                              target_weights_dir,
+                              vis_out_dir,
+                              vis_args,
+                              vis_weight_name='') 
+
+        # load dataset
+        train_ds, valid_ds = load_dataset(batch_size=batch_size,
+                                          dataset_dir=tfrec_dir,
+                                          augmentation=aug,
+                                          use_2d=use_2d,
+                                          multi_class=multi_class,
+                                          crop_size=crop_size,
+                                          buffer_size=buffer_size,
+                                          use_bfloat16=use_bfloat16,
+                                          use_RGB=use_RGB
+                                          )
+
+        train_ds = strategy.experimental_distribute_dataset(train_ds)
+        valid_ds = strategy.experimental_distribute_dataset(valid_ds)
+
+        if log_dir_now is None:
+            log_dir_now = evaluator.eval_model_loop(train_ds, valid_ds, strategy, multi_class, debug, num_to_visualise)
+
 
     # # --------------------------------------------------------------------------------
     # # --------------------------------------------------------------------------------
 
-    parameters = 0
-    evaluator = Evaluator(validation_steps,
-                          run_eager,
-                          target_weights_dir,
-                          vis_out_dir,
-                          vis_args,
-                          vis_weight_name='') 
