@@ -11,6 +11,8 @@ flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay 
 flags.DEFINE_list('lr_decay_epochs', [10, 20, 40, 60], 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
 flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
 flags.DEFINE_bool('use_2d', True, 'True to train on 2D slices, False to train on 3D data')
+flags.DEFINE_integer('crop_size', 288, 'Height and width crop size.')
+flags.DEFINE_integer('depth_crop_size', 160, 'Depth crop size.')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 flags.DEFINE_list('aug_strategy', None, 'Augmentation Strategies: None, random-crop, noise, crop_and_noise')
 

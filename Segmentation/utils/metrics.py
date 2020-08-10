@@ -8,6 +8,17 @@ def dice_coef(y_true, y_pred, smooth=1):
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f * y_true_f) + K.sum(y_pred_f * y_pred_f) + smooth)
 
+def dice_coef_multi(idx):
+
+    def dice_inner(y_true, y_pred):
+
+        y_true = y_true[..., idx]
+        y_pred = y_pred[..., idx]
+
+        return dice_coef(y_true, y_pred)
+
+    return dice_inner
+
 def mIoU(y_true, y_pred, smooth=1):
     y_true = K.flatten(y_true)
     y_pred = K.flatten(y_pred)
@@ -16,6 +27,18 @@ def mIoU(y_true, y_pred, smooth=1):
     iou = (intersection + smooth) / (union + smooth)
 
     return iou
+
+def mIoU_multi(idx):
+
+    def mIoU_inner(y_true, y_pred):
+
+        y_true = y_true[..., idx]
+        y_pred = y_pred[..., idx]
+
+        return mIoU(y_true, y_pred)
+
+    return mIoU_inner
+
 
 def precision(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py

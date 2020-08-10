@@ -13,7 +13,7 @@ from Segmentation.utils.metrics import dice_coef, mIoU
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
 from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.evaluation_utils import eval_loop
-from Segmentation.train.train import Trainer
+from Segmentation.train.trainer import Trainer
 
 from flags import FLAGS
 from select_model import select_model
@@ -30,12 +30,12 @@ def main(argv):
     strategy = setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)
 
     # set dataset configuration
-    train_ds, validation_ds = load_dataset(batch_size=FLAGS.batch_size,
+    train_ds, validation_ds = load_dataset(batch_size=(FLAGS.batch_size * FLAGS.num_cores) ,
                                            dataset_dir=FLAGS.tfrec_dir,
                                            augmentation=FLAGS.aug_strategy,
                                            use_2d=FLAGS.use_2d,
                                            multi_class=FLAGS.multi_class,
-                                           crop_size=288,
+                                           crop_size=FLAGS.crop_size,
                                            buffer_size=FLAGS.buffer_size,
                                            use_bfloat16=FLAGS.use_bfloat16,
                                            use_RGB=False if FLAGS.backbone_architecture == 'default' else True
@@ -93,11 +93,11 @@ def main(argv):
         if FLAGS.train:
             if FLAGS.model_architecture != 'vnet':
                 if FLAGS.backbone_architecture == 'default':
-                    model.build((None, 288, 288, 1))
+                    model.build((None, FLAGS.crop_size, FLAGS.crop_size, 1))
                 else:
-                    model.build((None, 288, 288, 3))
+                    model.build((None, FLAGS.crop_size, FLAGS.crop_size, 3))
             else:
-                model.build((None, 160, 384, 384, 1))
+                model.build((None, FLAGS.depth_crop_size, FLAGS.crop_size, FLAGS.crop_size, 1))
             model.summary()
 
         if FLAGS.multi_class:
