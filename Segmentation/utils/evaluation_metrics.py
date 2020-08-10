@@ -26,6 +26,25 @@ def dice_coef_eval(y_true, y_pred):
     return dice
 
 
+def get_confusion_matrix_cb(epoch, logs):
+    """ Lambda Callback -ready version of get_conusion_matrix """
+    train_sample, train_label = train_ds
+    val_sample, val_label = validation_ds
+
+    y_true = np.reshape(y_true, (y_true.shape[0] * y_true.shape[1] * y_true.shape[2], y_true.shape[3]))
+    y_pred = np.reshape(y_pred, (y_pred.shape[0] * y_pred.shape[1] * y_pred.shape[2], y_pred.shape[3]))
+    y_true_max = np.argmax(y_true, axis=1)
+    y_pred_max = np.argmax(y_pred, axis=1)
+
+    if classes is None:
+        cm = confusion_matrix(y_true_max, y_pred_max)
+    else:
+        cm = confusion_matrix(y_true_max, y_pred_max, labels=classes)
+    print(cm)
+
+    return cm
+
+
 def get_confusion_matrix(y_true, y_pred, classes=None):
 
     y_true = np.reshape(y_true, (y_true.shape[0] * y_true.shape[1] * y_true.shape[2], y_true.shape[3]))

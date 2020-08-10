@@ -11,12 +11,14 @@ from Segmentation.utils.data_loader import load_dataset
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss
 from Segmentation.utils.metrics import dice_coef, mIoU
 from Segmentation.utils.evaluation_metrics import dice_coef_eval, iou_loss_eval
+from Segmentation.utils.evaluation_metrics import get_confusion_matrix_cb
 from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.evaluation_utils import eval_loop
 from Segmentation.train.trainer import Trainer
 
 from flags import FLAGS
 from select_model import select_model
+
 
 def main(argv):
 
@@ -102,11 +104,11 @@ def main(argv):
 
         if FLAGS.multi_class:
             if FLAGS.use_2d:
-                metrics = [dice_coef, mIoU, dice_coef_eval, iou_loss_eval, crossentropy_loss_fn, 'acc']
+                metrics = [dice_coef, mIoU, crossentropy_loss_fn, 'acc']
             else:
                 metrics = [dice_coef, mIoU, crossentropy_loss_fn, 'acc']
         else:
-            metrics = [dice_coef, iou_loss, crossentropy_loss_fn, 'acc']
+            metrics = [dice_coef, mIoU, crossentropy_loss_fn, 'acc']
 
         model.compile(optimizer=optimiser,
                       loss=loss_fn,
@@ -130,7 +132,7 @@ def main(argv):
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
         file_writer_cm = tf.summary.create_file_writer(logdir + '/cm')
-        cm_callback = tf.keras.callbacks.LambdaCallback(on_epoch_end=get_confusion_matrix)
+        cm_callback = tf.keras.callbacks.LambdaCallback(on_epoch_end=get_confusion_matrix_cb)
 
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
