@@ -129,8 +129,8 @@ def main(argv):
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
-        file_writer_cm = tf.summary.create_file_writer(logdir + '/cm')
-        cm_callback = tf.keras.callbacks.LambdaCallback(on_epoch_end=get_confusion_matrix_cb)
+        # file_writer_cm = tf.summary.create_file_writer(logdir + '/cm')
+        # cm_callback = tf.keras.callbacks.LambdaCallback(on_epoch_end=get_confusion_matrix_cb)
 
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
