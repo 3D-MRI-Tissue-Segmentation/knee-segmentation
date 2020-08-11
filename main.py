@@ -102,13 +102,7 @@ def main(argv):
                 model.build((None, FLAGS.depth_crop_size, FLAGS.crop_size, FLAGS.crop_size, 1))
             model.summary()
 
-        if FLAGS.multi_class:
-            if FLAGS.use_2d:
-                metrics = [dice_coef, mIoU, crossentropy_loss_fn, 'acc']
-            else:
-                metrics = [dice_coef, mIoU, crossentropy_loss_fn, 'acc']
-        else:
-            metrics = [dice_coef, mIoU, crossentropy_loss_fn, 'acc']
+        metrics = [dice_coef, mIoU, crossentropy_loss_fn, 'acc']
 
         model.compile(optimizer=optimiser,
                       loss=loss_fn,
