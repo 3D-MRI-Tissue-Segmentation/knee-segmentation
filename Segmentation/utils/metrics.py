@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorflow.keras.backend as K
+from tensorflow.python.keras.metrics import MeanMetricWrapper
 
 def dice_coef(y_true, y_pred, smooth=1):
     y_true_f = K.flatten(y_true)
@@ -8,18 +9,7 @@ def dice_coef(y_true, y_pred, smooth=1):
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f * y_true_f) + K.sum(y_pred_f * y_pred_f) + smooth)
 
-def dice_coef_multi(idx):
-
-    def dice_inner(y_true, y_pred):
-
-        y_true = y_true[..., idx]
-        y_pred = y_pred[..., idx]
-
-        return dice_coef(y_true, y_pred)
-
-    return dice_inner
-
-def mIoU(y_true, y_pred, smooth=1):
+def IoU(y_true, y_pred, smooth=1):
     y_true = K.flatten(y_true)
     y_pred = K.flatten(y_pred)
     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
@@ -28,17 +18,45 @@ def mIoU(y_true, y_pred, smooth=1):
 
     return iou
 
-def mIoU_multi(idx):
+def dice_coef_single(y_true, y_pred, idx):
 
-    def mIoU_inner(y_true, y_pred):
+    y_true = y_true[..., idx]
+    y_pred = y_pred[..., idx]
 
+    return dice_coef(y_true, y_pred)
+
+def IoU_single(y_true, y_pred, idx):
+
+    y_true = y_true[..., idx]
+    y_pred = y_pred[..., idx]
+
+    return IoU(y_true, y_pred)
+
+class DiceMetrics(MeanMetricWrapper):
+    
+    def __init__(self, idx, dtype=None):
+        name = 'dice_coef_{}'.format(idx)
+        super(DiceMetrics, self).__init__(
+            dice_coef_single, name, dtype=dtype, idx=idx)
+
+class IoUMetrics(MeanMetricWrapper):
+
+    def __init__(self, idx, dtype=None):
+        name = 'IoU_{}'.format(idx)
+        super(IoUMetrics, self).__init__(
+            IoU_single, name, dtype=dtype, idx=idx)
+
+def dice_coef_multi(idx):
+    
+    metric_name = 'dice_coef_{}'.format(idx)
+    def dice_inner(y_true, y_pred):
+        
         y_true = y_true[..., idx]
         y_pred = y_pred[..., idx]
 
-        return mIoU(y_true, y_pred)
+        return dice_coef(y_true, y_pred)
 
-    return mIoU_inner
-
+    return Mean(name=metric_name)
 
 def precision(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
@@ -94,4 +112,5 @@ def tn(y_true, y_pred):
     y_pos = K.round(K.clip(y_true, 0, 1))
     y_neg = 1 - y_pos
     tn = (K.sum(y_neg * y_pred_neg) + smooth) / (K.sum(y_neg) + smooth)
-    return tn
+    return tn        
+

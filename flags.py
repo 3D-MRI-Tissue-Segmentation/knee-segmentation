@@ -2,8 +2,8 @@ from absl import flags
 
 # Dataset/training options
 flags.DEFINE_integer('seed', 1, 'Random seed.')
-flags.DEFINE_integer('batch_size', 32, 'Batch size per TPU Core / GPU')
-flags.DEFINE_float('base_learning_rate', 3.2e-04, 'base learning rate at the start of training session')
+flags.DEFINE_integer('batch_size', 16, 'Batch size per TPU Core / GPU')
+flags.DEFINE_float('base_learning_rate', 6.4e-04, 'base learning rate at the start of training session')
 flags.DEFINE_float('min_learning_rate', 1e-09, 'minimum learning rate')
 flags.DEFINE_integer('lr_warmup_epochs', 1, 'No. of epochs for a warmup to the base_learning_rate. 0 for no warmup')
 flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
@@ -18,16 +18,16 @@ flags.DEFINE_list('aug_strategy', None, 'Augmentation Strategies: None, random-c
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3, deeplabv3_plus')
-flags.DEFINE_integer('buffer_size', 5000, 'shuffle buffer size')
+flags.DEFINE_integer('buffer_size', 10000, 'shuffle buffer size')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
+flags.DEFINE_bool('use_dropout', True, 'Whether to use dropout')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout. Only used if use_dropout is True')
-flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
+flags.DEFINE_float('dropout_rate', 0.25, 'Dropout rate. Only used if use_dropout is True')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rmsprop, sgd')
 
 # UNet parameters
