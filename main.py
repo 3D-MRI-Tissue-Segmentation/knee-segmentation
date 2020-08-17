@@ -30,11 +30,7 @@ def main(argv):
     batch_size = (FLAGS.batch_size * FLAGS.num_cores)
 
     # set dataset configuration
-<<<<<<< HEAD
-    train_ds, validation_ds = load_dataset(batch_size=(FLAGS.batch_size * FLAGS.num_cores),
-=======
     train_ds, validation_ds = load_dataset(batch_size=batch_size,
->>>>>>> d93c7a10acfa5b41009bfe1dd7aef42c643fd4b0
                                            dataset_dir=FLAGS.tfrec_dir,
                                            augmentation=FLAGS.aug_strategy,
                                            use_2d=FLAGS.use_2d,
@@ -133,13 +129,9 @@ def main(argv):
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
-<<<<<<< HEAD
-        
-=======
         # file_writer_cm = tf.summary.create_file_writer(logdir + '/cm')
         # cm_callback = tf.keras.callbacks.LambdaCallback(on_epoch_end=get_confusion_matrix_cb)
 
->>>>>>> d93c7a10acfa5b41009bfe1dd7aef42c643fd4b0
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
@@ -152,8 +144,7 @@ def main(argv):
         model.evaluate(validation_ds,
                        batch_size=batch_size,
                        verbose=2,
-                       steps=validation_steps,
-                       callbacks=[tb]  #, cm_callback],
+                       steps=validation_steps
                        )
         
 if __name__ == '__main__':
