@@ -27,7 +27,7 @@ def main(argv):
     strategy = setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)
 
     # set dataset configuration
-    train_ds, validation_ds = load_dataset(batch_size=(FLAGS.batch_size * FLAGS.num_cores) ,
+    train_ds, validation_ds = load_dataset(batch_size=(FLAGS.batch_size * FLAGS.num_cores),
                                            dataset_dir=FLAGS.tfrec_dir,
                                            augmentation=FLAGS.aug_strategy,
                                            use_2d=FLAGS.use_2d,
@@ -37,7 +37,7 @@ def main(argv):
                                            use_bfloat16=FLAGS.use_bfloat16,
                                            use_RGB=False if FLAGS.backbone_architecture == 'default' else True
                                            )
-    
+
     num_classes = 7 if FLAGS.multi_class else 1
     steps_per_epoch = 19200 // (FLAGS.batch_size * FLAGS.num_cores)
     validation_steps = 4480 // (FLAGS.batch_size * FLAGS.num_cores)
@@ -68,7 +68,7 @@ def main(argv):
             lr_decay_epochs = FLAGS.lr_decay_epochs
         else:
             lr_decay_epochs = list(range(FLAGS.lr_warmup_epochs + 1, FLAGS.train_epochs))
-        
+
         lr_rate = LearningRateSchedule(steps_per_epoch,
                                        FLAGS.base_learning_rate,
                                        FLAGS.min_learning_rate,
@@ -96,7 +96,7 @@ def main(argv):
             else:
                 model.build((None, FLAGS.depth_crop_size, FLAGS.crop_size, FLAGS.crop_size, 1))
             model.summary()
-        
+
         if FLAGS.multi_class:
             dice_metrics = [DiceMetrics(idx=idx) for idx in range(num_classes)]            
             iou_metrics = [IoUMetrics(idx=idx) for idx in range(num_classes)]
@@ -108,7 +108,7 @@ def main(argv):
         model.compile(optimizer=optimiser,
                       loss=loss_fn,
                       metrics=metrics)
-    
+
     # FLAGS.train will be outside train() 
     if FLAGS.train:
         # define checkpoints
@@ -125,7 +125,7 @@ def main(argv):
         ckpt_cb = tf.keras.callbacks.ModelCheckpoint(logdir_arch + '_weights.{epoch:03d}.ckpt',
                                                      save_best_only=False,
                                                      save_weights_only=True)
-        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch') 
+        tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
         
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
