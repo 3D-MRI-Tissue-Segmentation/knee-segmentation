@@ -15,6 +15,7 @@ from Segmentation.utils.metrics import dice_coef, IoU, DiceMetrics, IoUMetrics
 from flags import FLAGS
 from select_model import select_model
 
+
 def main(argv):
 
     if FLAGS.visual_file:
@@ -26,8 +27,14 @@ def main(argv):
     # set whether to train on GPU or TPU
     strategy = setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)
 
+    batch_size = (FLAGS.batch_size * FLAGS.num_cores)
+
     # set dataset configuration
+<<<<<<< HEAD
     train_ds, validation_ds = load_dataset(batch_size=(FLAGS.batch_size * FLAGS.num_cores),
+=======
+    train_ds, validation_ds = load_dataset(batch_size=batch_size,
+>>>>>>> d93c7a10acfa5b41009bfe1dd7aef42c643fd4b0
                                            dataset_dir=FLAGS.tfrec_dir,
                                            augmentation=FLAGS.aug_strategy,
                                            use_2d=FLAGS.use_2d,
@@ -39,8 +46,8 @@ def main(argv):
                                            )
 
     num_classes = 7 if FLAGS.multi_class else 1
-    steps_per_epoch = 19200 // (FLAGS.batch_size * FLAGS.num_cores)
-    validation_steps = 4480 // (FLAGS.batch_size * FLAGS.num_cores)
+    steps_per_epoch = 19200 // batch_size
+    validation_steps = 4480 // batch_size
     # # --------------------------------------------------------------------------------
     # # def set_metrics()
     if FLAGS.multi_class:
@@ -126,15 +133,28 @@ def main(argv):
                                                      save_best_only=False,
                                                      save_weights_only=True)
         tb = tf.keras.callbacks.TensorBoard(logdir, update_freq='epoch')
+<<<<<<< HEAD
         
+=======
+        # file_writer_cm = tf.summary.create_file_writer(logdir + '/cm')
+        # cm_callback = tf.keras.callbacks.LambdaCallback(on_epoch_end=get_confusion_matrix_cb)
+
+>>>>>>> d93c7a10acfa5b41009bfe1dd7aef42c643fd4b0
         history = model.fit(train_ds,
                             steps_per_epoch=steps_per_epoch,
                             epochs=FLAGS.train_epochs,
                             validation_data=validation_ds,
                             validation_steps=validation_steps,
-                            callbacks=[ckpt_cb, tb],
+                            callbacks=[ckpt_cb, tb],  #, cm_callback],
                             verbose=2)
-        
+
+    else:
+        model.evaluate(validation_ds,
+                       batch_size=batch_size,
+                       verbose=2,
+                       steps=validation_steps,
+                       callbacks=[tb]  #, cm_callback],
+                       )
         
 if __name__ == '__main__':
     app.run(main)
