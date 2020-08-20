@@ -22,7 +22,7 @@ def main(argv):
         assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
     del argv  # unused arg
 
-    tf.random.set_seed(FLAGS.seed)  # set seed
+    # tf.random.set_seed(FLAGS.seed)  # set seed
 
     # set whether to train on GPU or TPU
     strategy = setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)
@@ -90,7 +90,7 @@ def main(argv):
             optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
 
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
-        if FLAGS.train:
+        if FLAGS.train:   
             if FLAGS.model_architecture != 'vnet':
                 if FLAGS.backbone_architecture == 'default':
                     model.build((None, FLAGS.crop_size, FLAGS.crop_size, 1))
@@ -107,7 +107,7 @@ def main(argv):
             metrics = dice_metrics + iou_metrics
         else:
             metrics = [dice_coef, IoU]
-
+        
         model.compile(optimizer=optimiser,
                       loss=loss_fn,
                       metrics=metrics)
@@ -137,13 +137,13 @@ def main(argv):
                             epochs=FLAGS.train_epochs,
                             validation_data=validation_ds,
                             validation_steps=validation_steps,
-                            callbacks=[ckpt_cb, tb],  #, cm_callback],
+                            callbacks=[ckpt_cb, tb],
                             verbose=2)
 
     else:
+        
+        model.load_weights(FLAGS.weights_dir).expect_partial()
         model.evaluate(validation_ds,
-                       batch_size=batch_size,
-                       verbose=2,
                        steps=validation_steps
                        )
         

@@ -13,7 +13,7 @@ flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_20
 flags.DEFINE_bool('use_2d', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_integer('crop_size', 288, 'Height and width crop size.')
 flags.DEFINE_integer('depth_crop_size', 160, 'Depth crop size.')
-flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
+flags.DEFINE_integer('train_epochs', 30, 'Number of training epochs.')
 flags.DEFINE_list('aug_strategy', None, 'Augmentation Strategies: None, random-crop, noise, crop_and_noise')
 
 # Model options
@@ -25,9 +25,9 @@ flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_bool('use_dropout', True, 'Whether to use dropout')
+flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout. Only used if use_dropout is True')
-flags.DEFINE_float('dropout_rate', 0.25, 'Dropout rate. Only used if use_dropout is True')
+flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rmsprop, sgd')
 
 # UNet parameters
@@ -65,7 +65,7 @@ flags.DEFINE_integer('kernel_size_UpConv', 3, 'Kernel size for the upsampling co
 
 # Logging, saving and testing options
 flags.DEFINE_string('tfrec_dir', 'gs://oai-ml-dataset/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', 'gs://oai-ml-dataset/checkpoints', 'directory for checkpoints')
+flags.DEFINE_string('logdir', 'gs://oai-ml-dataset/checkpoints/', 'directory for checkpoints')
 flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
 flags.DEFINE_string('bucket', 'oai-ml-dataset', 'GCloud Bucket for storage of data and weights')
 flags.DEFINE_integer('visual_save_freq', 1, 'Save visualisations every x epochs')
