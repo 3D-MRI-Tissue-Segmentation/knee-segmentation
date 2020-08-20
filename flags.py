@@ -25,9 +25,9 @@ flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
 flags.DEFINE_bool('use_bias', True, 'Wheter to use bias')
 flags.DEFINE_string('channel_order', 'channels_last', 'channels_last (Default) or channels_first')
 flags.DEFINE_string('activation', 'relu', 'activation function to be used')
-flags.DEFINE_bool('use_dropout', True, 'Whether to use dropout')
+flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout. Only used if use_dropout is True')
-flags.DEFINE_float('dropout_rate', 0.25, 'Dropout rate. Only used if use_dropout is True')
+flags.DEFINE_float('dropout_rate', 0.00, 'Dropout rate. Only used if use_dropout is True')
 flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rmsprop, sgd')
 
 # UNet parameters
