@@ -13,12 +13,12 @@ flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_20
 flags.DEFINE_bool('use_2d', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_integer('crop_size', 288, 'Height and width crop size.')
 flags.DEFINE_integer('depth_crop_size', 160, 'Depth crop size.')
-flags.DEFINE_integer('train_epochs', 30, 'Number of training epochs.')
+flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
 flags.DEFINE_list('aug_strategy', None, 'Augmentation Strategies: None, random-crop, noise, crop_and_noise')
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3, deeplabv3_plus')
-flags.DEFINE_integer('buffer_size', 10000, 'shuffle buffer size')
+flags.DEFINE_integer('buffer_size', 19200, 'shuffle buffer size')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')

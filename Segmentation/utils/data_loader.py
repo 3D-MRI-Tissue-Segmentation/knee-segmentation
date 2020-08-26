@@ -72,15 +72,26 @@ def parse_fn_2d(example_proto,
             if 'random_crop' in augmentation:
                 image, seg = crop_randomly_image_pair_2d(image, seg)
             if 'noise' in augmentation:
+                image = tf.image.resize_with_crop_or_pad(image, 288, 288)
+                seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
+
                 image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
                 image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
             if 'crop_and_noise' in augmentation:
                 image, seg = crop_randomly_image_pair_2d(image, seg)
                 image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
                 image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
+
             unsupported_augs = np.setdiff1d(supported_augs, augmentation)
-            if unsupported_augs is not None:
-                "Augmentation strategy {} does not exist or is not supported!".format(unsupported_augs)
+            for item in supported_augs:
+                if item in unsupported_augs:
+                    unsupported_augs = np.delete(unsupported_augs, np.argwhere(unsupported_augs == item))
+
+            if unsupported_augs:
+                print("Augmentation strategy {} does not exist or is not supported!".format(unsupported_augs))
+                print("Using default augmentation strategy: None")
+                image = tf.image.resize_with_crop_or_pad(image, 288, 288)
+                seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
     else:
         image = tf.image.resize_with_crop_or_pad(image, 288, 288)
         seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
@@ -92,6 +103,9 @@ def parse_fn_2d(example_proto,
         seg = tf.clip_by_value(seg, 0, 1)
 
     image, seg = normalise(image, seg)
+
+    if tf.math.is_nan(tf.math.reduce_sum(image)) or tf.math.is_nan(tf.math.reduce_sum(seg)):
+        print("WARNING!: There is a NaN value in your tensor. This will result in NaN values in your loss!")
 
     return (image, seg)
 

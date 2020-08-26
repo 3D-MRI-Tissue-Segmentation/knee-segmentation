@@ -46,17 +46,21 @@ class IoUMetrics(MeanMetricWrapper):
         super(IoUMetrics, self).__init__(
             IoU_single, name, dtype=dtype, idx=idx)
 
-def dice_coef_multi(idx):
-    
-    metric_name = 'dice_coef_{}'.format(idx)
-    def dice_inner(y_true, y_pred):
-        
-        y_true = y_true[..., idx]
-        y_pred = y_pred[..., idx]
+def dice_coef_eval(y_true, y_pred):
 
-        return dice_coef(y_true, y_pred)
+    # remove background_classes
+    y_true = y_true[..., 1:]
+    y_pred = y_pred[..., 1:]
 
-    return Mean(name=metric_name)
+    return dice_coef(y_true, y_pred)
+
+def IoU_eval(y_true, y_pred):
+
+    # remove background_classes
+    y_true = y_true[..., 1:]
+    y_pred = y_pred[..., 1:]
+
+    return IoU(y_true, y_pred)
 
 def precision(y_true, y_pred):
     # https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py

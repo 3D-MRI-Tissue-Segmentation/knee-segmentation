@@ -1,5 +1,5 @@
 import tensorflow as tf
-# import tensorflow.keras.backend as K
+import tensorflow.keras.backend as K
 import matplotlib.pyplot as plt
 import math
 import numpy as np
@@ -107,17 +107,6 @@ def label2color(img):
             img_color[row, col] = np.array(colour_maps[label])
     return img_color
 
-
-def make_lr_scheduler(init_lr):
-
-    def step_decay(epoch):
-        drop = 0.8
-        epochs_drop = 1.0
-        lrate = init_lr * math.pow(drop, math.floor((1 + epoch) / epochs_drop))
-        return lrate
-    return tf.keras.callbacks.LearningRateScheduler(step_decay)
-
-
 class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
     def __init__(self,
@@ -146,7 +135,6 @@ class LearningRateSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
                 lr_epoch >= start_epoch,
                 self.update_lr(index, self.min_learning_rate),
                 lrate)
-
         return lrate
     
     def update_lr(self, idx, min_lr):

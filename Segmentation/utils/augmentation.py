@@ -40,7 +40,7 @@ def flip_randomly_left_right_image_pair_2d(image_tensor, label_tensor):
 def adjust_brightness_randomly_image_pair_2d(image_tensor, label_tensor):
 
     random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
-    random_delta = tf.random.uniform(maxval=1, dtype=tf.float32, shape=[])
+    random_delta = tf.random.uniform(maxval=0.01, dtype=tf.float32, shape=[])
 
     randomly_brightened_img = tf.cond(pred=tf.equal(random_var, 0),
                                       true_fn=lambda: tf.image.adjust_brightness(image_tensor, delta=random_delta),
@@ -55,7 +55,7 @@ def adjust_brightness_randomly_image_pair_2d(image_tensor, label_tensor):
 def adjust_contrast_randomly_image_pair_2d(image_tensor, label_tensor):
 
     random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
-    random_contrast_factor = tf.random.uniform(maxval=1, dtype=tf.float32, shape=[])
+    random_contrast_factor = tf.random.uniform(maxval=0.01, dtype=tf.float32, shape=[])
 
     random_crop_img = tf.cond(pred=tf.equal(random_var, 0),
                               true_fn=lambda: tf.image.adjust_contrast(image_tensor, random_contrast_factor),

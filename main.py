@@ -10,7 +10,7 @@ from Segmentation.utils.accelerator import setup_accelerator
 from Segmentation.utils.data_loader import load_dataset
 from Segmentation.utils.training_utils import LearningRateSchedule
 from Segmentation.utils.losses import dice_coef_loss, tversky_loss
-from Segmentation.utils.metrics import dice_coef, IoU, DiceMetrics, IoUMetrics
+from Segmentation.utils.metrics import dice_coef, DiceMetrics, dice_coef_eval
 
 from flags import FLAGS
 from select_model import select_model
@@ -90,7 +90,7 @@ def main(argv):
             optimiser = tf.keras.optimizers.Adam(learning_rate=lr_rate)
 
         # for some reason, if i build the model then it can't load checkpoints. I'll see what I can do about this
-        if FLAGS.train:   
+        if FLAGS.train:
             if FLAGS.model_architecture != 'vnet':
                 if FLAGS.backbone_architecture == 'default':
                     model.build((None, FLAGS.crop_size, FLAGS.crop_size, 1))
@@ -102,17 +102,15 @@ def main(argv):
 
         if FLAGS.multi_class:
             dice_metrics = [DiceMetrics(idx=idx) for idx in range(num_classes)]            
-            iou_metrics = [IoUMetrics(idx=idx) for idx in range(num_classes)]
-
-            metrics = dice_metrics + iou_metrics
+            metrics = [dice_metrics, dice_coef_eval]
         else:
-            metrics = [dice_coef, IoU]
-        
+            metrics = [dice_coef]
+
         model.compile(optimizer=optimiser,
                       loss=loss_fn,
                       metrics=metrics)
 
-    # FLAGS.train will be outside train() 
+    # FLAGS.train will be outside train()
     if FLAGS.train:
         # define checkpoints
         time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -138,14 +136,13 @@ def main(argv):
                             validation_data=validation_ds,
                             validation_steps=validation_steps,
                             callbacks=[ckpt_cb, tb],
-                            verbose=2)
+                            verbose=1)
 
     else:
-        
         model.load_weights(FLAGS.weights_dir).expect_partial()
         model.evaluate(validation_ds,
                        steps=validation_steps
                        )
-        
+
 if __name__ == '__main__':
     app.run(main)
