@@ -22,7 +22,7 @@ def main(argv):
         assert FLAGS.train is False, "Train must be set to False if you are doing a visual."
     del argv  # unused arg
 
-    # tf.random.set_seed(FLAGS.seed)  # set seed
+    tf.random.set_seed(FLAGS.seed)  # set seed
 
     # set whether to train on GPU or TPU
     strategy = setup_accelerator(use_gpu=FLAGS.use_gpu, num_cores=FLAGS.num_cores, device_name=FLAGS.tpu)

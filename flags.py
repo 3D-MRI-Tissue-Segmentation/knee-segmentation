@@ -14,7 +14,7 @@ flags.DEFINE_bool('use_2d', True, 'True to train on 2D slices, False to train on
 flags.DEFINE_integer('crop_size', 288, 'Height and width crop size.')
 flags.DEFINE_integer('depth_crop_size', 160, 'Depth crop size.')
 flags.DEFINE_integer('train_epochs', 50, 'Number of training epochs.')
-flags.DEFINE_list('aug_strategy', None, 'Augmentation Strategies: None, random-crop, noise, crop_and_noise')
+flags.DEFINE_list('aug_strategy', None, 'Augmentation Strategies: None/center_crop (Default), random_crop, random_noise, random_flip')
 
 # Model options
 flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3, deeplabv3_plus')

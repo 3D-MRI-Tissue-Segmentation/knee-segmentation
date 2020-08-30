@@ -3,69 +3,38 @@ import tensorflow as tf
 import random
 import sys
 
-def crop_randomly_image_pair_2d(image_tensor, label_tensor):
+def normalise(image_tensor):
+    mean = tf.math.reduce_mean(image_tensor)
+    std = tf.math.reduce_std(image_tensor)
+    not_blank = std > 0.0
 
-    random_seed = random.randrange(sys.maxsize)
-    random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
+    image_tensor = tf.cond(not_blank,
+                           true_fn= lambda: tf.divide(tf.math.subtract(image_tensor, mean), std),
+                           false_fn= lambda: image_tensor)
 
-    randomly_cropped_img = tf.cond(pred=tf.equal(random_var, 0),
-                                   true_fn=lambda: tf.image.random_crop(image_tensor,
-                                                                        size=[288, 288, 1],
-                                                                        seed=random_seed),
-                                   false_fn=lambda: tf.image.resize_with_crop_or_pad(image_tensor, 288, 288))
+    return image_tensor
 
-    randomly_cropped_label = tf.cond(pred=tf.equal(random_var, 0),
-                                     true_fn=lambda: tf.image.random_crop(label_tensor,
-                                                                          size=[288, 288, 7],
-                                                                          seed=random_seed),
-                                     false_fn=lambda: tf.image.resize_with_crop_or_pad(label_tensor, 288, 288))
+def crop_randomly_image_pair_2d(image_tensor, label_tensor, size):
+
+    combined = tf.concat([image_tensor, label_tensor], axis=-1)
+    combined_channel_dim = image_tensor.shape[-1] + label_tensor.shape[-1]
+    combined_crop = tf.image.random_crop(combined, size=[size[0], size[1], combined_channel_dim])
+
+    randomly_cropped_img = combined_crop[..., :image_tensor.shape[-1]]
+    randomly_cropped_label = combined_crop[..., image_tensor.shape[-1]:]
 
     return randomly_cropped_img, randomly_cropped_label
 
-def flip_randomly_left_right_image_pair_2d(image_tensor, label_tensor):
+def flip_randomly_image_pair_2d(image_tensor, label_tensor):
 
-    random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
+    combined = tf.concat([image_tensor, label_tensor], axis=-1)
+    combined_channel_dim = image_tensor.shape[-1] + label_tensor.shape[-1]
+    combined_flip = tf.image.random_flip_left_right(tf.image.random_flip_up_down(combined))
 
-    randomly_flipped_img = tf.cond(pred=tf.equal(random_var, 0),
-                                   true_fn=lambda: tf.image.flip_left_right(image_tensor),
-                                   false_fn=lambda: image_tensor)
-
-    randomly_flipped_label = tf.cond(pred=tf.equal(random_var, 0),
-                                     true_fn=lambda: tf.image.flip_left_right(label_tensor),
-                                     false_fn=lambda: label_tensor)
+    randomly_flipped_img = combined_flip[..., :image_tensor.shape[-1]]
+    randomly_flipped_label = combined_flip[..., image_tensor.shape[-1]:]
 
     return randomly_flipped_img, randomly_flipped_label
-
-
-def adjust_brightness_randomly_image_pair_2d(image_tensor, label_tensor):
-
-    random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
-    random_delta = tf.random.uniform(maxval=0.01, dtype=tf.float32, shape=[])
-
-    randomly_brightened_img = tf.cond(pred=tf.equal(random_var, 0),
-                                      true_fn=lambda: tf.image.adjust_brightness(image_tensor, delta=random_delta),
-                                      false_fn=lambda: image_tensor)
-
-    randomly_brightened_label = tf.cond(pred=tf.equal(random_var, 0),
-                                        true_fn=lambda: tf.image.adjust_brightness(label_tensor, delta=random_delta),
-                                        false_fn=lambda: label_tensor)
-
-    return randomly_brightened_img, randomly_brightened_label
-
-def adjust_contrast_randomly_image_pair_2d(image_tensor, label_tensor):
-
-    random_var = tf.random.uniform(maxval=2, dtype=tf.int32, shape=[])
-    random_contrast_factor = tf.random.uniform(maxval=0.01, dtype=tf.float32, shape=[])
-
-    random_crop_img = tf.cond(pred=tf.equal(random_var, 0),
-                              true_fn=lambda: tf.image.adjust_contrast(image_tensor, random_contrast_factor),
-                              false_fn=lambda: image_tensor)
-
-    random_crop_label = tf.cond(pred=tf.equal(random_var, 0),
-                                true_fn=lambda: tf.image.adjust_contrast(label_tensor, random_contrast_factor),
-                                false_fn=lambda: label_tensor)
-
-    return random_crop_img, random_crop_label
 
 def get_random_batch_centre(image_tensor, crop_size, depth_crop_size, pad=20):
     batch_size = tf.shape(image_tensor)[0]
@@ -168,19 +137,6 @@ def apply_random_gamma_3d(image_tensor, label_tensor):
     gain = tf.random.uniform([], 0.95, 1.05)
     image_tensor = tf.cond(do_gamma, lambda: tf.image.adjust_gamma(image_tensor, gamma=gamma, gain=gain), lambda: image_tensor)
     return image_tensor, label_tensor
-
-
-def normalise(image_tensor, label_tensor):
-    image_tensor = tf.map_fn(lambda x: normalise_per_batch(x), image_tensor)
-    return image_tensor, label_tensor
-
-
-def normalise_per_batch(image_tensor):
-    mean = tf.math.reduce_mean(image_tensor)
-    std = tf.math.reduce_std(image_tensor)
-    image_tensor = tf.divide(tf.math.subtract(image_tensor, mean), std)
-    return image_tensor
-
 
 def apply_flip_3d_axis(image_tensor, label_tensor, axis):
     do_flip = tf.random.uniform([]) > 0.5
@@ -393,19 +349,6 @@ def apply_random_gamma_3d(image_tensor, label_tensor):
     gain = tf.random.uniform([], 0.95, 1.05)
     image_tensor = tf.cond(do_gamma, lambda: tf.image.adjust_gamma(image_tensor, gamma=gamma, gain=gain), lambda: image_tensor)
     return image_tensor, label_tensor
-
-
-def normalise(image_tensor, label_tensor):
-    image_tensor = tf.map_fn(lambda x: normalise_per_batch(x), image_tensor)
-    return image_tensor, label_tensor
-
-
-def normalise_per_batch(image_tensor):
-    mean = tf.math.reduce_mean(image_tensor)
-    std = tf.math.reduce_std(image_tensor)
-    image_tensor = tf.divide(tf.math.subtract(image_tensor, mean), std)
-    return image_tensor
-
 
 def apply_flip_3d_axis(image_tensor, label_tensor, axis):
     do_flip = tf.random.uniform([]) > 0.5

@@ -5,11 +5,10 @@ from functools import partial
 import tensorflow as tf
 from glob import glob
 
-from Segmentation.utils.augmentation import crop_randomly_image_pair_2d, adjust_contrast_randomly_image_pair_2d
-from Segmentation.utils.augmentation import adjust_brightness_randomly_image_pair_2d
+from Segmentation.utils.augmentation import crop_randomly_image_pair_2d, flip_randomly_image_pair_2d, normalise
 from Segmentation.utils.augmentation import apply_centre_crop_3d, apply_valid_random_crop_3d
 from Segmentation.utils.augmentation import apply_random_brightness_3d, apply_random_contrast_3d, apply_random_gamma_3d
-from Segmentation.utils.augmentation import apply_flip_3d, apply_rotate_3d, normalise
+from Segmentation.utils.augmentation import apply_flip_3d, apply_rotate_3d
 
 def get_multiclass(label):
 
@@ -30,6 +29,7 @@ def get_multiclass(label):
 
 
 def parse_fn_2d(example_proto,
+                crop_size=None,
                 training=False,
                 augmentation=[],
                 multi_class=True,
@@ -63,24 +63,32 @@ def parse_fn_2d(example_proto,
     seg = tf.reshape(seg_raw, [384, 384, 7])
     seg = tf.cast(seg, dtype)
 
-    supported_augs = ["random_crop", "noise", "crop_and_noise"]
+    tf.debugging.check_numerics(image, "Invalid value in your input!")
+    tf.debugging.check_numerics(seg, "Invalid value in your label!")
+
+    supported_augs = ["random_crop", "random_noise", "random_flip"]
+    if crop_size is None:
+        crop_size = image_features['height']
+
     if training:
         if augmentation is None:
-            image = tf.image.resize_with_crop_or_pad(image, 288, 288)
-            seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
+            print("Using default augmentation strategy: center_crop")
+            image = tf.image.resize_with_crop_or_pad(image, crop_size, crop_size)
+            seg = tf.image.resize_with_crop_or_pad(seg, crop_size, crop_size)
         else:
+            if 'center_crop' in augmentation:
+                image = tf.image.resize_with_crop_or_pad(image, crop_size, crop_size)
+                seg = tf.image.resize_with_crop_or_pad(seg, crop_size, crop_size)
             if 'random_crop' in augmentation:
-                image, seg = crop_randomly_image_pair_2d(image, seg)
-            if 'noise' in augmentation:
-                image = tf.image.resize_with_crop_or_pad(image, 288, 288)
-                seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
-
-                image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
-                image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
-            if 'crop_and_noise' in augmentation:
-                image, seg = crop_randomly_image_pair_2d(image, seg)
-                image, seg = adjust_brightness_randomly_image_pair_2d(image, seg)
-                image, seg = adjust_contrast_randomly_image_pair_2d(image, seg)
+                print("Applying random crop...")
+                image, seg = crop_randomly_image_pair_2d(image, seg, size=[crop_size,crop_size])
+            if 'random_noise' in augmentation:
+                print("Applying random noise...")
+                image = tf.image.random_brightness(image, max_delta=0.05)
+                image = tf.image.random_contrast(image, 0.01, 0.05)
+            if 'random_flip' in augmentation:
+                print("Applying random flip...")
+                image, seg = flip_randomly_image_pair_2d(image, seg)
 
             unsupported_augs = np.setdiff1d(supported_augs, augmentation)
             for item in supported_augs:
@@ -89,23 +97,18 @@ def parse_fn_2d(example_proto,
 
             if unsupported_augs:
                 print("Augmentation strategy {} does not exist or is not supported!".format(unsupported_augs))
-                print("Using default augmentation strategy: None")
-                image = tf.image.resize_with_crop_or_pad(image, 288, 288)
-                seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
     else:
-        image = tf.image.resize_with_crop_or_pad(image, 288, 288)
-        seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
+        image = tf.image.resize_with_crop_or_pad(image, crop_size, crop_size)
+        seg = tf.image.resize_with_crop_or_pad(seg, crop_size, crop_size)
 
     if not multi_class:
-        seg = tf.slice(seg, [0, 0, 1], [-1, -1, 6])
+        seg = seg[..., 1:]
         seg = tf.math.reduce_sum(seg, axis=-1)
         seg = tf.expand_dims(seg, axis=-1)
         seg = tf.clip_by_value(seg, 0, 1)
 
-    image, seg = normalise(image, seg)
-
-    if tf.math.is_nan(tf.math.reduce_sum(image)) or tf.math.is_nan(tf.math.reduce_sum(seg)):
-        print("WARNING!: There is a NaN value in your tensor. This will result in NaN values in your loss!")
+    image = normalise(image)
+    # image, seg = normalise(image, seg) # THIS LINE WILL BREAK THE CODE IF RANDOM CROP IS USED!!!
 
     return (image, seg)
 
@@ -234,6 +237,7 @@ def read_tfrecord(tfrecords_dir,
 
     if use_2d:
         parser = partial(parse_fn,
+                         crop_size=crop_size,
                          training=is_training,
                          augmentation=augmentation,
                          multi_class=multi_class,
