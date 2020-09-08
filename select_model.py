@@ -71,13 +71,14 @@ def select_model(FLAGS, num_classes):
     elif FLAGS.model_architecture == 'unet++':
         model_args = [FLAGS.num_filters,
                       num_classes,
+                      FLAGS.use_2d,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
                       FLAGS.activation,
                       FLAGS.use_batchnorm,
                       FLAGS.use_bias,
                       FLAGS.channel_order]
-        model_fn = Nested_UNet
+        model_fn = Nested_UNet_v2
 
     elif FLAGS.model_architecture == '100-Layer-Tiramisu':
         model_args = [FLAGS.growth_rate,

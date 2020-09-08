@@ -250,13 +250,13 @@ class Nested_UNet(tf.keras.Model):
         if use_2d:
             self.conv_1x1 = tfkl.Conv2D(num_classes,
                                         (1, 1),
-                                        activation='sigmoid' if self.num_classes == 1 else 'softmax',
+                                        activation='sigmoid' if num_classes == 1 else 'softmax',
                                         padding='same',
                                         data_format=data_format)
         else:
             self.conv_1x1 = tfkl.Conv3D(num_classes,
                                         (1, 1, 1),
-                                        activation='sigmoid' if self.num_classes == 1 else 'softmax',
+                                        activation='sigmoid' if num_classes == 1 else 'softmax',
                                         padding='same',
                                         data_format=data_format)
 
@@ -301,7 +301,7 @@ class Nested_UNet_v2(tf.keras.Model):
                  data_format='channels_last',
                  **kwargs):
 
-        super(Nested_UNet, self).__init__(**kwargs)
+        super(Nested_UNet_v2, self).__init__(**kwargs)
 
         self.conv_block_lists = []
         self.pool = tfkl.MaxPooling2D() if use_2d else tfkl.MaxPooling3D()
@@ -327,13 +327,13 @@ class Nested_UNet_v2(tf.keras.Model):
         if use_2d:
             self.conv_1x1 = tfkl.Conv2D(num_classes,
                                         (1, 1),
-                                        activation='sigmoid' if self.num_classes == 1 else 'softmax',
+                                        activation='sigmoid' if num_classes == 1 else 'softmax',
                                         padding='same',
                                         data_format=data_format)
         else:
             self.conv_1x1 = tfkl.Conv3D(num_classes,
                                         (1, 1, 1),
-                                        activation='sigmoid' if self.num_classes == 1 else 'softmax',
+                                        activation='sigmoid' if num_classes == 1 else 'softmax',
                                         padding='same',
                                         data_format=data_format)
 
