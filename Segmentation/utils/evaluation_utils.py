@@ -14,7 +14,7 @@ from Segmentation.plotting.voxels import plot_volume
 # from Segmentation.utils.data_loader import read_tfrecord_2d
 from Segmentation.utils.training_utils import visualise_binary, visualise_multi_class
 from Segmentation.utils.evaluation_metrics import get_confusion_matrix, plot_confusion_matrix, iou_loss_eval, dice_coef_eval
-from Segmentation.utils.metrics import dice_coef, mIoU
+from Segmentation.utils.metrics import dice_coef, IoU
 
 def get_depth(conc):
     depth = 0

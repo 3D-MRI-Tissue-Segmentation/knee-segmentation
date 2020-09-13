@@ -171,8 +171,11 @@ def parse_fn_3d(example_proto,
         if "rotate" in augmentation:
             image, seg = apply_rotate_3d(image, seg)
         if augmentation is None:
-            image = tf.image.resize_with_crop_or_pad(image, 288, 288)
-            seg = tf.image.resize_with_crop_or_pad(seg, 288, 288)
+            image, seg = apply_centre_crop_3d(image,
+                                          seg,
+                                          crop_size=crop_size,
+                                          depth_crop_size=depth_crop_size,
+                                          output_slice=predict_slice)
         unsupported_augs = np.setdiff1d(supported_augs, augmentation)
         if unsupported_augs is not None:
             "Augmentation strategy {} does not exist or is not supported!".format(unsupported_augs)
@@ -183,7 +186,7 @@ def parse_fn_3d(example_proto,
                                           depth_crop_size=depth_crop_size,
                                           output_slice=predict_slice)  # predict_slice is undefined
 
-    image, seg = normalise(image, seg)
+    image, seg = normalise(image)
 
     # if training:
     #     dx = tf.cast(tf.random.uniform(shape=[], minval=0, maxval=128), tf.int32)

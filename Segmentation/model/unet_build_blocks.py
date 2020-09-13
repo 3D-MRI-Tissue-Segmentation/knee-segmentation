@@ -202,6 +202,7 @@ class Recurrent_Block(tf.keras.Model):
 
         super(Recurrent_Block, self).__init__(name=name)
 
+        self.t = t
         self.conv = Conv_Block(num_channels=num_channels,
                                use_2d=use_2d,
                                num_conv_layers=1,

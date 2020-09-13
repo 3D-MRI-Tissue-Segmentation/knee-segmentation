@@ -8,8 +8,10 @@ from absl import logging
 
 def select_model(FLAGS, num_classes):
 
-    if FLAGS.model_architecture == 'unet':
-        model_args = [FLAGS.num_filters,
+    num_filters = list(map(int, FLAGS.num_filters))
+
+    if FLAGS.model == 'unet':
+        model_args = [num_filters,
                       num_classes,
                       FLAGS.use_2d,
                       FLAGS.backbone_architecture,
@@ -25,20 +27,20 @@ def select_model(FLAGS, num_classes):
                       FLAGS.channel_order]
 
         model_fn = UNet
-    elif FLAGS.model_architecture == 'vnet':
-        model_args = [FLAGS.num_filters,
+    elif FLAGS.model == 'vnet':
+        model_args = [num_filters,
                       num_classes,
                       FLAGS.use_2d,
                       FLAGS.num_conv,
                       FLAGS.kernel_size,
-                      FLAGS.activation,
+                      'prelu',
                       FLAGS.use_batchnorm,
+                      0.0,
                       FLAGS.dropout_rate,
-                      FLAGS.use_spatial,
-                      FLAGS.channel_order]
+                      FLAGS.use_spatial]
         model_fn = VNet
-    elif FLAGS.model_architecture == 'r2unet':
-        model_args = [FLAGS.num_filters,
+    elif FLAGS.model == 'r2unet':
+        model_args = [num_filters,
                       num_classes,
                       FLAGS.use_2d,
                       FLAGS.num_conv,
@@ -51,8 +53,8 @@ def select_model(FLAGS, num_classes):
                       FLAGS.channel_order]
         model_fn = R2_UNet
 
-    elif FLAGS.model_architecture == 'segnet':
-        model_args = [FLAGS.num_filters,
+    elif FLAGS.model == 'segnet':
+        model_args = [num_filters,
                       num_classes,
                       FLAGS.backbone_architecture,
                       FLAGS.kernel_size,
@@ -68,8 +70,8 @@ def select_model(FLAGS, num_classes):
 
         model_fn = SegNet
 
-    elif FLAGS.model_architecture == 'unet++':
-        model_args = [FLAGS.num_filters,
+    elif FLAGS.model == 'unet++':
+        model_args = [num_filters,
                       num_classes,
                       FLAGS.use_2d,
                       FLAGS.num_conv,
@@ -80,8 +82,8 @@ def select_model(FLAGS, num_classes):
                       FLAGS.channel_order]
         model_fn = Nested_UNet_v2
 
-    elif FLAGS.model_architecture == '100-Layer-Tiramisu':
-        model_args = [FLAGS.growth_rate,
+    elif FLAGS.model == '100-Layer-Tiramisu':
+        model_args = [num_filters,
                       FLAGS.layers_per_block,
                       FLAGS.init_num_channels,
                       num_classes,
@@ -94,7 +96,7 @@ def select_model(FLAGS, num_classes):
 
         model_fn = Hundred_Layer_Tiramisu
 
-    elif FLAGS.model_architecture == 'deeplabv3':
+    elif FLAGS.model == 'deeplabv3':
         model_args = [num_classes,
                       FLAGS.kernel_size_initial_conv,
                       FLAGS.num_filters_atrous,
@@ -114,7 +116,7 @@ def select_model(FLAGS, num_classes):
 
         model_fn = Deeplabv3
 
-    elif FLAGS.model_architecture == 'deeplabv3_plus':
+    elif FLAGS.model == 'deeplabv3_plus':
         model_args = [num_classes,
                       FLAGS.kernel_size_initial_conv,
                       FLAGS.num_filters_atrous,
@@ -142,6 +144,6 @@ def select_model(FLAGS, num_classes):
         model_fn = Deeplabv3_plus
 
     else:
-        logging.error('The model architecture {} is not supported!'.format(FLAGS.model_architecture))
+        logging.error('The model architecture {} is not supported!'.format(FLAGS.model))
 
     return model_fn, model_args

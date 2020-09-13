@@ -8,7 +8,7 @@ class VNet(tf.keras.Model):
     def __init__(self,
                  num_channels,
                  num_classes,
-                 use_2d=False,
+                 use_2d=True,
                  num_conv_layers=2,
                  kernel_size=3,
                  activation='prelu',
@@ -16,16 +16,12 @@ class VNet(tf.keras.Model):
                  noise=0.0,
                  dropout_rate=0.25,
                  use_spatial_dropout=True,
-                 predict_slice=False,
-                 slice_format="mean",
                  name="vnet",
                  **kwargs):
 
         self.params = str(inspect.currentframe().f_locals)
         super(VNet, self).__init__(name=name)
         self.noise = noise
-        self.predict_slice = predict_slice
-        self.slice_format = slice_format
 
         block_args = {
             'use_2d': use_2d,
@@ -50,17 +46,18 @@ class VNet(tf.keras.Model):
         for i in range(n, -1, -1):
             output_ch = num_channels[i]
             self.upsampling_path.append(Up_ResBlock(output_ch,
-                                                    **block_args,
+                                                    num_conv_layers,
+                                                    use_2d,
+                                                    kernel_size,
                                                     **kwargs))
 
-        # convolution num_channels at the output
         if use_2d:
-            self.conv_output = tfkl.Conv2D(filters=num_channels,
+            self.conv_output = tfkl.Conv2D(num_classes,
                                            kernel_size=kernel_size,
                                            activation=None,
                                            padding='same')
         else:
-            self.conv_output = tfkl.Conv3D(filters=num_classes,
+            self.conv_output = tfkl.Conv3D(num_classes,
                                            kernel_size=kernel_size,
                                            activation=None,
                                            padding='same')
@@ -99,12 +96,5 @@ class VNet(tf.keras.Model):
         output = self.activation(output)
 
         output = self.conv_1x1(output)
-        if self.predict_slice:
-            if self.slice_format == "mean":
-                output = tf.reduce_mean(output, -4)
-                output = tf.expand_dims(output, 1)
-            if self.slice_format == "sum":
-                output = tf.reduce_sum(output, -4)
-                output = tf.expand_dims(output, 1)
         output = self.output_act(output)
         return output

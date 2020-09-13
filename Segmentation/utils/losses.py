@@ -5,14 +5,23 @@ import tensorflow as tf
 from Segmentation.utils.metrics import dice_coef
 
 epsilon = 1e-5
-smooth = 1
+smooth = 1e-10
 
+def multi_class_dice_coef_loss(y_true, y_pred, smooth=smooth):
+    y_true_f = tf.reshape(y_true, [-1, y_true.shape[-1]])
+    y_pred_f = tf.reshape(y_pred, [-1, y_pred.shape[-1]])
+    
+    tp = tf.math.reduce_sum(y_true_f * y_pred_f, axis=0) + smooth
+    fp_and_fn = tf.math.reduce_sum(y_true_f, axis=0) + tf.math.reduce_sum(y_pred_f, axis=0) + smooth
+
+    loss = -2 * tf.math.reduce_mean(tp / fp_and_fn, axis=-1)
+
+    return loss
 
 def dice_coef_loss(y_true, y_pred):
-    return -dice_coef(y_true, y_pred)
+    return -dice_coef(y_true, y_pred, smooth=smooth)
 
-
-def tversky_loss(y_true, y_pred, alpha=0.5, beta=0.5, smooth=1e-10):
+def tversky_loss(y_true, y_pred, alpha=0.5, beta=0.5, smooth=smooth):
     """ Tversky loss function.
     Parameters
     ----------
@@ -26,10 +35,10 @@ def tversky_loss(y_true, y_pred, alpha=0.5, beta=0.5, smooth=1e-10):
     tensor
         tensor containing tversky loss.
     """
-    y_true = K.flatten(y_true)
-    y_pred = K.flatten(y_pred)
-    truepos = K.sum(y_true * y_pred)
-    fp_and_fn = alpha * K.sum(y_pred * (1 - y_true)) + beta * K.sum((1 - y_pred) * y_true)
+    y_true = tf.reshape(y_true, [-1])
+    y_pred = tf.reshape(y_pred, [-1])
+    truepos = tf.math.reduce_sum(y_true * y_pred)
+    fp_and_fn = alpha * tf.math.reduce_sum(y_pred * (1 - y_true)) + beta * tf.math.reduce_sum((1 - y_pred) * y_true)
     answer = (truepos + smooth) / ((truepos + smooth) + fp_and_fn)
 
     return 1 - answer

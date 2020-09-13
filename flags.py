@@ -1,7 +1,15 @@
 from absl import flags
 
-# Dataset/training options
-flags.DEFINE_integer('seed', 1, 'Random seed.')
+# Dataset options
+flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
+flags.DEFINE_bool('use_2d', True, 'True to train on 2D slices, False to train on 3D data')
+flags.DEFINE_integer('buffer_size', 19200, 'shuffle buffer size')
+flags.DEFINE_string('tfrec_dir', 'gs://oai-ml-dataset/tfrecords/', 'directory for TFRecords folder')
+
+# Training options
+flags.DEFINE_integer('seed', None, 'Random seed. If not fixed, set to None')
+flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
+flags.DEFINE_enum('loss', 'tversky', ['tversky', 'dice', 'focal_tversky'], 'Loss functions')
 flags.DEFINE_integer('batch_size', 16, 'Batch size per TPU Core / GPU')
 flags.DEFINE_float('base_learning_rate', 6.4e-04, 'base learning rate at the start of training session')
 flags.DEFINE_float('min_learning_rate', 1e-09, 'minimum learning rate')
@@ -9,16 +17,13 @@ flags.DEFINE_integer('lr_warmup_epochs', 0, 'No. of epochs for a warmup to the b
 flags.DEFINE_float('lr_drop_ratio', 0.8, 'Amount to decay the learning rate')
 flags.DEFINE_bool('custom_decay_lr', False, 'Whether to specify epochs to decay learning rate.')
 flags.DEFINE_list('lr_decay_epochs', [10, 20, 40, 60], 'Epochs to decay the learning rate by. Only used if custom_decay_lr is True')
-flags.DEFINE_string('dataset', 'oai_challenge', 'Dataset: oai_challenge, isic_2018 or oai_full')
-flags.DEFINE_bool('use_2d', True, 'True to train on 2D slices, False to train on 3D data')
 flags.DEFINE_integer('crop_size', 288, 'Height and width crop size.')
 flags.DEFINE_integer('depth_crop_size', 160, 'Depth crop size.')
-flags.DEFINE_integer('train_epochs', 25, 'Number of training epochs.')
+flags.DEFINE_integer('train_epochs', 40, 'Number of training epochs.')
 flags.DEFINE_list('aug_strategy', None, 'Augmentation Strategies: None/center_crop (Default), random_crop, random_noise, random_flip')
 
 # Model options
-flags.DEFINE_string('model_architecture', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3, deeplabv3_plus')
-flags.DEFINE_integer('buffer_size', 19200, 'shuffle buffer size')
+flags.DEFINE_string('model', 'unet', 'unet, r2unet, segnet, unet++, 100-Layer-Tiramisu, deeplabv3, deeplabv3_plus')
 flags.DEFINE_bool('multi_class', True, 'Whether to train on a multi-class (Default) or binary setting')
 flags.DEFINE_integer('kernel_size', 3, 'kernel size to be used')
 flags.DEFINE_bool('use_batchnorm', True, 'Whether to use batch normalisation')
@@ -28,7 +33,7 @@ flags.DEFINE_string('activation', 'relu', 'activation function to be used')
 flags.DEFINE_bool('use_dropout', False, 'Whether to use dropout')
 flags.DEFINE_bool('use_spatial', False, 'Whether to use spatial Dropout. Only used if use_dropout is True')
 flags.DEFINE_float('dropout_rate', 0.0, 'Dropout rate. Only used if use_dropout is True')
-flags.DEFINE_string('optimizer', 'adam', 'Which optimizer to use for model: adam, rmsprop, sgd')
+flags.DEFINE_enum('optimizer', 'adam', ['adam', 'rmsprop', 'sgd', 'adamw'], 'Which optimizer to use for model: adam, rmsprop, sgd, adamw')
 
 # UNet parameters
 flags.DEFINE_list('num_filters', [64, 128, 256, 512, 1024], 'number of filters in the model')
@@ -64,15 +69,14 @@ flags.DEFINE_list('num_channels_UpConv', [512, 256, 128], 'Number of filters for
 flags.DEFINE_integer('kernel_size_UpConv', 3, 'Kernel size for the upsampling convolutions')
 
 # Logging, saving and testing options
-flags.DEFINE_string('tfrec_dir', 'gs://oai-ml-dataset/tfrecords/', 'directory for TFRecords folder')
-flags.DEFINE_string('logdir', 'gs://oai-ml-dataset/checkpoints/', 'directory for checkpoints')
-flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if train is False')
+flags.DEFINE_string('logdir', 'gs://oai-ml-dataset/checkpoints/', 'directory for checkpoints and tensoboard files')
+flags.DEFINE_bool('save_weights', False, 'Whether to save weights')
+flags.DEFINE_bool('save_tb', False, 'Whether to log results into Tensorboard')
+flags.DEFINE_string('weights_dir', 'checkpoints', 'directory for saved model or weights. Only used if save_weights is False')
 flags.DEFINE_string('bucket', 'oai-ml-dataset', 'GCloud Bucket for storage of data and weights')
 flags.DEFINE_integer('visual_save_freq', 1, 'Save visualisations every x epochs')
 flags.DEFINE_integer('roi_npy', 80, 'Save the middle x*x*x voxels')
-
 flags.DEFINE_string('fig_dir', 'figures', 'directory for saved figures')
-flags.DEFINE_bool('train', True, 'If True (Default), train the model. Otherwise, test the model')
 flags.DEFINE_string('visual_file', None, 'If not None, creates a visual of the model for the time stamp provided.')
 flags.DEFINE_string('gif_directory', None, 'Directory of where to put the gif')
 flags.DEFINE_integer('gif_epochs', 1000, 'Epochs to include in the creation of the gifs')
