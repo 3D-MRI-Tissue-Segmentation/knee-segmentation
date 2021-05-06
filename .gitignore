@@ -54,3 +54,5 @@ checkpoints/
 !/results/**
 
 ok.py
+
+**/mnt/
